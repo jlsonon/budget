@@ -1,9 +1,11 @@
 import { useState, useMemo } from 'react'
 import { motion } from 'framer-motion'
+import { useNavigate } from 'react-router-dom'
 import {
   Check,
   Trash2,
   CheckCheck,
+  ExternalLink,
 } from 'lucide-react'
 import Mascot from '@/components/ui/Mascot'
 import MochiCategoryVectorSVG from '@/components/ui/MochiCategoryVectorSVG'
@@ -21,6 +23,19 @@ const notifCategoryIcons: Record<string, string> = {
   achievement: 'gift_bag',
   insight: 'utensils',
   subscription_renewal: 'electric',
+}
+
+const notifTargetRoutes: Record<string, string> = {
+  bill_reminder: '/calendar',
+  subscription_renewal: '/subscriptions',
+  debt_due: '/debts',
+  credit_card: '/debts',
+  savings_milestone: '/savings',
+  goal_completed: '/savings',
+  budget_exceeded: '/budget',
+  achievement: '/profile',
+  payday: '/transactions',
+  insight: '/transactions',
 }
 
 const mockNotifications: AppNotification[] = [
@@ -100,6 +115,7 @@ function groupByDate(notifications: AppNotification[]) {
 }
 
 export default function NotificationsPage() {
+  const navigate = useNavigate()
   const [notifications, setNotifications] = useState(mockNotifications)
   const [filter, setFilter] = useState<'all' | 'unread' | 'bills' | 'milestones'>('all')
 
@@ -220,6 +236,12 @@ export default function NotificationsPage() {
               <div className="space-y-2.5">
                 {group.items.map((notif, index) => {
                   const vectorId = notifCategoryIcons[notif.type] || 'receipt'
+                  const targetRoute = notifTargetRoutes[notif.type] || '/transactions'
+
+                  const handleNotifClick = () => {
+                    markAsRead(notif.id)
+                    navigate(targetRoute)
+                  }
 
                   return (
                     <motion.div
@@ -227,7 +249,7 @@ export default function NotificationsPage() {
                       initial={{ opacity: 0, y: 8 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: index * 0.04 }}
-                      onClick={() => markAsRead(notif.id)}
+                      onClick={handleNotifClick}
                       className={cn(
                         'mochi-card p-4 flex items-start gap-3.5 group cursor-pointer transition-all hover:scale-[1.01]',
                         !notif.read ? 'bg-mochi-surface border-mochi-primary/40 shadow-xs' : 'bg-mochi-surface/60 opacity-80'
@@ -241,8 +263,9 @@ export default function NotificationsPage() {
                       {/* Content */}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between gap-2">
-                          <h3 className={cn('text-xs sm:text-sm truncate', !notif.read ? 'font-black text-mochi-text' : 'font-bold text-mochi-text-secondary')}>
-                            {notif.title}
+                          <h3 className={cn('text-xs sm:text-sm truncate flex items-center gap-1.5', !notif.read ? 'font-black text-mochi-text' : 'font-bold text-mochi-text-secondary')}>
+                            <span>{notif.title}</span>
+                            <ExternalLink className="w-3 h-3 text-mochi-primary opacity-0 group-hover:opacity-100 transition-opacity" />
                           </h3>
                           <span className="text-[10px] font-bold text-mochi-text-muted shrink-0">
                             {formatDate(notif.date, 'relative')}
