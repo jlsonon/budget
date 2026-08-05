@@ -1,0 +1,449 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================
+   CSS CUSTOM PROPERTIES — THEME ENGINE
+   ============================================ */
+
+/* Default Light Theme — Sakura */
+:root {
+  --color-bg: #FAFAFA;
+  --color-surface: #FFFFFF;
+  --color-surface-elevated: #FFFFFF;
+  --color-primary: #F9A8D4;
+  --color-primary-hover: #F472B6;
+  --color-secondary: #A78BFA;
+  --color-success: #34D399;
+  --color-warning: #FBBF24;
+  --color-error: #F87171;
+  --color-text: #1F2937;
+  --color-text-secondary: #6B7280;
+  --color-text-muted: #9CA3AF;
+  --color-border: #E5E7EB;
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-full: 9999px;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+  --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.12);
+
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-base: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 350ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-spring: 400ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Dark Theme — Moonlight */
+.dark {
+  --color-bg: #0F172A;
+  --color-surface: #1E293B;
+  --color-surface-elevated: #334155;
+  --color-primary: #EC4899;
+  --color-primary-hover: #DB2777;
+  --color-secondary: #8B5CF6;
+  --color-success: #10B981;
+  --color-warning: #F59E0B;
+  --color-error: #EF4444;
+  --color-text: #F9FAFB;
+  --color-text-secondary: #94A3B8;
+  --color-text-muted: #64748B;
+  --color-border: #334155;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.35);
+  --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.4);
+}
+
+/* Matcha Theme */
+[data-theme="matcha"] {
+  --color-primary: #86EFAC;
+  --color-primary-hover: #4ADE80;
+  --color-secondary: #6EE7B7;
+}
+
+/* Ocean Theme */
+[data-theme="ocean"] {
+  --color-primary: #67AED7;
+  --color-primary-hover: #3B82F6;
+  --color-secondary: #22D3EE;
+}
+
+/* Peach Theme */
+[data-theme="peach"] {
+  --color-primary: #FDBA74;
+  --color-primary-hover: #FB923C;
+  --color-secondary: #FCA5A5;
+}
+
+/* Cloud Theme */
+[data-theme="cloud"] {
+  --color-primary: #93C5FD;
+  --color-primary-hover: #60A5FA;
+  --color-secondary: #C4B5FD;
+}
+
+/* Halloween Theme */
+[data-theme="halloween"] {
+  --color-primary: #F97316;
+  --color-primary-hover: #EA580C;
+  --color-secondary: #A855F7;
+  --color-bg: #1C1917;
+  --color-surface: #292524;
+  --color-surface-elevated: #44403C;
+  --color-text: #FAFAF9;
+  --color-text-secondary: #A8A29E;
+  --color-text-muted: #78716C;
+  --color-border: #44403C;
+}
+
+/* Christmas Theme */
+[data-theme="christmas"] {
+  --color-primary: #EF4444;
+  --color-primary-hover: #DC2626;
+  --color-secondary: #22C55E;
+  --color-bg: #FEF2F2;
+  --color-surface: #FFFFFF;
+}
+
+/* Strawberry Theme */
+[data-theme="strawberry"] {
+  --color-primary: #FB7185;
+  --color-primary-hover: #F43F5E;
+  --color-secondary: #FDA4AF;
+  --color-bg: #FFF1F2;
+  --color-surface: #FFFFFF;
+}
+
+/* Cat Café Theme */
+[data-theme="cat-cafe"] {
+  --color-primary: #D4A574;
+  --color-primary-hover: #C08B5C;
+  --color-secondary: #E8C9A0;
+  --color-bg: #FDF6EC;
+  --color-surface: #FFFDF8;
+  --color-border: #E8DDD0;
+}
+
+/* Cozy Café Theme */
+[data-theme="cozy-cafe"] {
+  --color-primary: #A0785C;
+  --color-primary-hover: #8B6548;
+  --color-secondary: #D4A574;
+  --color-bg: #FAF5F0;
+  --color-surface: #FFFCF8;
+  --color-border: #E8DFD4;
+}
+
+/* Night Sky Theme */
+[data-theme="night-sky"] {
+  --color-primary: #818CF8;
+  --color-primary-hover: #6366F1;
+  --color-secondary: #C084FC;
+  --color-bg: #0F0F1A;
+  --color-surface: #1A1A2E;
+  --color-surface-elevated: #252545;
+  --color-text: #E2E8F0;
+  --color-text-secondary: #94A3B8;
+  --color-text-muted: #64748B;
+  --color-border: #2D2D4A;
+  --color-success: #34D399;
+  --color-warning: #FBBF24;
+  --color-error: #F87171;
+}
+
+/* Spring Theme */
+[data-theme="spring"] {
+  --color-primary: #A3E635;
+  --color-primary-hover: #84CC16;
+  --color-secondary: #BEF264;
+  --color-bg: #F7FEE7;
+  --color-surface: #FFFFFF;
+}
+
+/* Winter Theme */
+[data-theme="winter"] {
+  --color-primary: #7DD3FC;
+  --color-primary-hover: #38BDF8;
+  --color-secondary: #BAE6FD;
+  --color-bg: #F0F9FF;
+  --color-surface: #FFFFFF;
+  --color-border: #E0F2FE;
+}
+
+/* Moonlight Theme (named dark variant) */
+[data-theme="moonlight"] {
+  --color-primary: #C4B5FD;
+  --color-primary-hover: #A78BFA;
+  --color-secondary: #818CF8;
+  --color-bg: #0F172A;
+  --color-surface: #1E293B;
+  --color-surface-elevated: #334155;
+  --color-text: #F1F5F9;
+  --color-text-secondary: #94A3B8;
+  --color-text-muted: #64748B;
+  --color-border: #334155;
+}
+
+/* ============================================
+   BASE STYLES
+   ============================================ */
+
+@layer base {
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  html {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    -webkit-text-size-adjust: 100%;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background-color: var(--color-bg);
+    color: var(--color-text);
+    min-height: 100vh;
+    min-height: 100dvh;
+    overflow-x: hidden;
+    transition: background-color var(--transition-base), color var(--transition-base);
+  }
+
+  #root {
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+
+  /* Focus visible for accessibility */
+  :focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+    border-radius: var(--radius-sm);
+  }
+
+  /* Reduced motion support */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-border);
+    border-radius: var(--radius-full);
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--color-text-muted);
+  }
+
+  /* Selection */
+  ::selection {
+    background-color: var(--color-primary);
+    color: white;
+  }
+}
+
+/* ============================================
+   COMPONENT CLASSES
+   ============================================ */
+
+@layer components {
+  .mochi-card {
+    @apply rounded-lg p-4 transition-all duration-base;
+    background-color: var(--color-surface);
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--color-border);
+  }
+
+  .mochi-card-elevated {
+    @apply mochi-card;
+    background-color: var(--color-surface-elevated);
+    box-shadow: var(--shadow-lg);
+  }
+
+  .mochi-btn {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2.5
+           rounded-md font-medium text-sm transition-all duration-base
+           focus-visible:outline-none focus-visible:ring-2
+           focus-visible:ring-mochi-primary focus-visible:ring-offset-2
+           disabled:opacity-50 disabled:cursor-not-allowed
+           active:scale-95;
+  }
+
+  .mochi-btn-primary {
+    @apply mochi-btn text-white;
+    background-color: var(--color-primary);
+  }
+
+  .mochi-btn-primary:hover:not(:disabled) {
+    background-color: var(--color-primary-hover);
+  }
+
+  .mochi-btn-secondary {
+    @apply mochi-btn;
+    background-color: var(--color-surface);
+    color: var(--color-text);
+    border: 1px solid var(--color-border);
+  }
+
+  .mochi-btn-ghost {
+    @apply mochi-btn bg-transparent text-mochi-text-secondary hover:bg-mochi-surface;
+  }
+
+  .mochi-btn-danger {
+    @apply mochi-btn text-white;
+    background-color: var(--color-error);
+  }
+
+  .mochi-input {
+    @apply w-full px-3 py-2.5 rounded-md text-sm transition-all duration-base
+           bg-mochi-surface border border-mochi-border text-mochi-text
+           placeholder-mochi-text-muted
+           focus:outline-none focus:ring-2 focus:ring-mochi-primary focus:border-transparent
+           disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .mochi-label {
+    @apply block text-sm font-medium text-mochi-text-secondary mb-1.5;
+  }
+
+  .mochi-badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+  }
+
+  .mochi-badge-success {
+    background-color: color-mix(in srgb, var(--color-success) 15%, transparent);
+    color: var(--color-success);
+  }
+
+  .mochi-badge-warning {
+    background-color: color-mix(in srgb, var(--color-warning) 15%, transparent);
+    color: var(--color-warning);
+  }
+
+  .mochi-badge-error {
+    background-color: color-mix(in srgb, var(--color-error) 15%, transparent);
+    color: var(--color-error);
+  }
+
+  .mochi-skeleton {
+    @apply animate-pulse rounded-md;
+    background-color: var(--color-border);
+  }
+
+  .mochi-progress-ring {
+    transform: rotate(-90deg);
+    transform-origin: 50% 50%;
+  }
+
+  .mochi-progress-ring__circle {
+    transition: stroke-dashoffset var(--transition-slow);
+  }
+
+  /* Page transitions */
+  .page-enter {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  .page-enter-active {
+    opacity: 1;
+    transform: translateY(0);
+    transition: opacity var(--transition-base), transform var(--transition-base);
+  }
+
+  .page-exit {
+    opacity: 1;
+  }
+
+  .page-exit-active {
+    opacity: 0;
+    transition: opacity var(--transition-fast);
+  }
+
+  /* Safe area insets for mobile */
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+
+  .safe-top {
+    padding-top: env(safe-area-inset-top, 0);
+  }
+}
+
+/* ============================================
+   UTILITY CLASSES
+   ============================================ */
+
+@layer utilities {
+  .text-gradient {
+    background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .bg-gradient-mochi {
+    background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+  }
+
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  .touch-target {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  /* Line clamp utilities */
+  .line-clamp-1 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 1;
+  }
+
+  .line-clamp-2 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
+  .line-clamp-3 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+  }
+}
