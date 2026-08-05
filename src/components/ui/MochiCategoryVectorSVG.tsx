@@ -599,25 +599,108 @@ export function MochiCategoryVectorSVG({ id, size = 'md', className }: MochiCate
         </g>
       )}
 
-      {/* Official Meralco */}
-      {(cleanId === 'meralco' || cleanId.includes('meralco')) && (
+      {/* PLDT Home Fibr */}
+      {(cleanId.includes('pldt')) && (
         <g>
-          <rect width="48" height="48" rx="16" fill="#00529B" />
-          <circle cx="24" cy="24" r="14" fill="#F58220" />
-          <path d="M26 12L15 26H24L21 36L33 22H24L26 12Z" fill="white" />
+          <rect width="48" height="48" rx="16" fill="#DC2626" />
+          <path d="M12 34L24 14L36 34H12Z" fill="white" />
+          <text x="24" y="30" textAnchor="middle" fill="#DC2626" fontSize="8" fontWeight="900" fontFamily="sans-serif">
+            PLDT
+          </text>
         </g>
       )}
 
-      {/* Official Grab */}
-      {(cleanId === 'grab' || cleanId.includes('grab')) && (
+      {/* Globe Telecom */}
+      {(cleanId.includes('globe')) && (
         <g>
-          <rect width="48" height="48" rx="16" fill="#00B14F" />
-          <path fillRule="evenodd" clipRule="evenodd" d="M24 12C17.3726 12 12 17.3726 12 24C12 30.6274 17.3726 36 24 36C28.2 36 31.8 33.8 33.9 30.5L30.2 28.2C28.8 30.4 26.5 31.8 24 31.8C19.7 31.8 16.2 28.3 16.2 24C16.2 19.7 19.7 16.2 24 16.2C26.5 16.2 28.8 17.6 30.2 19.8L33.9 17.5C31.8 14.2 28.2 12 24 12Z" fill="white" />
+          <rect width="48" height="48" rx="16" fill="#0284C7" />
+          <circle cx="24" cy="24" r="12" fill="#0369A1" stroke="white" strokeWidth="2.5" />
+          <path d="M16 24C16 24 20 18 24 18C28 18 32 24 32 24C32 24 28 30 24 30C20 30 16 24 16 24Z" stroke="white" strokeWidth="2" fill="none" />
+        </g>
+      )}
+
+      {/* Smart Communications */}
+      {(cleanId.includes('smart')) && (
+        <g>
+          <rect width="48" height="48" rx="16" fill="#16A34A" />
+          <path d="M14 34L24 14L34 34H14Z" fill="#0284C7" />
+          <path d="M18 34L24 20L30 34H18Z" fill="white" />
+        </g>
+      )}
+
+      {/* Converge ICT */}
+      {(cleanId.includes('converge')) && (
+        <g>
+          <rect width="48" height="48" rx="16" fill="#7E22CE" />
+          <path d="M12 24C12 17.3726 17.3726 12 24 12C30.6274 12 36 17.3726 36 24" stroke="#EA580C" strokeWidth="4.5" strokeLinecap="round" />
+        </g>
+      )}
+
+      {/* DITO Telecommunity */}
+      {(cleanId.includes('dito')) && (
+        <g>
+          <rect width="48" height="48" rx="16" fill="#DC2626" />
+          <rect x="8" y="24" width="32" height="12" fill="#2563EB" />
+          <text x="24" y="22" textAnchor="middle" fill="white" fontSize="12" fontWeight="900" fontFamily="sans-serif">
+            DITO
+          </text>
+        </g>
+      )}
+
+      {/* Maynilad Water */}
+      {(cleanId.includes('maynilad')) && (
+        <g>
+          <rect width="48" height="48" rx="16" fill="#0284C7" />
+          <path d="M24 10C24 10 12 24 12 30C12 34.4183 17.3726 38 24 38C30.6274 38 36 34.4183 36 30C36 24 24 10 24 10Z" fill="#38BDF8" stroke="white" strokeWidth="2" />
+        </g>
+      )}
+
+      {/* Manila Water */}
+      {(cleanId.includes('manila water') || cleanId.includes('manilawater')) && (
+        <g>
+          <rect width="48" height="48" rx="16" fill="#0369A1" />
+          <path d="M12 26C16 22 20 30 24 26C28 22 32 30 36 26" stroke="#38BDF8" strokeWidth="4" strokeLinecap="round" />
+        </g>
+      )}
+
+      {/* PrimeWater / Laguna Water / LWUA */}
+      {(cleanId.includes('primewater') || cleanId.includes('laguna water') || cleanId.includes('lwua') || cleanId.includes('water')) && (
+        <g>
+          <rect width="48" height="48" rx="16" fill="#0EA5E9" />
+          <path d="M24 12C24 12 14 24 14 29C14 33 18 36 24 36C30 36 34 33 34 29C34 24 24 12 24 12Z" fill="white" />
+        </g>
+      )}
+
+      {/* Electric Cooperatives (AEC, DLPC, VECO, BENECO, FLECO, PELCO) */}
+      {(cleanId.includes('aec') || cleanId.includes('dlpc') || cleanId.includes('veco') || cleanId.includes('beneco') || cleanId.includes('fleco') || cleanId.includes('pelco') || cleanId.includes('electric') || cleanId.includes('kuryente')) && (
+        <g>
+          <rect width="48" height="48" rx="16" fill="#D97706" />
+          <circle cx="24" cy="24" r="14" fill="#FBBF24" />
+          <path d="M26 12L15 26H24L21 36L33 22H24L26 12Z" fill="#1E293B" />
+        </g>
+      )}
+
+      {/* Sky Cable */}
+      {(cleanId.includes('sky cable') || cleanId.includes('skycable') || cleanId.includes('sky')) && (
+        <g>
+          <rect width="48" height="48" rx="16" fill="#2563EB" />
+          <rect x="8" y="20" width="32" height="8" fill="#DC2626" />
+          <text x="24" y="34" textAnchor="middle" fill="white" fontSize="10" fontWeight="900" fontFamily="sans-serif">
+            SKY
+          </text>
+        </g>
+      )}
+
+      {/* Cignal TV */}
+      {(cleanId.includes('cignal')) && (
+        <g>
+          <rect width="48" height="48" rx="16" fill="#DC2626" />
+          <path d="M14 24C14 18.4772 18.4772 14 24 14V34C18.4772 34 14 29.5228 14 24Z" fill="#FACC15" />
         </g>
       )}
 
       {/* Default Fallback for unmatched IDs */}
-      {!['utensils', 'food', 'shopping_bag', 'shopping', 'house', 'housing', 'car', 'transport', 'electric', 'bills', 'gamepad', 'entertainment', 'heart', 'health', 'graduation', 'education', 'sofa', 'personal', 'plane', 'receipt', 'briefcase', 'salary', 'laptop', 'freelance', 'piggy_bank', 'savings', 'gift_bag', 'gifts', 'vault', 'coins', 'gcash', 'maya', 'jollibee', 'seven_eleven', 'meralco', 'grab', 'shopee', 'lazada', 'jeepney', 'bdo', 'bpi', 'mcdo', 'starbucks', 'netflix', 'spotify', 'foodpanda', 'pandamart', 'lalamove', 'angkas', 'joyride', 'moveit', 'sm', 'savemore', 'hypermarket', 'ayala', 'chowking', 'inasal', 'greenwich', 'red ribbon', 'goldilocks', 'binalot', 'uncle john', 'ministop', 'lawson', 'familymart', 'puregold', 'robinsons', 'waltermart', 'landers', 's&r', 'snr', 'metromart', 'kfc', 'burger king', 'wendy', 'popeye', 'subway', 'shakey', 'pizza hut', 'domino', 'tokyo', 'marugame', 'bonchon', 'paotsin', 'siomai', 'coco', 'macao', 'chatime', 'dunkin', 'mister donut'].some(k => cleanId.includes(k)) && (
+      {!['utensils', 'food', 'shopping_bag', 'shopping', 'house', 'housing', 'car', 'transport', 'electric', 'bills', 'gamepad', 'entertainment', 'heart', 'health', 'graduation', 'education', 'sofa', 'personal', 'plane', 'receipt', 'briefcase', 'salary', 'laptop', 'freelance', 'piggy_bank', 'savings', 'gift_bag', 'gifts', 'vault', 'coins', 'gcash', 'maya', 'jollibee', 'seven_eleven', 'meralco', 'grab', 'shopee', 'lazada', 'jeepney', 'bdo', 'bpi', 'mcdo', 'starbucks', 'netflix', 'spotify', 'foodpanda', 'pandamart', 'lalamove', 'angkas', 'joyride', 'moveit', 'sm', 'savemore', 'hypermarket', 'ayala', 'chowking', 'inasal', 'greenwich', 'red ribbon', 'goldilocks', 'binalot', 'uncle john', 'ministop', 'lawson', 'familymart', 'puregold', 'robinsons', 'waltermart', 'landers', 's&r', 'snr', 'metromart', 'kfc', 'burger king', 'wendy', 'popeye', 'subway', 'shakey', 'pizza hut', 'domino', 'tokyo', 'marugame', 'bonchon', 'paotsin', 'siomai', 'coco', 'macao', 'chatime', 'dunkin', 'mister donut', 'pldt', 'globe', 'smart', 'converge', 'dito', 'maynilad', 'manila water', 'primewater', 'laguna water', 'lwua', 'aec', 'dlpc', 'veco', 'beneco', 'fleco', 'pelco', 'sky', 'cignal'].some(k => cleanId.includes(k)) && (
         <g>
           <rect width="48" height="48" rx="16" fill="#F3F4F6" />
           <circle cx="24" cy="24" r="10" fill="#9CA3AF" />

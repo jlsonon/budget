@@ -106,10 +106,27 @@ const MERCHANT_DATABASE = [
   { name: 'Dunkin\' Donuts & Coffee', vectorId: 'dunkin', defaultCategory: 'food', tags: ['dunkin', 'donuts', 'coffee'] },
   { name: 'Mister Donut Pon de Ring', vectorId: 'mister_donut', defaultCategory: 'food', tags: ['mister donut', 'donuts'] },
 
-  // E-wallets, Utilities & Subscriptions
+  // 6. Utility Bills (Kuryente, Tubig, Internet, Cable TV)
+  { name: 'Meralco Electric Bill / Kuryente Load', vectorId: 'meralco', defaultCategory: 'utilities', tags: ['meralco', 'kuryente', 'electricity', 'bill'] },
+  { name: 'AEC (Angeles Electric Corp)', vectorId: 'aec', defaultCategory: 'utilities', tags: ['aec', 'angeles', 'electricity'] },
+  { name: 'DLPC (Davao Light & Power)', vectorId: 'dlpc', defaultCategory: 'utilities', tags: ['dlpc', 'davao', 'electricity'] },
+  { name: 'VECO (Visayan Electric)', vectorId: 'veco', defaultCategory: 'utilities', tags: ['veco', 'visayan', 'electricity'] },
+  { name: 'Electric Cooperative (BENECO / FLECO / PELCO)', vectorId: 'electric_coop', defaultCategory: 'utilities', tags: ['beneco', 'fleco', 'pelco', 'coop', 'kuryente'] },
+  { name: 'Maynilad Water Bill', vectorId: 'maynilad', defaultCategory: 'utilities', tags: ['maynilad', 'water', 'tubig'] },
+  { name: 'Manila Water Bill', vectorId: 'manilawater', defaultCategory: 'utilities', tags: ['manila water', 'manilawater', 'tubig'] },
+  { name: 'PrimeWater Bill', vectorId: 'primewater', defaultCategory: 'utilities', tags: ['primewater', 'water'] },
+  { name: 'Laguna Water / LWUA', vectorId: 'lagunawater', defaultCategory: 'utilities', tags: ['laguna water', 'lwua', 'water'] },
+  { name: 'PLDT Home Fibr Internet', vectorId: 'pldt', defaultCategory: 'utilities', tags: ['pldt', 'fibr', 'internet', 'wifi'] },
+  { name: 'Globe Postpaid / Broadband', vectorId: 'globe', defaultCategory: 'utilities', tags: ['globe', 'internet', 'load', 'broadband'] },
+  { name: 'Smart Postpaid / Prepaid Load', vectorId: 'smart', defaultCategory: 'utilities', tags: ['smart', 'load', 'internet'] },
+  { name: 'Converge ICT Fiber', vectorId: 'converge', defaultCategory: 'utilities', tags: ['converge', 'fiber', 'internet'] },
+  { name: 'DITO Telecommunity', vectorId: 'dito', defaultCategory: 'utilities', tags: ['dito', 'load', 'internet'] },
+  { name: 'Sky Cable TV & Fiber', vectorId: 'sky', defaultCategory: 'utilities', tags: ['sky', 'skycable', 'cable', 'tv'] },
+  { name: 'Cignal Satellite TV', vectorId: 'cignal', defaultCategory: 'utilities', tags: ['cignal', 'cable', 'tv'] },
+
+  // E-wallets, Banking & Subscriptions
   { name: 'GCash Money Transfer', vectorId: 'gcash', defaultCategory: 'other', tags: ['gcash', 'e-wallet'] },
   { name: 'Maya E-Wallet Payment', vectorId: 'maya', defaultCategory: 'utilities', tags: ['maya', 'paymaya'] },
-  { name: 'Meralco Electric Bill', vectorId: 'meralco', defaultCategory: 'utilities', tags: ['meralco', 'electricity'] },
   { name: 'Jeepney Commute Fare', vectorId: 'jeepney', defaultCategory: 'transport', tags: ['jeepney', 'commute'] },
   { name: 'Netflix Subscription', vectorId: 'netflix', defaultCategory: 'entertainment', tags: ['netflix', 'streaming'] },
   { name: 'Spotify Premium', vectorId: 'spotify', defaultCategory: 'entertainment', tags: ['spotify', 'music'] },
@@ -160,7 +177,19 @@ function getMerchantVectorId(merchant: string, type: TransactionType, currentCat
   if (m.includes('starbucks')) return 'starbucks'
   if (m.includes('dunkin')) return 'dunkin'
   if (m.includes('mister donut') || m.includes('misterdonut')) return 'mister_donut'
-  if (m.includes('meralco') || m.includes('electric')) return 'meralco'
+  if (m.includes('pldt')) return 'pldt'
+  if (m.includes('globe')) return 'globe'
+  if (m.includes('smart')) return 'smart'
+  if (m.includes('converge')) return 'converge'
+  if (m.includes('dito')) return 'dito'
+  if (m.includes('maynilad')) return 'maynilad'
+  if (m.includes('manila water') || m.includes('manilawater')) return 'manilawater'
+  if (m.includes('primewater')) return 'primewater'
+  if (m.includes('laguna water') || m.includes('lwua')) return 'lagunawater'
+  if (m.includes('aec') || m.includes('dlpc') || m.includes('veco') || m.includes('beneco') || m.includes('fleco') || m.includes('pelco')) return 'aec'
+  if (m.includes('sky cable') || m.includes('skycable') || m.includes('sky')) return 'sky'
+  if (m.includes('cignal')) return 'cignal'
+  if (m.includes('meralco') || m.includes('electric') || m.includes('kuryente')) return 'meralco'
   if (m.includes('grab')) return 'grab'
   if (m.includes('shopee')) return 'shopee'
   if (m.includes('lazada')) return 'lazada'
