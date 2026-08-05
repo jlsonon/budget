@@ -92,11 +92,11 @@ export default function DashboardPage() {
   
   const realIncome = monthTransactions
     .filter((t) => t.type === 'income')
-    .reduce((s, t) => s + t.amount, 0) || 45000 // default fallback for demonstration
+    .reduce((s, t) => s + t.amount, 0)
   
   const realExpenses = monthTransactions
     .filter((t) => t.type === 'expense')
-    .reduce((s, t) => s + t.amount, 0) || 18750
+    .reduce((s, t) => s + t.amount, 0)
 
   const netCashflow = realIncome - realExpenses
   const savingsRate = realIncome > 0 ? Math.round((netCashflow / realIncome) * 100) : 0
@@ -108,6 +108,24 @@ export default function DashboardPage() {
 
   const totalSaved = savingsGoals.reduce((sum, g) => sum + g.currentAmount, 0)
   const totalDebt = debts.reduce((sum, d) => sum + d.currentBalance, 0)
+
+  // Real 7-day spending trend calculation
+  const last7DaysTrend = transactions.length === 0 
+    ? [10, 10, 10, 10, 10, 10, 10]
+    : (() => {
+        const days = Array.from({ length: 7 }, (_, i) => {
+          const d = new Date()
+          d.setDate(d.getDate() - (6 - i))
+          return d.toISOString().split('T')[0]
+        })
+        const spentPerDay = days.map((dayStr) =>
+          transactions
+            .filter((t) => t.type === 'expense' && t.date === dayStr)
+            .reduce((sum, t) => sum + t.amount, 0)
+        )
+        const maxSpent = Math.max(...spentPerDay, 1)
+        return spentPerDay.map((spent) => Math.max(10, Math.round((spent / maxSpent) * 100)))
+      })()
 
   if (isLoading) {
     return (
@@ -377,9 +395,9 @@ export default function DashboardPage() {
             </p>
           </div>
         </div>
-        {/* Placeholder chart area */}
+        {/* Dynamic 7-day spending chart area */}
         <div className="h-32 rounded-lg bg-gradient-to-br from-mochi-primary/5 to-mochi-secondary/5 border border-mochi-border/50 flex items-end justify-around px-4 pb-2">
-          {[40, 65, 30, 80, 55, 70, 45].map((h, i) => (
+          {last7DaysTrend.map((h, i) => (
             <div
               key={i}
               className="w-6 rounded-t bg-gradient-to-t from-mochi-primary to-mochi-secondary transition-all duration-500"
@@ -387,7 +405,9 @@ export default function DashboardPage() {
             />
           ))}
         </div>
-        <p className="text-center text-xs text-mochi-text-muted mt-2">Spending trend (last 7 days)</p>
+        <p className="text-center text-xs text-mochi-text-muted mt-2">
+          {transactions.length > 0 ? 'Spending trend (last 7 days)' : 'Log transactions to view your 7-day spending trend'}
+        </p>
       </section>
 
       {/* Recent Transactions */}
