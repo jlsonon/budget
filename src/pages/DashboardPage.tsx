@@ -121,10 +121,10 @@ function HealthScoreRing({ score }: { score: number }) {
 
   return (
     <div className="relative inline-flex items-center justify-center">
-      <ProgressRing progress={score} size={120} strokeWidth={8} color="var(--color-primary)" />
+      <ProgressRing progress={score} size={120} strokeWidth={8} color="var(--color-primary)" showText={false} />
       <div className="absolute flex flex-col items-center">
         <span className={cn('text-2xl font-bold', color)}>{score}</span>
-        <span className="text-[10px] text-mochi-text-muted uppercase tracking-wide">Score</span>
+        <span className="text-[10px] text-mochi-text-muted uppercase tracking-wide font-bold">Score</span>
       </div>
     </div>
   )

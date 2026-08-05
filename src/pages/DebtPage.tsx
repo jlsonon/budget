@@ -15,6 +15,7 @@ import { formatCurrency, calculateProgress } from '@/lib/utils'
 import type { Debt } from '@/types'
 import MochiIllustration from '@/components/ui/MochiIllustrations'
 import Dialog from '@/components/ui/Dialog'
+import MochiCategoryVectorSVG from '@/components/ui/MochiCategoryVectorSVG'
 
 const debtTypeLabels: Record<string, string> = {
   borrowed: 'Borrowed',
@@ -27,9 +28,15 @@ const debtTypeLabels: Record<string, string> = {
   business: 'Business Loan',
 }
 
-const debtTypeIcons: Record<string, string> = {
-  borrowed: '🤝', lent: '💸', credit_card: '💳', loan: '🏦',
-  mortgage: '🏠', car_loan: '🚗', personal: '👤', business: '💼',
+const debtTypeVectorIds: Record<string, string> = {
+  borrowed: 'coins',
+  lent: 'wallet',
+  credit_card: 'receipt',
+  loan: 'vault',
+  mortgage: 'house',
+  car_loan: 'car',
+  personal: 'briefcase',
+  business: 'laptop',
 }
 
 // Mock debts
@@ -65,7 +72,7 @@ const mockDebts: Debt[] = [
 
 function DebtCard({ debt }: { debt: Debt }) {
   const progress = calculateProgress(debt.originalBalance - debt.currentBalance, debt.originalBalance)
-  const emoji = debtTypeIcons[debt.type] || '💰'
+  const vectorId = debtTypeVectorIds[debt.type] || 'vault'
   const isOverdue = new Date(debt.dueDate) < new Date()
 
   return (
@@ -75,8 +82,8 @@ function DebtCard({ debt }: { debt: Debt }) {
       className="mochi-card"
     >
       <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <span className="text-xl">{emoji}</span>
+        <div className="flex items-center gap-2.5">
+          <MochiCategoryVectorSVG id={vectorId} size="sm" />
           <div>
             <h3 className="text-sm font-semibold text-mochi-text">{debt.lender}</h3>
             <p className="text-xs text-mochi-text-muted">{debtTypeLabels[debt.type]}</p>
