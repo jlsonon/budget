@@ -4,6 +4,8 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { useAuthStore } from './store/authStore'
 import { useThemeStore } from './store/themeStore'
 import { useAppStore } from './store/appStore'
+import { startRealtimeSync } from './services/cloudSync'
+import { initOfflineQueueListener } from './services/offlineQueue'
 
 // Auth Pages
 import SplashScreen from './pages/auth/SplashScreen'
@@ -232,12 +234,21 @@ function AnimatedRoutes() {
 }
 
 export default function App() {
+  const { user } = useAuthStore()
   const { processDueRecurring } = useAppStore()
 
   useEffect(() => {
     useThemeStore.getState().initialize()
+    initOfflineQueueListener()
     processDueRecurring()
   }, [processDueRecurring])
+
+  useEffect(() => {
+    if (user?.id) {
+      const unsub = startRealtimeSync(user.id)
+      return () => unsub()
+    }
+  }, [user?.id])
 
   return <AnimatedRoutes />
 }

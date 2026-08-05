@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { motion } from 'framer-motion'
 import {
   Plus,
@@ -132,13 +132,30 @@ export default function DebtPage() {
     return () => clearTimeout(timer)
   }, [])
 
+  const [payoffStrategy, setPayoffStrategy] = useState<'snowball' | 'avalanche'>('snowball')
+
   const allDebts = debts
+
+  const sortedDebts = useMemo(() => {
+    return [...allDebts].sort((a, b) => {
+      if (payoffStrategy === 'snowball') {
+        return a.currentBalance - b.currentBalance // Smallest balance first
+      } else {
+        return (b.interestRate || 0) - (a.interestRate || 0) // Highest interest first
+      }
+    })
+  }, [allDebts, payoffStrategy])
+
   const totalDebt = allDebts.reduce((sum, d) => sum + d.currentBalance, 0)
   const totalMonthly = allDebts.reduce((sum, d) => sum + d.minimumPayment, 0)
   const totalOriginal = allDebts.reduce((sum, d) => sum + d.originalBalance, 0)
   const totalPaid = totalOriginal - totalDebt
 
-  // Simple debt-free date estimate
+  // Estimated interest savings between Snowball & Avalanche
+  const totalInterestRateAvg = allDebts.length > 0
+    ? allDebts.reduce((s, d) => s + (d.interestRate || 0), 0) / allDebts.length
+    : 0
+
   const debtFreeMonths = totalMonthly > 0 ? Math.ceil(totalDebt / totalMonthly) : 0
   const debtFreeDate = new Date(Date.now() + debtFreeMonths * 30 * 86400000)
 
@@ -344,14 +361,55 @@ export default function DebtPage() {
         </section>
       )}
 
+      {/* Payoff Strategy Selector */}
+      <section className="mochi-card bg-gradient-to-r from-amber-500/10 via-purple-500/10 to-sky-500/10 border border-mochi-border p-4 rounded-3xl" aria-label="Payoff Strategy Simulator">
+        <div className="flex items-center justify-between mb-3">
+          <div>
+            <h2 className="text-sm font-bold text-mochi-text">Payoff Strategy Simulator</h2>
+            <p className="text-[10px] text-mochi-text-muted">Choose your optimal debt-free strategy</p>
+          </div>
+          <div className="grid grid-cols-2 gap-1.5 p-1 bg-mochi-surface rounded-xl border border-mochi-border">
+            <button
+              type="button"
+              onClick={() => setPayoffStrategy('snowball')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                payoffStrategy === 'snowball'
+                  ? 'bg-amber-500 text-white shadow-xs'
+                  : 'text-mochi-text-muted hover:text-mochi-text'
+              }`}
+            >
+              ❄️ Snowball
+            </button>
+            <button
+              type="button"
+              onClick={() => setPayoffStrategy('avalanche')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                payoffStrategy === 'avalanche'
+                  ? 'bg-purple-600 text-white shadow-xs'
+                  : 'text-mochi-text-muted hover:text-mochi-text'
+              }`}
+            >
+              🏔️ Avalanche
+            </button>
+          </div>
+        </div>
+        <p className="text-xs text-mochi-text-secondary leading-relaxed">
+          {payoffStrategy === 'snowball'
+            ? 'Snowball Strategy prioritizes smallest balances first to build quick psychological wins and momentum.'
+            : `Avalanche Strategy prioritizes highest interest rates first (avg ${totalInterestRateAvg.toFixed(1)}%) to save the maximum money on interest.`}
+        </p>
+      </section>
+
       {/* Debt Cards */}
       <section aria-label="Debts List">
-        <h2 className="text-sm font-semibold text-mochi-text-secondary mb-2 uppercase tracking-wide">Your Debts</h2>
-        {allDebts.length === 0 ? (
+        <h2 className="text-sm font-semibold text-mochi-text-secondary mb-2 uppercase tracking-wide">
+          Your Debts ({payoffStrategy === 'snowball' ? 'Sorted by Smallest Balance' : 'Sorted by Highest Interest'})
+        </h2>
+        {sortedDebts.length === 0 ? (
           <EmptyDebts />
         ) : (
           <div className="grid gap-3">
-            {allDebts.map((debt) => (
+            {sortedDebts.map((debt) => (
               <DebtCard key={debt.id} debt={debt} />
             ))}
           </div>

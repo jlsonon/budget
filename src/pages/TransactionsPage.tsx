@@ -58,9 +58,6 @@ function getMerchantVectorId(merchant: string, paymentMethod?: string, defaultCa
   return defaultCategoryIcon || 'receipt'
 }
 
-// Fallback transactions list
-const mockTransactions: Transaction[] = []
-
 type SortOption = 'date-desc' | 'date-asc' | 'amount-desc' | 'amount-asc'
 
 /* ─── Transaction Detail Bottom Sheet ────────────────────────────────── */
@@ -219,7 +216,7 @@ function TransactionDetailSheet({
 
 /* ─── Main Page ─────────────────────────────────────────────────────── */
 export default function TransactionsPage({ mode = 'list' }: { mode?: 'list' | 'add' }) {
-  const { transactions, deleteTransaction, setAddModalOpen } = useAppStore()
+  const { transactions, wallets, deleteTransaction, setAddModalOpen } = useAppStore()
 
   useEffect(() => {
     if (mode === 'add') {
@@ -237,7 +234,11 @@ export default function TransactionsPage({ mode = 'list' }: { mode?: 'list' | 'a
     return () => clearTimeout(timer)
   }, [])
 
-  const allTxns = transactions.length > 0 ? transactions : mockTransactions
+  const [selectedWalletId, setSelectedWalletId] = useState<string>('all')
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string>('all')
+  const [selectedIds, setSelectedIds] = useState<string[]>([])
+
+  const allTxns = transactions
 
   // Filtered transactions
   const filtered = useMemo(() => {
@@ -245,6 +246,14 @@ export default function TransactionsPage({ mode = 'list' }: { mode?: 'list' | 'a
 
     if (typeFilter !== 'all') {
       result = result.filter((t) => t.type === typeFilter)
+    }
+
+    if (selectedWalletId !== 'all') {
+      result = result.filter((t) => t.walletId === selectedWalletId)
+    }
+
+    if (selectedCategoryId !== 'all') {
+      result = result.filter((t) => t.categoryId === selectedCategoryId)
     }
 
     if (search) {
@@ -268,7 +277,15 @@ export default function TransactionsPage({ mode = 'list' }: { mode?: 'list' | 'a
     })
 
     return result
-  }, [allTxns, search, typeFilter, sort])
+  }, [allTxns, search, typeFilter, selectedWalletId, selectedCategoryId, sort])
+
+  const handleBatchDelete = () => {
+    if (selectedIds.length === 0) return
+    if (window.confirm(`Are you sure you want to delete ${selectedIds.length} selected transactions?`)) {
+      selectedIds.forEach((id) => deleteTransaction(id))
+      setSelectedIds([])
+    }
+  }
 
   // Summary stats
   const totalIncome = filtered.filter((t) => t.type === 'income').reduce((s, t) => s + t.amount, 0)
@@ -342,6 +359,14 @@ export default function TransactionsPage({ mode = 'list' }: { mode?: 'list' | 'a
           <p className="text-xs text-mochi-text-muted font-medium">{filtered.length} records found</p>
         </div>
         <div className="flex items-center gap-2">
+          {selectedIds.length > 0 && (
+            <button
+              onClick={handleBatchDelete}
+              className="px-3 py-2 rounded-xl bg-rose-500 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm hover:bg-rose-600 transition-all"
+            >
+              <Trash2 className="w-3.5 h-3.5" /> Delete ({selectedIds.length})
+            </button>
+          )}
           <button
             onClick={handleExportCSV}
             className="mochi-btn-secondary text-xs py-2 px-3 flex items-center gap-1.5 shadow-xs"
@@ -422,8 +447,8 @@ export default function TransactionsPage({ mode = 'list' }: { mode?: 'list' | 'a
           </select>
         </div>
 
-        {/* Type Filter Pills */}
-        <div className="flex items-center gap-2">
+        {/* Type & Wallet Filter Pills */}
+        <div className="flex flex-wrap items-center gap-2">
           {[
             { id: 'all', label: 'All Records' },
             { id: 'expense', label: 'Expenses Only' },
@@ -441,6 +466,39 @@ export default function TransactionsPage({ mode = 'list' }: { mode?: 'list' | 'a
               {label}
             </button>
           ))}
+
+          {/* Wallet Filter Dropdown */}
+          <select
+            value={selectedWalletId}
+            onChange={(e) => setSelectedWalletId(e.target.value)}
+            className="mochi-input text-xs font-bold py-1.5 px-3 rounded-full border border-mochi-border bg-mochi-surface"
+          >
+            <option value="all">All Wallets</option>
+            {wallets.map((w) => (
+              <option key={w.id} value={w.id}>
+                {w.name}
+              </option>
+            ))}
+          </select>
+
+          {/* Category Filter Dropdown */}
+          <select
+            value={selectedCategoryId}
+            onChange={(e) => setSelectedCategoryId(e.target.value)}
+            className="mochi-input text-xs font-bold py-1.5 px-3 rounded-full border border-mochi-border bg-mochi-surface"
+          >
+            <option value="all">All Categories</option>
+            {DEFAULT_EXPENSE_CATEGORIES.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+            {DEFAULT_INCOME_CATEGORIES.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
 
