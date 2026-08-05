@@ -58,8 +58,8 @@ export default function RegisterPage() {
       setTheme(selectedTheme)
       await registerWithEmail(email, password)
       navigate('/')
-    } catch {
-      setError('Could not create account. Please try again.')
+    } catch (err: any) {
+      setError(err?.message || 'Could not create account. Please try again.')
     } finally {
       setIsLoading(false)
     }

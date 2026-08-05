@@ -26,8 +26,8 @@ export default function LoginPage() {
       setError(null)
       await signInWithGoogle()
       navigate('/')
-    } catch {
-      setError('Could not sign in with Google. Please try again.')
+    } catch (err: any) {
+      setError(err?.message || 'Could not sign in with Google. Please try again.')
     } finally {
       setIsLoading(false)
     }
@@ -40,8 +40,8 @@ export default function LoginPage() {
       setError(null)
       await signInWithEmail(email, password)
       navigate('/')
-    } catch {
-      setError('Could not sign in. Check your email and password.')
+    } catch (err: any) {
+      setError(err?.message || 'Could not sign in. Check your email and password.')
     } finally {
       setIsLoading(false)
     }

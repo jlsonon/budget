@@ -2,7 +2,6 @@ import {
   collection,
   query,
   where,
-  orderBy,
   addDoc,
   updateDoc,
   deleteDoc,
@@ -17,9 +16,15 @@ import { Transaction } from '../types'
 const TRANSACTIONS_COLLECTION = 'transactions'
 
 export async function getTransactions(userId: string): Promise<Transaction[]> {
-  const q = query(collection(db, TRANSACTIONS_COLLECTION), where('userId', '==', userId), orderBy('date', 'desc'))
-  const snapshot = await getDocs(q)
-  return snapshot.docs.map((d: QueryDocumentSnapshot) => ({ id: d.id, ...d.data() } as Transaction))
+  try {
+    const q = query(collection(db, TRANSACTIONS_COLLECTION), where('userId', '==', userId))
+    const snapshot = await getDocs(q)
+    const txns = snapshot.docs.map((d: QueryDocumentSnapshot) => ({ id: d.id, ...d.data() } as Transaction))
+    return txns.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+  } catch (err) {
+    console.warn('Firestore fetch transactions skipped or offline:', err)
+    return []
+  }
 }
 
 export async function createTransaction(userId: string, data: Omit<Transaction, 'id' | 'createdAt' | 'updatedAt'>): Promise<string> {

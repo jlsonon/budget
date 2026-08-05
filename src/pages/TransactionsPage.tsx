@@ -58,57 +58,8 @@ function getMerchantVectorId(merchant: string, paymentMethod?: string, defaultCa
   return defaultCategoryIcon || 'receipt'
 }
 
-// Fallback mock transactions with PH Merchants
-const mockTransactions: Transaction[] = [
-  {
-    id: '1', userId: '1', type: 'expense', amount: 350, currency: 'PHP',
-    categoryId: 'food', merchant: 'Jollibee Chickenjoy Meal', paymentMethod: 'cash', walletId: 'w_cash',
-    date: new Date(Date.now() - 86400000).toISOString().split('T')[0], time: '12:30 PM',
-    isFavorite: false, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
-  },
-  {
-    id: '2', userId: '1', type: 'income', amount: 45000, currency: 'PHP',
-    categoryId: 'salary', merchant: 'BDO Company Payroll', paymentMethod: 'bank_transfer', walletId: 'w_bpi',
-    date: new Date(Date.now() - 2 * 86400000).toISOString().split('T')[0], time: '09:00 AM',
-    isFavorite: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
-  },
-  {
-    id: '3', userId: '1', type: 'expense', amount: 549, currency: 'PHP',
-    categoryId: 'subscriptions', merchant: 'Netflix Philippines', paymentMethod: 'gcash', walletId: 'w_gcash',
-    date: new Date(Date.now() - 3 * 86400000).toISOString().split('T')[0], time: '02:15 PM',
-    isFavorite: false, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
-  },
-  {
-    id: '4', userId: '1', type: 'expense', amount: 1200, currency: 'PHP',
-    categoryId: 'transport', merchant: 'Grab Express & Food', paymentMethod: 'gcash', walletId: 'w_gcash',
-    date: new Date(Date.now() - 4 * 86400000).toISOString().split('T')[0], time: '08:15 AM',
-    isFavorite: false, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
-  },
-  {
-    id: '5', userId: '1', type: 'expense', amount: 2500, currency: 'PHP',
-    categoryId: 'bills', merchant: 'Meralco Electric Bill', paymentMethod: 'maya', walletId: 'w_maya',
-    date: new Date(Date.now() - 5 * 86400000).toISOString().split('T')[0], time: '04:45 PM',
-    isFavorite: false, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
-  },
-  {
-    id: '6', userId: '1', type: 'expense', amount: 890, currency: 'PHP',
-    categoryId: 'shopping', merchant: 'ShopeePay Super Sale', paymentMethod: 'other', walletId: 'w_gcash',
-    date: new Date(Date.now() - 6 * 86400000).toISOString().split('T')[0], time: '07:30 PM',
-    isFavorite: false, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
-  },
-  {
-    id: '7', userId: '1', type: 'expense', amount: 180, currency: 'PHP',
-    categoryId: 'food', merchant: '7-Eleven Snacks & Drinks', paymentMethod: 'cash', walletId: 'w_cash',
-    date: new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0], time: '11:15 PM',
-    isFavorite: false, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
-  },
-  {
-    id: '8', userId: '1', type: 'expense', amount: 45, currency: 'PHP',
-    categoryId: 'transport', merchant: 'Jeepney Commute Fare', paymentMethod: 'cash', walletId: 'w_cash',
-    date: new Date(Date.now() - 8 * 86400000).toISOString().split('T')[0], time: '07:00 AM',
-    isFavorite: false, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
-  },
-]
+// Fallback transactions list
+const mockTransactions: Transaction[] = []
 
 type SortOption = 'date-desc' | 'date-asc' | 'amount-desc' | 'amount-asc'
 
