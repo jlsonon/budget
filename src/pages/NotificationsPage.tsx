@@ -174,20 +174,20 @@ export default function NotificationsPage() {
         </div>
       </div>
 
-      {/* Filter Tabs */}
-      <div className="flex gap-2 overflow-x-auto pb-1 hide-scrollbar">
+      {/* Filter Tabs Grid (100% visible, 0 horizontal scroll) */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
         {[
-          { id: 'all', label: 'All Notifications' },
+          { id: 'all', label: 'All Activity' },
           { id: 'unread', label: `Unread (${unreadCount})` },
           { id: 'bills', label: 'Bills & Subs' },
-          { id: 'milestones', label: 'Milestones & Badges' },
+          { id: 'milestones', label: 'Milestones' },
         ].map((tab) => (
           <button
             key={tab.id}
             onClick={() => setFilter(tab.id as any)}
-            className={`px-3.5 py-1.5 rounded-2xl text-xs font-bold whitespace-nowrap transition-all ${
+            className={`py-2 px-3 rounded-2xl text-xs font-bold transition-all text-center ${
               filter === tab.id
-                ? 'bg-mochi-primary text-white shadow-xs scale-105'
+                ? 'bg-mochi-primary text-white shadow-xs scale-[1.02]'
                 : 'bg-mochi-surface-alt text-mochi-text-muted hover:text-mochi-text border border-mochi-border'
             }`}
           >
