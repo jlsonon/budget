@@ -30,81 +30,10 @@ import { useAuthStore } from '@/store/authStore'
 import { formatCurrency, getGreeting, getHealthScoreColor, cn } from '@/lib/utils'
 import type { Achievement, DailyMission, CalendarEvent as CalendarEventType } from '@/types'
 
-// Mock data
-const mockMissions: DailyMission[] = [
-  {
-    id: '1',
-    type: 'log_expense',
-    title: 'Log your first expense',
-    description: 'Track where your money goes today',
-    status: 'available',
-    reward: '+10 XP',
-    date: new Date().toISOString().split('T')[0],
-  },
-  {
-    id: '2',
-    type: 'review_spending',
-    title: 'Review this week spending',
-    description: 'Check if you stayed within budget',
-    status: 'in_progress',
-    reward: '+25 XP',
-    date: new Date().toISOString().split('T')[0],
-  },
-]
-
-const mockAchievements: Achievement[] = [
-  {
-    id: '1',
-    name: 'First Transaction',
-    description: 'Logged your first transaction',
-    icon: 'star',
-    category: 'milestone',
-    requirement: 1,
-    progress: 1,
-    unlocked: true,
-    unlockedAt: new Date().toISOString(),
-  },
-  {
-    id: '2',
-    name: 'Savings Starter',
-    description: 'Created your first savings goal',
-    icon: 'plant',
-    category: 'savings',
-    requirement: 1,
-    progress: 0,
-    unlocked: false,
-  },
-]
-
-const mockCalendarEvents: CalendarEventType[] = [
-  {
-    id: '1',
-    userId: '1',
-    type: 'bill',
-    title: 'Electric Bill Due',
-    date: new Date(Date.now() + 2 * 86400000).toISOString().split('T')[0],
-    amount: 2500,
-    color: '#EF4444',
-  },
-  {
-    id: '2',
-    userId: '1',
-    type: 'income',
-    title: 'Payday',
-    date: new Date(Date.now() + 5 * 86400000).toISOString().split('T')[0],
-    amount: 45000,
-    color: '#10B981',
-  },
-  {
-    id: '3',
-    userId: '1',
-    type: 'subscription',
-    title: 'Netflix Renewal',
-    date: new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0],
-    amount: 549,
-    color: '#8B5CF6',
-  },
-]
+// Clean initial states
+const mockMissions: DailyMission[] = []
+const mockAchievements: Achievement[] = []
+const mockCalendarEvents: CalendarEventType[] = []
 
 
 function SkeletonCard() {
@@ -155,7 +84,7 @@ export default function DashboardPage() {
     return () => clearTimeout(timer)
   }, [])
 
-  const mockHealthScore = 72
+  const mockHealthScore = transactions.length > 0 ? 85 : 100
 
   // Calculate real monthly income and expenses
   const currentMonthStr = new Date().toISOString().slice(0, 7) // YYYY-MM

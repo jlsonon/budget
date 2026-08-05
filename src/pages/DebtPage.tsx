@@ -39,36 +39,7 @@ const debtTypeVectorIds: Record<string, string> = {
   business: 'laptop',
 }
 
-// Mock debts
-const mockDebts: Debt[] = [
-  {
-    id: '1', userId: '1', lender: 'BDO Credit Card', type: 'credit_card',
-    originalBalance: 50000, currentBalance: 28000, interestRate: 3.5,
-    interestType: 'compound', dueDate: new Date(Date.now() + 10 * 86400000).toISOString(),
-    minimumPayment: 2500,
-    schedule: [], payments: [],
-    createdAt: new Date(Date.now() - 90 * 86400000).toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: '2', userId: '1', lender: 'Friend - Mark', type: 'borrowed',
-    originalBalance: 15000, currentBalance: 5000, interestRate: 0,
-    interestType: 'simple', dueDate: new Date(Date.now() + 30 * 86400000).toISOString(),
-    minimumPayment: 2000,
-    schedule: [], payments: [],
-    createdAt: new Date(Date.now() - 60 * 86400000).toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: '3', userId: '1', lender: 'Landbank Auto Loan', type: 'car_loan',
-    originalBalance: 500000, currentBalance: 380000, interestRate: 7.5,
-    interestType: 'simple', dueDate: new Date(Date.now() + 5 * 86400000).toISOString(),
-    minimumPayment: 8500,
-    schedule: [], payments: [],
-    createdAt: new Date(Date.now() - 365 * 86400000).toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-]
+
 
 function DebtCard({ debt }: { debt: Debt }) {
   const progress = calculateProgress(debt.originalBalance - debt.currentBalance, debt.originalBalance)
@@ -161,7 +132,7 @@ export default function DebtPage() {
     return () => clearTimeout(timer)
   }, [])
 
-  const allDebts = debts.length > 0 ? debts : mockDebts
+  const allDebts = debts
   const totalDebt = allDebts.reduce((sum, d) => sum + d.currentBalance, 0)
   const totalMonthly = allDebts.reduce((sum, d) => sum + d.minimumPayment, 0)
   const totalOriginal = allDebts.reduce((sum, d) => sum + d.originalBalance, 0)

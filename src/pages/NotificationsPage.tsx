@@ -38,62 +38,8 @@ const notifTargetRoutes: Record<string, string> = {
   insight: '/transactions',
 }
 
-const mockNotifications: AppNotification[] = [
-  {
-    id: '1',
-    userId: '1',
-    type: 'bill_reminder',
-    title: 'Meralco Electric Bill Due Tomorrow',
-    message: 'Your monthly electric bill of ₱2,500 is due tomorrow. Pay from GCash or Maya.',
-    read: false,
-    date: new Date().toISOString(),
-  },
-  {
-    id: '2',
-    userId: '1',
-    type: 'savings_milestone',
-    title: 'Emergency Fund Milestone Saved!',
-    message: 'Awesome progress! You just saved ₱5,000 toward your 6-Month Emergency Fund.',
-    read: false,
-    date: new Date().toISOString(),
-  },
-  {
-    id: '3',
-    userId: '1',
-    type: 'insight',
-    title: 'Weekly Budget Insight',
-    message: 'Your Food & Dining expenses are 15% lower than last week. Keep up the momentum!',
-    read: true,
-    date: new Date(Date.now() - 86400000).toISOString(),
-  },
-  {
-    id: '4',
-    userId: '1',
-    type: 'achievement',
-    title: 'New Badge Unlocked!',
-    message: 'You earned the "Smart Saver" badge for maintaining a 30-day streak.',
-    read: true,
-    date: new Date(Date.now() - 86400000).toISOString(),
-  },
-  {
-    id: '5',
-    userId: '1',
-    type: 'subscription_renewal',
-    title: 'Netflix Premium Auto-Renewal',
-    message: 'Your Netflix subscription (₱549/mo) will auto-deduct from your GCash wallet in 3 days.',
-    read: true,
-    date: new Date(Date.now() - 2 * 86400000).toISOString(),
-  },
-  {
-    id: '6',
-    userId: '1',
-    type: 'budget_exceeded',
-    title: 'Food & Dining Budget Alert',
-    message: 'You have reached 88% of your monthly Food & Dining budget.',
-    read: true,
-    date: new Date(Date.now() - 3 * 86400000).toISOString(),
-  },
-]
+// Empty fallback notifications
+const mockNotifications: AppNotification[] = []
 
 function groupByDate(notifications: AppNotification[]) {
   const today = new Date().toDateString()

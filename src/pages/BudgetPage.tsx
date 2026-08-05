@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { motion } from 'framer-motion'
 import {
   Plus,
@@ -39,30 +39,7 @@ function calculateProgress(spent: number, limit: number) {
   return (spent / limit) * 100
 }
 
-// Mock budgets
-const mockBudgets: Budget[] = [
-  {
-    id: '1', userId: '1', categoryId: 'food', limit: 8000, period: 'monthly',
-    startDate: new Date().toISOString(), recurring: true, notifications: true,
-    createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
-  },
-  {
-    id: '2', userId: '1', categoryId: 'transport', limit: 4000, period: 'monthly',
-    startDate: new Date().toISOString(), recurring: true, notifications: true,
-    createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
-  },
-  {
-    id: '3', userId: '1', categoryId: 'shopping', limit: 3000, period: 'monthly',
-    startDate: new Date().toISOString(), recurring: true, notifications: true,
-    createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
-  },
-]
 
-const mockSpent: Record<string, number> = {
-  food: 5400,
-  transport: 4200,
-  shopping: 1800,
-}
 
 function BudgetCard({ budget, spent }: { budget: Budget; spent: number }) {
   const category = DEFAULT_EXPENSE_CATEGORIES.find((c) => c.id === budget.categoryId)
@@ -157,14 +134,24 @@ export default function BudgetPage() {
   const { budgets } = useAppStore()
   const [isLoading, setIsLoading] = useState(true)
 
+  const { transactions } = useAppStore()
+
   useEffect(() => {
     const timer = setTimeout(() => setIsLoading(false), 1000)
     return () => clearTimeout(timer)
   }, [])
 
-  const allBudgets = budgets.length > 0 ? budgets : mockBudgets
+  const categorySpentMap = useMemo(() => {
+    const map: Record<string, number> = {}
+    transactions.filter((t) => t.type === 'expense').forEach((t) => {
+      map[t.categoryId] = (map[t.categoryId] || 0) + t.amount
+    })
+    return map
+  }, [transactions])
+
+  const allBudgets = budgets
   const totalBudget = allBudgets.reduce((sum, b) => sum + b.limit, 0)
-  const totalSpent = allBudgets.reduce((sum, b) => sum + (mockSpent[b.categoryId] || 0), 0)
+  const totalSpent = allBudgets.reduce((sum, b) => sum + (categorySpentMap[b.categoryId] || 0), 0)
   const totalRemaining = totalBudget - totalSpent
 
   if (isLoading) {
@@ -260,7 +247,7 @@ export default function BudgetPage() {
               <BudgetCard
                 key={budget.id}
                 budget={budget}
-                spent={mockSpent[budget.categoryId] || 0}
+                spent={categorySpentMap[budget.categoryId] || 0}
               />
             ))}
           </div>

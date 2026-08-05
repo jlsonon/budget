@@ -27,41 +27,7 @@ const goalIcons: Record<string, string> = {
   other: 'star',
 }
 
-// Mock goals
-const mockGoals: SavingsGoal[] = [
-  {
-    id: '1', userId: '1', name: 'Emergency Fund', targetAmount: 100000, currentAmount: 45000,
-    currency: 'PHP', deadline: new Date(Date.now() + 180 * 86400000).toISOString(),
-    icon: 'emergency', color: '#10B981',
-    milestones: [], notes: '',
-    contributions: [
-      { id: '1', amount: 5000, date: new Date(Date.now() - 30 * 86400000).toISOString() },
-      { id: '2', amount: 10000, date: new Date(Date.now() - 15 * 86400000).toISOString() },
-    ],
-    createdAt: new Date(Date.now() - 60 * 86400000).toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: '2', userId: '1', name: 'Japan Trip', targetAmount: 80000, currentAmount: 32000,
-    currency: 'PHP', deadline: new Date(Date.now() + 120 * 86400000).toISOString(),
-    icon: 'travel', color: '#3B82F6',
-    milestones: [],
-    contributions: [
-      { id: '3', amount: 8000, date: new Date(Date.now() - 20 * 86400000).toISOString() },
-    ],
-    createdAt: new Date(Date.now() - 45 * 86400000).toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: '3', userId: '1', name: 'New Laptop', targetAmount: 50000, currentAmount: 50000,
-    currency: 'PHP', deadline: new Date(Date.now() - 7 * 86400000).toISOString(),
-    icon: 'gadget', color: '#8B5CF6',
-    milestones: [],
-    contributions: [],
-    createdAt: new Date(Date.now() - 90 * 86400000).toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-]
+
 
 function GoalCard({ goal }: { goal: SavingsGoal }) {
   const progress = calculateProgress(goal.currentAmount, goal.targetAmount)
@@ -147,7 +113,7 @@ export default function SavingsPage() {
     return () => clearTimeout(timer)
   }, [])
 
-  const allGoals = savingsGoals.length > 0 ? savingsGoals : mockGoals
+  const allGoals = savingsGoals
   const activeGoals = allGoals.filter((g) => g.currentAmount < g.targetAmount)
   const completedGoals = allGoals.filter((g) => g.currentAmount >= g.targetAmount)
 
