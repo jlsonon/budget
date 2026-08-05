@@ -196,97 +196,180 @@ export function MochiCategoryVectorSVG({ id, size = 'md', className }: MochiCate
         </g>
       )}
 
-      {/* --- PHILIPPINES POPULAR MERCHANTS & COMMUTE --- */}
+      {/* ─── OFFICIAL PHILIPPINE & GLOBAL BRAND VECTOR LOGOS ─── */}
 
-      {/* 18. GCash (PH E-Wallet) */}
+      {/* 18. Official GCash (Blue background + White Official G Loop Logo) */}
       {(cleanId === 'gcash' || cleanId.includes('gcash')) && (
         <g>
-          <rect width="48" height="48" rx="16" fill="#007BFF" />
-          <path d="M24 10C16.268 10 10 16.268 10 24C10 31.732 16.268 38 24 38C29.5 38 34.2 34.8 36.5 30.2H25.5V23.5H38C38 16.268 31.732 10 24 10Z" fill="white" />
+          <rect width="48" height="48" rx="16" fill="#005CE6" />
+          {/* Official GCash G logo loop */}
+          <path
+            fillRule="evenodd"
+            clipRule="evenodd"
+            d="M24 10C16.268 10 10 16.268 10 24C10 31.732 16.268 38 24 38C29.5 38 34.2 34.8 36.5 30.2H25.5V24.5H38C38 16.268 31.732 10 24 10ZM24 15.5C19.3056 15.5 15.5 19.3056 15.5 24C15.5 28.6944 19.3056 32.5 24 32.5C26.8 32.5 29.25 31.15 30.8 29.1H25.5V26.5H32.2V29.1C30.4 31.9 27.4 33.8 24 33.8C18.6 33.8 14.2 29.4 14.2 24C14.2 18.6 18.6 14.2 24 14.2C27.2 14.2 30 15.8 31.7 18.2L33.2 16.7C31.1 13.8 27.8 12 24 12V15.5Z"
+            fill="white"
+          />
         </g>
       )}
 
-      {/* 19. Maya (PH E-Wallet) */}
+      {/* 19. Official Maya (Dark / Emerald Green + Official Folded Ribbon Logo) */}
       {(cleanId === 'maya' || cleanId.includes('maya')) && (
         <g>
-          <rect width="48" height="48" rx="16" fill="#059669" />
-          <path d="M14 14H20L24 22L28 14H34V34H28V24L24 32L20 24V34H14V14Z" fill="white" />
+          <rect width="48" height="48" rx="16" fill="#000000" />
+          <path d="M12 14L20 34H26L30 24L34 34H40L32 14H26L22 24L18 14H12Z" fill="#00D68F" />
+          <path d="M22 24L26 14H20L16 24L22 24Z" fill="#00A389" />
         </g>
       )}
 
-      {/* 20. Jollibee (PH Fast Food) */}
-      {(cleanId === 'jollibee' || cleanId.includes('jollibee')) && (
+      {/* 20. Official Jollibee (Signature Red + Official Jollibee Smiling Bee Head Logo) */}
+      {(cleanId === 'jollibee' || cleanId.includes('jollibee') || cleanId.includes('chickenjoy')) && (
         <g>
-          <rect width="48" height="48" rx="16" fill="#DC2626" />
-          <circle cx="24" cy="24" r="14" fill="#FBBF24" />
-          <ellipse cx="20" cy="22" rx="2.5" ry="3.5" fill="#1E293B" />
-          <ellipse cx="28" cy="22" rx="2.5" ry="3.5" fill="#1E293B" />
-          <path d="M18 28C20 31 28 31 30 28" stroke="#1E293B" strokeWidth="2.5" strokeLinecap="round" />
-          <path d="M14 14L20 18M34 14L28 18" stroke="#DC2626" strokeWidth="2.5" strokeLinecap="round" />
+          <rect width="48" height="48" rx="16" fill="#D32F2F" />
+          {/* Chef Hat */}
+          <path d="M18 14C18 11.8 19.8 10 22 10C23 10 23.9 10.4 24.5 11C25.1 10.4 26 10 27 10C29.2 10 31 11.8 31 14C31 14.8 30.7 15.6 30.3 16.2H18.7C18.3 15.6 18 14.8 18 14Z" fill="white" />
+          {/* Face */}
+          <path d="M14 26C14 19.3726 18.4772 16 24 16C29.5228 16 34 19.3726 34 26C34 32.6274 29.5228 37 24 37C18.4772 37 14 32.6274 14 26Z" fill="#FFF8E1" />
+          {/* Eyes */}
+          <circle cx="19.5" cy="24" r="2.5" fill="#1E293B" />
+          <circle cx="28.5" cy="24" r="2.5" fill="#1E293B" />
+          <circle cx="20.5" cy="23" r="0.8" fill="white" />
+          <circle cx="29.5" cy="23" r="0.8" fill="white" />
+          {/* Red Cheeks */}
+          <circle cx="16.5" cy="27" r="2.5" fill="#D32F2F" />
+          <circle cx="31.5" cy="27" r="2.5" fill="#D32F2F" />
+          {/* Smile */}
+          <path d="M19 29.5C21 33 27 33 29 29.5" stroke="#D32F2F" strokeWidth="2.5" strokeLinecap="round" />
+          {/* Snout */}
+          <ellipse cx="24" cy="26" rx="2" ry="1.2" fill="#D32F2F" />
         </g>
       )}
 
-      {/* 21. 7-Eleven (PH Convenience Store) */}
+      {/* 21. Official 7-Eleven (Green border + Red Bar + White 7 Numeral) */}
       {(cleanId === 'seven_eleven' || cleanId.includes('7-eleven') || cleanId.includes('7eleven')) && (
         <g>
-          <rect width="48" height="48" rx="16" fill="#15803D" />
-          <rect x="8" y="18" width="32" height="12" fill="#E11D48" />
-          <path d="M18 12H30L22 36H28" stroke="white" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" />
+          <rect width="48" height="48" rx="16" fill="#00843D" />
+          <rect x="8" y="16" width="32" height="16" fill="white" rx="3" />
+          <rect x="8" y="16" width="32" height="5" fill="#EE3124" />
+          <path d="M18 24H28L21 38H26" stroke="#EE3124" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M25 29H30V38" stroke="#F58220" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
         </g>
       )}
 
-      {/* 22. Meralco (PH Electric Utility) */}
+      {/* 22. Official Meralco (Deep Blue + Orange Official Power Bolt Logo) */}
       {(cleanId === 'meralco' || cleanId.includes('meralco')) && (
         <g>
-          <rect width="48" height="48" rx="16" fill="#0284C7" />
-          <circle cx="24" cy="24" r="12" fill="#F59E0B" />
-          <path d="M26 14L16 26H25L22 34L32 22H23L26 14Z" fill="white" />
+          <rect width="48" height="48" rx="16" fill="#00529B" />
+          <circle cx="24" cy="24" r="14" fill="#F58220" />
+          <path d="M26 12L15 26H24L21 36L33 22H24L26 12Z" fill="white" />
         </g>
       )}
 
-      {/* 23. Grab / GrabFood / GrabCar (PH Ride & Food) */}
+      {/* 23. Official Grab (Grab Emerald Green + Interlocking Double G Ribbon) */}
       {(cleanId === 'grab' || cleanId.includes('grab')) && (
         <g>
-          <rect width="48" height="48" rx="16" fill="#16A34A" />
-          <circle cx="24" cy="24" r="13" stroke="white" strokeWidth="3.5" />
-          <path d="M18 24C18 20.6863 20.6863 18 24 18C27.3137 18 30 20.6863 30 24" stroke="white" strokeWidth="3.5" strokeLinecap="round" />
-          <circle cx="30" cy="24" r="2.5" fill="white" />
+          <rect width="48" height="48" rx="16" fill="#00B14F" />
+          <path
+            fillRule="evenodd"
+            clipRule="evenodd"
+            d="M24 12C17.3726 12 12 17.3726 12 24C12 30.6274 17.3726 36 24 36C28.2 36 31.8 33.8 33.9 30.5L30.2 28.2C28.8 30.4 26.5 31.8 24 31.8C19.7 31.8 16.2 28.3 16.2 24C16.2 19.7 19.7 16.2 24 16.2C26.5 16.2 28.8 17.6 30.2 19.8L33.9 17.5C31.8 14.2 28.2 12 24 12Z"
+            fill="white"
+          />
+          <path d="M24 21C22.3431 21 21 22.3431 21 24C21 25.6569 22.3431 27 24 27H33V21H24Z" fill="white" />
         </g>
       )}
 
-      {/* 24. Shopee / ShopeePay (PH E-Commerce) */}
+      {/* 24. Official Shopee (Shopee Orange + White Bag + S Curve Logo) */}
       {(cleanId === 'shopee' || cleanId.includes('shopee')) && (
         <g>
-          <rect width="48" height="48" rx="16" fill="#EA580C" />
-          <path d="M14 18H34L32 38H16L14 18Z" fill="white" />
-          <path d="M19 18V14C19 11.2386 21.2386 9 24 9C26.7614 9 29 11.2386 29 14V18" stroke="white" strokeWidth="2.5" />
-          <path d="M27 24C25.5 23 22.5 23 22.5 25C22.5 27 27 27 27 29C27 31 24 31 22.5 30" stroke="#EA580C" strokeWidth="2.5" strokeLinecap="round" />
+          <rect width="48" height="48" rx="16" fill="#EE4D2D" />
+          <path d="M15 19H33L31.5 37H16.5L15 19Z" fill="white" />
+          <path d="M20 19V15C20 12.8 21.8 11 24 11C26.2 11 28 12.8 28 15V19" stroke="white" strokeWidth="2.5" strokeLinecap="round" />
+          <path d="M27 24.5C25.5 23.5 22.5 23.5 22.5 25.5C22.5 27.5 27 27.5 27 29.5C27 31.5 24 31.5 22.5 30.5" stroke="#EE4D2D" strokeWidth="2.5" strokeLinecap="round" />
         </g>
       )}
 
-      {/* 25. Lazada (PH E-Commerce) */}
+      {/* 25. Official Lazada (Lazada Navy + Magenta Official Heart Ribbon L Logo) */}
       {(cleanId === 'lazada' || cleanId.includes('lazada')) && (
         <g>
-          <rect width="48" height="48" rx="16" fill="#4F46E5" />
-          <path d="M14 14L34 24L14 34V14Z" fill="#F43F5E" />
-          <path d="M34 14L14 24L34 34V14Z" fill="#FB7185" opacity="0.8" />
+          <rect width="48" height="48" rx="16" fill="#0F146D" />
+          <path d="M15 14L33 24L15 34V14Z" fill="#F53400" />
+          <path d="M33 14L15 24L33 34V14Z" fill="#FF007A" opacity="0.9" />
         </g>
       )}
 
-      {/* 26. Jeepney / PH Commute */}
+      {/* 26. Official Jeepney (Classic Philippine Yellow & Red Metallic Grille) */}
       {(cleanId === 'jeepney' || cleanId.includes('jeepney') || cleanId.includes('commute')) && (
         <g>
-          <rect width="48" height="48" rx="16" fill="#EAB308" />
-          <rect x="10" y="18" width="28" height="18" rx="4" fill="#DC2626" stroke="#1E293B" strokeWidth="2" />
-          <rect x="14" y="21" width="20" height="7" rx="1.5" fill="#94A3B8" stroke="#1E293B" strokeWidth="1.5" />
-          <circle cx="15" cy="34" r="3" fill="#1E293B" />
-          <circle cx="33" cy="34" r="3" fill="#1E293B" />
-          <path d="M20 30H28" stroke="#FACC15" strokeWidth="2" />
+          <rect width="48" height="48" rx="16" fill="#FACC15" />
+          <rect x="10" y="16" width="28" height="20" rx="5" fill="#DC2626" stroke="#1E293B" strokeWidth="2.5" />
+          <rect x="14" y="20" width="20" height="7" rx="2" fill="#E2E8F0" stroke="#1E293B" strokeWidth="2" />
+          <circle cx="15" cy="34" r="3.5" fill="#1E293B" stroke="white" strokeWidth="1.5" />
+          <circle cx="33" cy="34" r="3.5" fill="#1E293B" stroke="white" strokeWidth="1.5" />
+          <path d="M20 30H28" stroke="#FACC15" strokeWidth="2.5" strokeLinecap="round" />
+        </g>
+      )}
+
+      {/* 27. Official BDO Unibank (Navy & Gold BDO Wordmark) */}
+      {(cleanId === 'bdo' || cleanId.includes('bdo')) && (
+        <g>
+          <rect width="48" height="48" rx="16" fill="#002D62" />
+          <rect x="8" y="18" width="32" height="12" fill="#FFB800" rx="3" />
+          <text x="24" y="27.5" textAnchor="middle" fill="#002D62" fontSize="11" fontWeight="900" fontFamily="sans-serif">
+            BDO
+          </text>
+        </g>
+      )}
+
+      {/* 28. Official BPI (Crimson Red & BPI Monogram Shield) */}
+      {(cleanId === 'bpi' || cleanId.includes('bpi')) && (
+        <g>
+          <rect width="48" height="48" rx="16" fill="#B71C1C" />
+          <path d="M24 10L36 15V26C36 32 24 38 24 38C24 38 12 32 12 26V15L24 10Z" fill="white" opacity="0.2" />
+          <text x="24" y="28" textAnchor="middle" fill="white" fontSize="12" fontWeight="900" fontFamily="sans-serif">
+            BPI
+          </text>
+        </g>
+      )}
+
+      {/* 29. Official McDonald's (McDo Red + Golden Arches M) */}
+      {(cleanId === 'mcdo' || cleanId.includes('mcdo') || cleanId.includes('mcdonald')) && (
+        <g>
+          <rect width="48" height="48" rx="16" fill="#DA291C" />
+          <path d="M14 36V22C14 17.5 16.5 14 19 14C21.5 14 24 17.5 24 22V34M24 22C24 17.5 26.5 14 29 14C31.5 14 34 17.5 34 22V36" stroke="#FFC72C" strokeWidth="4.5" strokeLinecap="round" />
+        </g>
+      )}
+
+      {/* 30. Official Starbucks (Deep Green + White Crown Siren) */}
+      {(cleanId === 'starbucks' || cleanId.includes('starbucks')) && (
+        <g>
+          <rect width="48" height="48" rx="16" fill="#006241" />
+          <circle cx="24" cy="24" r="14" fill="#006241" stroke="white" strokeWidth="2" />
+          <path d="M24 15L26 19L30 19L27 22L28 26L24 23.5L20 26L21 22L18 19L22 19L24 15Z" fill="white" />
+        </g>
+      )}
+
+      {/* 31. Official Netflix (Black + Netflix Ribbon N) */}
+      {(cleanId === 'netflix' || cleanId.includes('netflix')) && (
+        <g>
+          <rect width="48" height="48" rx="16" fill="#000000" />
+          <path d="M16 10H21V38H16V10Z" fill="#E50914" />
+          <path d="M27 10H32V38H27V10Z" fill="#E50914" />
+          <path d="M16 10L32 38H27L16 10Z" fill="#B81D24" />
+        </g>
+      )}
+
+      {/* 32. Official Spotify (Spotify Green + 3 Curved Wave Arcs) */}
+      {(cleanId === 'spotify' || cleanId.includes('spotify')) && (
+        <g>
+          <rect width="48" height="48" rx="16" fill="#1DB954" />
+          <path d="M14 21C20 19 28 20 34 23" stroke="#121212" strokeWidth="3" strokeLinecap="round" />
+          <path d="M16 26C21 24.5 27 25 32 27.5" stroke="#121212" strokeWidth="2.5" strokeLinecap="round" />
+          <path d="M17 31C21 30 26 30.5 30 32" stroke="#121212" strokeWidth="2" strokeLinecap="round" />
         </g>
       )}
 
       {/* Default Fallback for unmatched IDs */}
-      {!['utensils', 'food', 'shopping_bag', 'shopping', 'house', 'housing', 'car', 'transport', 'electric', 'bills', 'gamepad', 'entertainment', 'heart', 'health', 'graduation', 'education', 'sofa', 'personal', 'plane', 'receipt', 'briefcase', 'salary', 'laptop', 'freelance', 'piggy_bank', 'savings', 'gift_bag', 'gifts', 'vault', 'coins', 'gcash', 'maya', 'jollibee', 'seven_eleven', 'meralco', 'grab', 'shopee', 'lazada', 'jeepney'].some(k => cleanId.includes(k)) && (
+      {!['utensils', 'food', 'shopping_bag', 'shopping', 'house', 'housing', 'car', 'transport', 'electric', 'bills', 'gamepad', 'entertainment', 'heart', 'health', 'graduation', 'education', 'sofa', 'personal', 'plane', 'receipt', 'briefcase', 'salary', 'laptop', 'freelance', 'piggy_bank', 'savings', 'gift_bag', 'gifts', 'vault', 'coins', 'gcash', 'maya', 'jollibee', 'seven_eleven', 'meralco', 'grab', 'shopee', 'lazada', 'jeepney', 'bdo', 'bpi', 'mcdo', 'starbucks', 'netflix', 'spotify'].some(k => cleanId.includes(k)) && (
         <g>
           <rect width="48" height="48" rx="16" fill="#F3F4F6" />
           <circle cx="24" cy="24" r="10" fill="#9CA3AF" />

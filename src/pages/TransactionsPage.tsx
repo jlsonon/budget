@@ -34,20 +34,26 @@ const paymentMethodLabels: Record<PaymentMethod, string> = {
   other: 'Other',
 }
 
-// Smart helper for Philippine merchants & payment methods
+// Smart helper for Philippine & Global merchants & payment methods
 function getMerchantVectorId(merchant: string, paymentMethod?: string, defaultCategoryIcon?: string): string {
   const m = (merchant || '').toLowerCase()
   const p = (paymentMethod || '').toLowerCase()
 
   if (m.includes('gcash') || p === 'gcash') return 'gcash'
   if (m.includes('maya') || p === 'maya') return 'maya'
-  if (m.includes('jollibee') || m.includes('chickenjoy') || m.includes('mcdo')) return 'jollibee'
+  if (m.includes('jollibee') || m.includes('chickenjoy')) return 'jollibee'
+  if (m.includes('mcdo') || m.includes('mcdonald')) return 'mcdo'
   if (m.includes('shopee')) return 'shopee'
   if (m.includes('lazada')) return 'lazada'
   if (m.includes('grab')) return 'grab'
   if (m.includes('meralco') || m.includes('electric')) return 'meralco'
   if (m.includes('7-eleven') || m.includes('7eleven') || m.includes('7 eleven')) return 'seven_eleven'
   if (m.includes('jeepney') || m.includes('angkas') || m.includes('commute') || m.includes('joyride')) return 'jeepney'
+  if (m.includes('bdo')) return 'bdo'
+  if (m.includes('bpi')) return 'bpi'
+  if (m.includes('starbucks')) return 'starbucks'
+  if (m.includes('netflix')) return 'netflix'
+  if (m.includes('spotify')) return 'spotify'
 
   return defaultCategoryIcon || 'receipt'
 }
