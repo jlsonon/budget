@@ -34,17 +34,35 @@ const paymentMethodLabels: Record<PaymentMethod, string> = {
   other: 'Other',
 }
 
-// Fallback mock transactions
+// Smart helper for Philippine merchants & payment methods
+function getMerchantVectorId(merchant: string, paymentMethod?: string, defaultCategoryIcon?: string): string {
+  const m = (merchant || '').toLowerCase()
+  const p = (paymentMethod || '').toLowerCase()
+
+  if (m.includes('gcash') || p === 'gcash') return 'gcash'
+  if (m.includes('maya') || p === 'maya') return 'maya'
+  if (m.includes('jollibee') || m.includes('chickenjoy') || m.includes('mcdo')) return 'jollibee'
+  if (m.includes('shopee')) return 'shopee'
+  if (m.includes('lazada')) return 'lazada'
+  if (m.includes('grab')) return 'grab'
+  if (m.includes('meralco') || m.includes('electric')) return 'meralco'
+  if (m.includes('7-eleven') || m.includes('7eleven') || m.includes('7 eleven')) return 'seven_eleven'
+  if (m.includes('jeepney') || m.includes('angkas') || m.includes('commute') || m.includes('joyride')) return 'jeepney'
+
+  return defaultCategoryIcon || 'receipt'
+}
+
+// Fallback mock transactions with PH Merchants
 const mockTransactions: Transaction[] = [
   {
     id: '1', userId: '1', type: 'expense', amount: 350, currency: 'PHP',
-    categoryId: 'food', merchant: 'Jollibee', paymentMethod: 'cash', walletId: 'w_cash',
+    categoryId: 'food', merchant: 'Jollibee Chickenjoy Meal', paymentMethod: 'cash', walletId: 'w_cash',
     date: new Date(Date.now() - 86400000).toISOString().split('T')[0], time: '12:30 PM',
     isFavorite: false, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
   },
   {
     id: '2', userId: '1', type: 'income', amount: 45000, currency: 'PHP',
-    categoryId: 'salary', merchant: 'Company Payroll', paymentMethod: 'bank_transfer', walletId: 'w_bpi',
+    categoryId: 'salary', merchant: 'BDO Company Payroll', paymentMethod: 'bank_transfer', walletId: 'w_bpi',
     date: new Date(Date.now() - 2 * 86400000).toISOString().split('T')[0], time: '09:00 AM',
     isFavorite: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
   },
@@ -56,14 +74,32 @@ const mockTransactions: Transaction[] = [
   },
   {
     id: '4', userId: '1', type: 'expense', amount: 1200, currency: 'PHP',
-    categoryId: 'transport', merchant: 'Grab Express & Car', paymentMethod: 'gcash', walletId: 'w_gcash',
+    categoryId: 'transport', merchant: 'Grab Express & Food', paymentMethod: 'gcash', walletId: 'w_gcash',
     date: new Date(Date.now() - 4 * 86400000).toISOString().split('T')[0], time: '08:15 AM',
     isFavorite: false, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
   },
   {
     id: '5', userId: '1', type: 'expense', amount: 2500, currency: 'PHP',
-    categoryId: 'bills', merchant: 'Meralco Electricity Bill', paymentMethod: 'maya', walletId: 'w_maya',
+    categoryId: 'bills', merchant: 'Meralco Electric Bill', paymentMethod: 'maya', walletId: 'w_maya',
     date: new Date(Date.now() - 5 * 86400000).toISOString().split('T')[0], time: '04:45 PM',
+    isFavorite: false, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+  },
+  {
+    id: '6', userId: '1', type: 'expense', amount: 890, currency: 'PHP',
+    categoryId: 'shopping', merchant: 'ShopeePay Super Sale', paymentMethod: 'other', walletId: 'w_gcash',
+    date: new Date(Date.now() - 6 * 86400000).toISOString().split('T')[0], time: '07:30 PM',
+    isFavorite: false, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+  },
+  {
+    id: '7', userId: '1', type: 'expense', amount: 180, currency: 'PHP',
+    categoryId: 'food', merchant: '7-Eleven Snacks & Drinks', paymentMethod: 'cash', walletId: 'w_cash',
+    date: new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0], time: '11:15 PM',
+    isFavorite: false, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+  },
+  {
+    id: '8', userId: '1', type: 'expense', amount: 45, currency: 'PHP',
+    categoryId: 'transport', merchant: 'Jeepney Commute Fare', paymentMethod: 'cash', walletId: 'w_cash',
+    date: new Date(Date.now() - 8 * 86400000).toISOString().split('T')[0], time: '07:00 AM',
     isFavorite: false, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
   },
 ]
@@ -463,6 +499,7 @@ export default function TransactionsPage({ mode = 'list' }: { mode?: 'list' | 'a
           {filtered.map((txn) => {
             const category = categoryMap[txn.categoryId]
             const isIncome = txn.type === 'income'
+            const vectorId = getMerchantVectorId(txn.merchant, txn.paymentMethod, category?.icon)
 
             return (
               <motion.div
@@ -477,7 +514,7 @@ export default function TransactionsPage({ mode = 'list' }: { mode?: 'list' | 'a
                   'w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 border shadow-xs',
                   isIncome ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-rose-500/10 border-rose-500/20'
                 )}>
-                  <MochiCategoryVectorSVG id={category?.icon || 'receipt'} size="sm" />
+                  <MochiCategoryVectorSVG id={vectorId} size="sm" />
                 </div>
 
                 {/* Main details */}
