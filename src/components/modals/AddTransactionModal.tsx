@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   X,
@@ -6,12 +6,12 @@ import {
   AlertCircle,
   ArrowDownRight,
   ArrowUpRight,
-  Calendar,
   ChevronDown,
   Search,
   Star,
   ChevronRight,
   ShieldAlert,
+  Sparkles,
 } from 'lucide-react'
 import { useAppStore } from '@/store/appStore'
 import Dialog from '@/components/ui/Dialog'
@@ -41,6 +41,45 @@ const incomeCategories = [
   { id: 'sales', label: 'Sales / Business', iconId: 'vault' },
   { id: 'other_income', label: 'Other Income', iconId: 'coins' },
 ]
+
+// Preset Merchant Suggestions Database with official icons and default categories
+const MERCHANT_DATABASE = [
+  { name: 'Jollibee Chickenjoy', vectorId: 'jollibee', defaultCategory: 'food', tags: ['fast food', 'food', 'meal'] },
+  { name: 'GCash Transfer', vectorId: 'gcash', defaultCategory: 'other', tags: ['gcash', 'e-wallet', 'send'] },
+  { name: 'Maya Payment', vectorId: 'maya', defaultCategory: 'utilities', tags: ['maya', 'e-wallet', 'pay'] },
+  { name: 'Meralco Electric Bill', vectorId: 'meralco', defaultCategory: 'utilities', tags: ['electricity', 'meralco', 'bill'] },
+  { name: 'GrabFood & GrabCar', vectorId: 'grab', defaultCategory: 'transport', tags: ['grab', 'food', 'car', 'ride'] },
+  { name: 'Shopee Mall Order', vectorId: 'shopee', defaultCategory: 'shopping', tags: ['shopee', 'online', 'shopping'] },
+  { name: 'Lazada Sale Order', vectorId: 'lazada', defaultCategory: 'shopping', tags: ['lazada', 'online', 'shopping'] },
+  { name: '7-Eleven Convenience', vectorId: 'seven_eleven', defaultCategory: 'food', tags: ['7-eleven', 'snacks', 'store'] },
+  { name: 'McDonald\'s (McDo)', vectorId: 'mcdo', defaultCategory: 'food', tags: ['mcdo', 'burger', 'fast food'] },
+  { name: 'Starbucks Coffee', vectorId: 'starbucks', defaultCategory: 'food', tags: ['coffee', 'starbucks', 'drink'] },
+  { name: 'Jeepney & LRT Fare', vectorId: 'jeepney', defaultCategory: 'transport', tags: ['jeepney', 'commute', 'fare'] },
+  { name: 'BDO Company Payroll', vectorId: 'bdo', defaultCategory: 'income', tags: ['bdo', 'salary', 'bank'] },
+  { name: 'BPI Bank Account', vectorId: 'bpi', defaultCategory: 'income', tags: ['bpi', 'salary', 'bank'] },
+  { name: 'Netflix Subscription', vectorId: 'netflix', defaultCategory: 'entertainment', tags: ['netflix', 'streaming', 'movie'] },
+  { name: 'Spotify Premium', vectorId: 'spotify', defaultCategory: 'entertainment', tags: ['spotify', 'music', 'audio'] },
+]
+
+function getMerchantVectorId(merchant: string, type: TransactionType, currentCatIcon?: string): string {
+  const m = (merchant || '').toLowerCase()
+  if (m.includes('gcash')) return 'gcash'
+  if (m.includes('maya')) return 'maya'
+  if (m.includes('jollibee') || m.includes('chickenjoy')) return 'jollibee'
+  if (m.includes('mcdo') || m.includes('mcdonald')) return 'mcdo'
+  if (m.includes('shopee')) return 'shopee'
+  if (m.includes('lazada')) return 'lazada'
+  if (m.includes('grab')) return 'grab'
+  if (m.includes('meralco') || m.includes('electric')) return 'meralco'
+  if (m.includes('7-eleven') || m.includes('7eleven') || m.includes('7 eleven')) return 'seven_eleven'
+  if (m.includes('jeepney') || m.includes('angkas') || m.includes('commute') || m.includes('joyride')) return 'jeepney'
+  if (m.includes('bdo')) return 'bdo'
+  if (m.includes('bpi')) return 'bpi'
+  if (m.includes('starbucks')) return 'starbucks'
+  if (m.includes('netflix')) return 'netflix'
+  if (m.includes('spotify')) return 'spotify'
+  return currentCatIcon || (type === 'expense' ? 'receipt' : 'briefcase')
+}
 
 // Frequently used categories (pinned at top of picker)
 const FREQUENT_IDS = ['food', 'transport', 'shopping', 'income', 'utilities']
@@ -196,6 +235,7 @@ export function AddTransactionModal() {
   const [date, setDate] = useState(new Date().toISOString().split('T')[0])
   const [walletId, setWalletId] = useState<string>(wallets.find((w) => w.isDefault)?.id || wallets[0]?.id || '')
   const [isCategoryPickerOpen, setIsCategoryPickerOpen] = useState(false)
+  const [showSuggestions, setShowSuggestions] = useState(false)
 
   const [status, setStatus] = useState<'idle' | 'success' | 'error'>('idle')
   const [errorMessage, setErrorMessage] = useState('')
@@ -203,6 +243,25 @@ export function AddTransactionModal() {
   const categories = type === 'expense' ? expenseCategories : incomeCategories
   const selectedCat = categories.find((c) => c.id === category) || categories[0]
   const selectedWallet = wallets.find((w) => w.id === walletId) || wallets[0]
+
+  // Filter merchant suggestions based on user input
+  const suggestions = useMemo(() => {
+    if (!title.trim()) return []
+    const q = title.toLowerCase()
+    return MERCHANT_DATABASE.filter(
+      (m) => m.name.toLowerCase().includes(q) || m.tags.some((t) => t.includes(q))
+    ).slice(0, 5)
+  }, [title])
+
+  const liveVectorId = getMerchantVectorId(title, type, selectedCat.iconId)
+
+  const handleSelectSuggestion = (merchant: (typeof MERCHANT_DATABASE)[0]) => {
+    setTitle(merchant.name)
+    if (merchant.defaultCategory) {
+      setCategory(merchant.defaultCategory)
+    }
+    setShowSuggestions(false)
+  }
 
   const handleTypeChange = (newType: TransactionType) => {
     setType(newType)
@@ -376,18 +435,76 @@ export function AddTransactionModal() {
                 </div>
               </div>
 
-              {/* Description */}
-              <div>
-                <label className="block text-xs font-bold text-mochi-text-secondary mb-1">
-                  Description / Merchant *
-                </label>
-                <input
-                  type="text"
-                  placeholder={type === 'expense' ? 'e.g. Jollibee, Grab, Electricity Bill' : 'e.g. Monthly Salary, Freelance Work'}
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  className="mochi-input text-xs w-full font-semibold"
-                />
+              {/* Description / Merchant with Autocomplete & Live Icon Preview */}
+              <div className="relative">
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-bold text-mochi-text-secondary">
+                    Description / Merchant *
+                  </label>
+                  {title.trim() && (
+                    <span className="text-[10px] font-extrabold text-mochi-primary flex items-center gap-1">
+                      <Sparkles className="w-3 h-3" /> Auto Icon Detected
+                    </span>
+                  )}
+                </div>
+
+                <div className="relative flex items-center">
+                  <input
+                    type="text"
+                    placeholder={type === 'expense' ? 'e.g. Jollibee, GCash, Grab, Meralco' : 'e.g. BDO Payroll, Freelance'}
+                    value={title}
+                    onFocus={() => setShowSuggestions(true)}
+                    onChange={(e) => {
+                      setTitle(e.target.value)
+                      setShowSuggestions(true)
+                    }}
+                    className="mochi-input text-xs w-full font-semibold pr-11"
+                  />
+
+                  {/* Live Vector SVG Icon Preview inside Input */}
+                  <div className="absolute right-2.5 pointer-events-none">
+                    <MochiCategoryVectorSVG id={liveVectorId} size="sm" />
+                  </div>
+                </div>
+
+                {/* Autocomplete Suggestions Dropdown */}
+                <AnimatePresence>
+                  {showSuggestions && suggestions.length > 0 && (
+                    <>
+                      <div className="fixed inset-0 z-10" onClick={() => setShowSuggestions(false)} />
+                      <motion.div
+                        initial={{ opacity: 0, y: -4 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -4 }}
+                        className="absolute left-0 right-0 top-full mt-1.5 z-20 bg-mochi-surface border border-mochi-border rounded-2xl shadow-xl overflow-hidden divide-y divide-mochi-border/60"
+                      >
+                        {suggestions.map((m) => (
+                          <button
+                            key={m.name}
+                            type="button"
+                            onClick={() => handleSelectSuggestion(m)}
+                            className="w-full flex items-center justify-between p-2.5 px-3.5 hover:bg-mochi-surface-alt transition-colors text-left group"
+                          >
+                            <div className="flex items-center gap-2.5">
+                              <MochiCategoryVectorSVG id={m.vectorId} size="sm" />
+                              <div>
+                                <p className="text-xs font-extrabold text-mochi-text group-hover:text-mochi-primary transition-colors">
+                                  {m.name}
+                                </p>
+                                <p className="text-[10px] text-mochi-text-muted capitalize">
+                                  {m.defaultCategory}
+                                </p>
+                              </div>
+                            </div>
+                            <span className="text-[9px] font-extrabold text-mochi-primary bg-mochi-primary/10 px-2 py-0.5 rounded-full border border-mochi-primary/20">
+                              Use Official Icon
+                            </span>
+                          </button>
+                        ))}
+                      </motion.div>
+                    </>
+                  )}
+                </AnimatePresence>
               </div>
 
               {/* Category + Wallet — side by side */}
@@ -443,35 +560,27 @@ export function AddTransactionModal() {
                 </div>
               </div>
 
-              {/* Date */}
+              {/* Date Input */}
               <div>
-                <label className="block text-xs font-bold text-mochi-text-secondary mb-1 flex items-center gap-1">
-                  <Calendar className="w-3.5 h-3.5 text-mochi-primary" /> Date
-                </label>
+                <label className="block text-xs font-bold text-mochi-text-secondary mb-1">Date</label>
                 <input
                   type="date"
                   value={date}
                   onChange={(e) => setDate(e.target.value)}
-                  className="mochi-input text-xs w-full font-semibold"
+                  className="mochi-input text-xs w-full font-bold cursor-pointer"
                 />
               </div>
 
-              {/* Actions */}
-              <div className="pt-1 flex items-center gap-3">
+              <div className="pt-2 flex gap-3">
                 <button
                   type="button"
                   onClick={() => setAddModalOpen(false)}
-                  className="mochi-btn-secondary text-xs flex-1 py-2.5"
+                  className="mochi-btn-secondary text-xs flex-1 py-3"
                 >
                   Cancel
                 </button>
-                <button
-                  type="submit"
-                  className={`text-xs font-extrabold flex-1 py-2.5 rounded-2xl text-white shadow-md transition-all ${
-                    type === 'income' ? 'bg-emerald-500 hover:bg-emerald-600' : 'bg-rose-500 hover:bg-rose-600'
-                  }`}
-                >
-                  {type === 'income' ? 'Save Income' : 'Save Expense'}
+                <button type="submit" className="mochi-btn-primary text-xs flex-1 py-3 shadow-md">
+                  {type === 'expense' ? 'Save Expense' : 'Save Income'}
                 </button>
               </div>
             </form>
