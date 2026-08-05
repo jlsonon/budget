@@ -42,94 +42,108 @@ const incomeCategories = [
   { id: 'other_income', label: 'Other Income', iconId: 'coins' },
 ]
 
-// Preset Merchant Suggestions Database with official icons and default categories
-const MERCHANT_DATABASE = [
-  // 1. Food Delivery & Courier Services
-  { name: 'GrabFood Order', vectorId: 'grab', defaultCategory: 'food', tags: ['grabfood', 'grab', 'food', 'delivery'] },
-  { name: 'Foodpanda Order', vectorId: 'foodpanda', defaultCategory: 'food', tags: ['foodpanda', 'panda', 'delivery'] },
-  { name: 'Move It Taxi / Delivery', vectorId: 'moveit', defaultCategory: 'transport', tags: ['move it', 'moveit', 'motorcycle', 'commute'] },
-  { name: 'Lalamove Delivery', vectorId: 'lalamove', defaultCategory: 'transport', tags: ['lalamove', 'courier', 'delivery'] },
-  { name: 'GrabExpress Booking', vectorId: 'grab', defaultCategory: 'transport', tags: ['grabexpress', 'express', 'delivery'] },
-  { name: 'Angkas Motorcycle Taxi', vectorId: 'angkas', defaultCategory: 'transport', tags: ['angkas', 'commute', 'ride'] },
-  { name: 'JoyRide Commute', vectorId: 'joyride', defaultCategory: 'transport', tags: ['joyride', 'motorcycle', 'ride'] },
+// Preset Merchant Suggestions Database partitioned strictly by TransactionType ('expense' vs 'income')
+interface MerchantSuggestion {
+  name: string
+  vectorId: string
+  defaultCategory: string
+  type: TransactionType
+  tags: string[]
+}
 
-  // 2. Malls, Supermarkets & Convenience Stores
-  { name: 'SM Supermalls (SM North / Megamall)', vectorId: 'sm', defaultCategory: 'shopping', tags: ['sm', 'mall', 'sm megamall', 'sm north'] },
-  { name: 'Ayala Malls Shopping', vectorId: 'ayala', defaultCategory: 'shopping', tags: ['ayala', 'mall', 'glorietta', 'greenbelt'] },
-  { name: '7-Eleven Snacks & Drinks', vectorId: 'seven_eleven', defaultCategory: 'food', tags: ['7-eleven', '7eleven', 'store'] },
-  { name: 'Ministop / Uncle John\'s', vectorId: 'uncle_johns', defaultCategory: 'food', tags: ['ministop', 'uncle johns', 'fried chicken'] },
-  { name: 'Lawson Station', vectorId: 'lawson', defaultCategory: 'food', tags: ['lawson', 'bento', 'convenience'] },
-  { name: 'FamilyMart Mart', vectorId: 'familymart', defaultCategory: 'food', tags: ['familymart', 'onigiri', 'store'] },
-  { name: 'SM Supermarket / Savemore', vectorId: 'sm', defaultCategory: 'food', tags: ['sm supermarket', 'savemore', 'hypermarket', 'groceries'] },
-  { name: 'Puregold Grocery', vectorId: 'puregold', defaultCategory: 'food', tags: ['puregold', 'supermarket', 'groceries'] },
-  { name: 'Robinsons Supermarket', vectorId: 'robinsons', defaultCategory: 'food', tags: ['robinsons', 'groceries'] },
-  { name: 'WalterMart Supermarket', vectorId: 'waltermart', defaultCategory: 'food', tags: ['waltermart', 'groceries'] },
-  { name: 'Landers Superstore', vectorId: 'landers', defaultCategory: 'food', tags: ['landers', 'membership', 'groceries'] },
-  { name: 'S&R Membership Shopping', vectorId: 'snr', defaultCategory: 'food', tags: ['s&r', 'snr', 'pizza', 'groceries'] },
-  { name: 'GrabMart Express', vectorId: 'grab', defaultCategory: 'food', tags: ['grabmart', 'groceries'] },
-  { name: 'Pandamart Express', vectorId: 'pandamart', defaultCategory: 'food', tags: ['pandamart', 'foodpanda', 'groceries'] },
-  { name: 'Shopee Supermarket', vectorId: 'shopee', defaultCategory: 'shopping', tags: ['shopee', 'online'] },
-  { name: 'Lazada LazMart', vectorId: 'lazada', defaultCategory: 'shopping', tags: ['lazada', 'lazmart'] },
-  { name: 'MetroMart Online Grocery', vectorId: 'metromart', defaultCategory: 'food', tags: ['metromart', 'groceries'] },
+const MERCHANT_DATABASE: MerchantSuggestion[] = [
+  // ─── EXPENSE MERCHANTS ───
+  // 1. Food Delivery & Rides
+  { name: 'GrabFood Order', vectorId: 'grab', defaultCategory: 'food', type: 'expense', tags: ['grabfood', 'grab', 'food', 'delivery'] },
+  { name: 'Foodpanda Order', vectorId: 'foodpanda', defaultCategory: 'food', type: 'expense', tags: ['foodpanda', 'panda', 'delivery'] },
+  { name: 'Move It Taxi / Delivery', vectorId: 'moveit', defaultCategory: 'transport', type: 'expense', tags: ['move it', 'moveit', 'motorcycle', 'commute'] },
+  { name: 'Lalamove Delivery', vectorId: 'lalamove', defaultCategory: 'transport', type: 'expense', tags: ['lalamove', 'courier', 'delivery'] },
+  { name: 'GrabExpress Booking', vectorId: 'grab', defaultCategory: 'transport', type: 'expense', tags: ['grabexpress', 'express', 'delivery'] },
+  { name: 'Angkas Ride', vectorId: 'angkas', defaultCategory: 'transport', type: 'expense', tags: ['angkas', 'commute', 'ride'] },
+  { name: 'JoyRide Commute', vectorId: 'joyride', defaultCategory: 'transport', type: 'expense', tags: ['joyride', 'motorcycle', 'ride'] },
+  { name: 'Jeepney / LRT Fare', vectorId: 'jeepney', defaultCategory: 'transport', type: 'expense', tags: ['jeepney', 'commute', 'fare', 'lrt', 'mrt'] },
 
-  // 3. Pinoy Fast Food & Bakery Chains
-  { name: 'Jollibee Chickenjoy', vectorId: 'jollibee', defaultCategory: 'food', tags: ['jollibee', 'yumburger', 'chickenjoy'] },
-  { name: 'Chowking Laopao Meal', vectorId: 'chowking', defaultCategory: 'food', tags: ['chowking', 'chao fan', 'halo halo'] },
-  { name: 'Mang Inasal Chicken Inasal', vectorId: 'mang_inasal', defaultCategory: 'food', tags: ['mang inasal', 'inasal', 'bbq'] },
-  { name: 'Greenwich Pizza & Pasta', vectorId: 'greenwich', defaultCategory: 'food', tags: ['greenwich', 'pizza', 'pasta'] },
-  { name: 'Red Ribbon Cake', vectorId: 'red_ribbon', defaultCategory: 'food', tags: ['red ribbon', 'cake', 'pastry'] },
-  { name: 'Goldilocks Bakery', vectorId: 'goldilocks', defaultCategory: 'food', tags: ['goldilocks', 'cake', 'polvoron'] },
-  { name: 'Binalot Fiesta Rice', vectorId: 'binalot', defaultCategory: 'food', tags: ['binalot', 'adobo', 'rice'] },
+  // 2. Malls & Supermarkets
+  { name: 'SM Supermalls (SM North / Megamall)', vectorId: 'sm', defaultCategory: 'shopping', type: 'expense', tags: ['sm', 'mall', 'sm megamall', 'sm north'] },
+  { name: 'Ayala Malls Shopping', vectorId: 'ayala', defaultCategory: 'shopping', type: 'expense', tags: ['ayala', 'mall', 'glorietta', 'greenbelt'] },
+  { name: '7-Eleven Convenience', vectorId: 'seven_eleven', defaultCategory: 'food', type: 'expense', tags: ['7-eleven', '7eleven', 'store'] },
+  { name: 'Ministop / Uncle John\'s', vectorId: 'uncle_johns', defaultCategory: 'food', type: 'expense', tags: ['ministop', 'uncle johns', 'fried chicken'] },
+  { name: 'Lawson Station', vectorId: 'lawson', defaultCategory: 'food', type: 'expense', tags: ['lawson', 'bento', 'convenience'] },
+  { name: 'FamilyMart Mart', vectorId: 'familymart', defaultCategory: 'food', type: 'expense', tags: ['familymart', 'onigiri', 'store'] },
+  { name: 'SM Supermarket / Savemore', vectorId: 'sm', defaultCategory: 'food', type: 'expense', tags: ['sm supermarket', 'savemore', 'hypermarket', 'groceries'] },
+  { name: 'Puregold Grocery', vectorId: 'puregold', defaultCategory: 'food', type: 'expense', tags: ['puregold', 'supermarket', 'groceries'] },
+  { name: 'Robinsons Supermarket', vectorId: 'robinsons', defaultCategory: 'food', type: 'expense', tags: ['robinsons', 'groceries'] },
+  { name: 'WalterMart Supermarket', vectorId: 'waltermart', defaultCategory: 'food', type: 'expense', tags: ['waltermart', 'groceries'] },
+  { name: 'Landers Superstore', vectorId: 'landers', defaultCategory: 'food', type: 'expense', tags: ['landers', 'membership', 'groceries'] },
+  { name: 'S&R Membership Shopping', vectorId: 'snr', defaultCategory: 'food', type: 'expense', tags: ['s&r', 'snr', 'pizza', 'groceries'] },
+  { name: 'GrabMart Express', vectorId: 'grab', defaultCategory: 'food', type: 'expense', tags: ['grabmart', 'groceries'] },
+  { name: 'Pandamart Express', vectorId: 'pandamart', defaultCategory: 'food', type: 'expense', tags: ['pandamart', 'foodpanda', 'groceries'] },
+  { name: 'Shopee Supermarket', vectorId: 'shopee', defaultCategory: 'shopping', type: 'expense', tags: ['shopee', 'online'] },
+  { name: 'Lazada LazMart', vectorId: 'lazada', defaultCategory: 'shopping', type: 'expense', tags: ['lazada', 'lazmart'] },
+  { name: 'MetroMart Online Grocery', vectorId: 'metromart', defaultCategory: 'food', type: 'expense', tags: ['metromart', 'groceries'] },
 
-  // 4. Western Fast Food & Pizza Chains
-  { name: 'McDonald\'s (McDo)', vectorId: 'mcdo', defaultCategory: 'food', tags: ['mcdo', 'mcdonald', 'fries', 'burger'] },
-  { name: 'KFC Chicken Bucket', vectorId: 'kfc', defaultCategory: 'food', tags: ['kfc', 'zinger', 'chicken'] },
-  { name: 'Burger King Flame-Grilled', vectorId: 'burger_king', defaultCategory: 'food', tags: ['burger king', 'whopper'] },
-  { name: 'Wendy\'s Burger & Frosty', vectorId: 'wendys', defaultCategory: 'food', tags: ['wendys', 'frosty'] },
-  { name: 'Popeyes Louisiana Chicken', vectorId: 'popeyes', defaultCategory: 'food', tags: ['popeyes', 'biscuits', 'chicken'] },
-  { name: 'Subway Sandwich', vectorId: 'subway', defaultCategory: 'food', tags: ['subway', 'sub', 'sandwich'] },
-  { name: 'Shakey\'s Pizza & Mojos', vectorId: 'shakeys', defaultCategory: 'food', tags: ['shakeys', 'pizza', 'mojos'] },
-  { name: 'Pizza Hut Super Supreme', vectorId: 'pizza_hut', defaultCategory: 'food', tags: ['pizza hut', 'pizza'] },
-  { name: 'Domino\'s Pizza', vectorId: 'dominos', defaultCategory: 'food', tags: ['dominos', 'pizza'] },
+  // 3. Fast Food & Bakeries
+  { name: 'Jollibee Chickenjoy', vectorId: 'jollibee', defaultCategory: 'food', type: 'expense', tags: ['jollibee', 'yumburger', 'chickenjoy'] },
+  { name: 'Chowking Laopao Meal', vectorId: 'chowking', defaultCategory: 'food', type: 'expense', tags: ['chowking', 'chao fan', 'halo halo'] },
+  { name: 'Mang Inasal Chicken Inasal', vectorId: 'mang_inasal', defaultCategory: 'food', type: 'expense', tags: ['mang inasal', 'inasal', 'bbq'] },
+  { name: 'Greenwich Pizza & Pasta', vectorId: 'greenwich', defaultCategory: 'food', type: 'expense', tags: ['greenwich', 'pizza', 'pasta'] },
+  { name: 'Red Ribbon Cake', vectorId: 'red_ribbon', defaultCategory: 'food', type: 'expense', tags: ['red ribbon', 'cake', 'pastry'] },
+  { name: 'Goldilocks Bakery', vectorId: 'goldilocks', defaultCategory: 'food', type: 'expense', tags: ['goldilocks', 'cake', 'polvoron'] },
+  { name: 'Binalot Fiesta Rice', vectorId: 'binalot', defaultCategory: 'food', type: 'expense', tags: ['binalot', 'adobo', 'rice'] },
+  { name: 'McDonald\'s (McDo)', vectorId: 'mcdo', defaultCategory: 'food', type: 'expense', tags: ['mcdo', 'mcdonald', 'fries', 'burger'] },
+  { name: 'KFC Chicken Bucket', vectorId: 'kfc', defaultCategory: 'food', type: 'expense', tags: ['kfc', 'zinger', 'chicken'] },
+  { name: 'Burger King Flame-Grilled', vectorId: 'burger_king', defaultCategory: 'food', type: 'expense', tags: ['burger king', 'whopper'] },
+  { name: 'Wendy\'s Burger & Frosty', vectorId: 'wendys', defaultCategory: 'food', type: 'expense', tags: ['wendys', 'frosty'] },
+  { name: 'Popeyes Louisiana Chicken', vectorId: 'popeyes', defaultCategory: 'food', type: 'expense', tags: ['popeyes', 'biscuits', 'chicken'] },
+  { name: 'Subway Sandwich', vectorId: 'subway', defaultCategory: 'food', type: 'expense', tags: ['subway', 'sub', 'sandwich'] },
+  { name: 'Shakey\'s Pizza & Mojos', vectorId: 'shakeys', defaultCategory: 'food', type: 'expense', tags: ['shakeys', 'pizza', 'mojos'] },
+  { name: 'Pizza Hut Super Supreme', vectorId: 'pizza_hut', defaultCategory: 'food', type: 'expense', tags: ['pizza hut', 'pizza'] },
+  { name: 'Domino\'s Pizza', vectorId: 'dominos', defaultCategory: 'food', type: 'expense', tags: ['dominos', 'pizza'] },
 
-  // 5. Asian & Milk Tea / Coffee Chains
-  { name: 'Tokyo Tokyo Bento', vectorId: 'tokyo_tokyo', defaultCategory: 'food', tags: ['tokyo tokyo', 'ramen', 'bento'] },
-  { name: 'Marugame Udon & Tempura', vectorId: 'marugame', defaultCategory: 'food', tags: ['marugame', 'udon', 'tempura'] },
-  { name: 'BonChon Korean Fried Chicken', vectorId: 'bonchon', defaultCategory: 'food', tags: ['bonchon', 'korean chicken'] },
-  { name: 'Paotsin Dumpling Rice', vectorId: 'paotsin', defaultCategory: 'food', tags: ['paotsin', 'siomai', 'dumplings'] },
-  { name: 'Master Siomai', vectorId: 'siomai', defaultCategory: 'food', tags: ['master siomai', 'siomai'] },
-  { name: 'Hen Lin Dimsum', vectorId: 'paotsin', defaultCategory: 'food', tags: ['hen lin', 'siopao', 'dimsum'] },
-  { name: 'CoCo Fresh Tea & Juice', vectorId: 'coco', defaultCategory: 'food', tags: ['coco', 'boba', 'milk tea'] },
-  { name: 'Macao Imperial Tea', vectorId: 'macao', defaultCategory: 'food', tags: ['macao', 'milk tea', 'cheesecake'] },
-  { name: 'Chatime Milk Tea', vectorId: 'chatime', defaultCategory: 'food', tags: ['chatime', 'boba', 'tea'] },
-  { name: 'Starbucks Coffee', vectorId: 'starbucks', defaultCategory: 'food', tags: ['starbucks', 'coffee', 'frappe'] },
-  { name: 'Dunkin\' Donuts & Coffee', vectorId: 'dunkin', defaultCategory: 'food', tags: ['dunkin', 'donuts', 'coffee'] },
-  { name: 'Mister Donut Pon de Ring', vectorId: 'mister_donut', defaultCategory: 'food', tags: ['mister donut', 'donuts'] },
+  // 4. Asian & Coffee / Tea
+  { name: 'Tokyo Tokyo Bento', vectorId: 'tokyo_tokyo', defaultCategory: 'food', type: 'expense', tags: ['tokyo tokyo', 'ramen', 'bento'] },
+  { name: 'Marugame Udon & Tempura', vectorId: 'marugame', defaultCategory: 'food', type: 'expense', tags: ['marugame', 'udon', 'tempura'] },
+  { name: 'BonChon Korean Fried Chicken', vectorId: 'bonchon', defaultCategory: 'food', type: 'expense', tags: ['bonchon', 'korean chicken'] },
+  { name: 'Paotsin Dumpling Rice', vectorId: 'paotsin', defaultCategory: 'food', type: 'expense', tags: ['paotsin', 'siomai', 'dumplings'] },
+  { name: 'Master Siomai', vectorId: 'siomai', defaultCategory: 'food', type: 'expense', tags: ['master siomai', 'siomai'] },
+  { name: 'Hen Lin Dimsum', vectorId: 'paotsin', defaultCategory: 'food', type: 'expense', tags: ['hen lin', 'siopao', 'dimsum'] },
+  { name: 'CoCo Fresh Tea & Juice', vectorId: 'coco', defaultCategory: 'food', type: 'expense', tags: ['coco', 'boba', 'milk tea'] },
+  { name: 'Macao Imperial Tea', vectorId: 'macao', defaultCategory: 'food', type: 'expense', tags: ['macao', 'milk tea', 'cheesecake'] },
+  { name: 'Chatime Milk Tea', vectorId: 'chatime', defaultCategory: 'food', type: 'expense', tags: ['chatime', 'boba', 'tea'] },
+  { name: 'Starbucks Coffee', vectorId: 'starbucks', defaultCategory: 'food', type: 'expense', tags: ['starbucks', 'coffee', 'frappe'] },
+  { name: 'Dunkin\' Donuts & Coffee', vectorId: 'dunkin', defaultCategory: 'food', type: 'expense', tags: ['dunkin', 'donuts', 'coffee'] },
+  { name: 'Mister Donut Pon de Ring', vectorId: 'mister_donut', defaultCategory: 'food', type: 'expense', tags: ['mister donut', 'donuts'] },
 
-  // 6. Utility Bills (Kuryente, Tubig, Internet, Cable TV)
-  { name: 'Meralco Electric Bill / Kuryente Load', vectorId: 'meralco', defaultCategory: 'utilities', tags: ['meralco', 'kuryente', 'electricity', 'bill'] },
-  { name: 'AEC (Angeles Electric Corp)', vectorId: 'aec', defaultCategory: 'utilities', tags: ['aec', 'angeles', 'electricity'] },
-  { name: 'DLPC (Davao Light & Power)', vectorId: 'dlpc', defaultCategory: 'utilities', tags: ['dlpc', 'davao', 'electricity'] },
-  { name: 'VECO (Visayan Electric)', vectorId: 'veco', defaultCategory: 'utilities', tags: ['veco', 'visayan', 'electricity'] },
-  { name: 'Electric Cooperative (BENECO / FLECO / PELCO)', vectorId: 'electric_coop', defaultCategory: 'utilities', tags: ['beneco', 'fleco', 'pelco', 'coop', 'kuryente'] },
-  { name: 'Maynilad Water Bill', vectorId: 'maynilad', defaultCategory: 'utilities', tags: ['maynilad', 'water', 'tubig'] },
-  { name: 'Manila Water Bill', vectorId: 'manilawater', defaultCategory: 'utilities', tags: ['manila water', 'manilawater', 'tubig'] },
-  { name: 'PrimeWater Bill', vectorId: 'primewater', defaultCategory: 'utilities', tags: ['primewater', 'water'] },
-  { name: 'Laguna Water / LWUA', vectorId: 'lagunawater', defaultCategory: 'utilities', tags: ['laguna water', 'lwua', 'water'] },
-  { name: 'PLDT Home Fibr Internet', vectorId: 'pldt', defaultCategory: 'utilities', tags: ['pldt', 'fibr', 'internet', 'wifi'] },
-  { name: 'Globe Postpaid / Broadband', vectorId: 'globe', defaultCategory: 'utilities', tags: ['globe', 'internet', 'load', 'broadband'] },
-  { name: 'Smart Postpaid / Prepaid Load', vectorId: 'smart', defaultCategory: 'utilities', tags: ['smart', 'load', 'internet'] },
-  { name: 'Converge ICT Fiber', vectorId: 'converge', defaultCategory: 'utilities', tags: ['converge', 'fiber', 'internet'] },
-  { name: 'DITO Telecommunity', vectorId: 'dito', defaultCategory: 'utilities', tags: ['dito', 'load', 'internet'] },
-  { name: 'Sky Cable TV & Fiber', vectorId: 'sky', defaultCategory: 'utilities', tags: ['sky', 'skycable', 'cable', 'tv'] },
-  { name: 'Cignal Satellite TV', vectorId: 'cignal', defaultCategory: 'utilities', tags: ['cignal', 'cable', 'tv'] },
+  // 5. Utility Bills & Subscriptions
+  { name: 'Meralco Electric Bill / Kuryente Load', vectorId: 'meralco', defaultCategory: 'utilities', type: 'expense', tags: ['meralco', 'kuryente', 'electricity', 'bill'] },
+  { name: 'AEC (Angeles Electric Corp)', vectorId: 'aec', defaultCategory: 'utilities', type: 'expense', tags: ['aec', 'angeles', 'electricity'] },
+  { name: 'DLPC (Davao Light & Power)', vectorId: 'dlpc', defaultCategory: 'utilities', type: 'expense', tags: ['dlpc', 'davao', 'electricity'] },
+  { name: 'VECO (Visayan Electric)', vectorId: 'veco', defaultCategory: 'utilities', type: 'expense', tags: ['veco', 'visayan', 'electricity'] },
+  { name: 'Electric Cooperative (BENECO / FLECO / PELCO)', vectorId: 'electric_coop', defaultCategory: 'utilities', type: 'expense', tags: ['beneco', 'fleco', 'pelco', 'coop', 'kuryente'] },
+  { name: 'Maynilad Water Bill', vectorId: 'maynilad', defaultCategory: 'utilities', type: 'expense', tags: ['maynilad', 'water', 'tubig'] },
+  { name: 'Manila Water Bill', vectorId: 'manilawater', defaultCategory: 'utilities', type: 'expense', tags: ['manila water', 'manilawater', 'tubig'] },
+  { name: 'PrimeWater Bill', vectorId: 'primewater', defaultCategory: 'utilities', type: 'expense', tags: ['primewater', 'water'] },
+  { name: 'Laguna Water / LWUA', vectorId: 'lagunawater', defaultCategory: 'utilities', type: 'expense', tags: ['laguna water', 'lwua', 'water'] },
+  { name: 'PLDT Home Fibr Internet', vectorId: 'pldt', defaultCategory: 'utilities', type: 'expense', tags: ['pldt', 'fibr', 'internet', 'wifi'] },
+  { name: 'Globe Postpaid / Broadband', vectorId: 'globe', defaultCategory: 'utilities', type: 'expense', tags: ['globe', 'internet', 'load', 'broadband'] },
+  { name: 'Smart Postpaid / Prepaid Load', vectorId: 'smart', defaultCategory: 'utilities', type: 'expense', tags: ['smart', 'load', 'internet'] },
+  { name: 'Converge ICT Fiber', vectorId: 'converge', defaultCategory: 'utilities', type: 'expense', tags: ['converge', 'fiber', 'internet'] },
+  { name: 'DITO Telecommunity Load', vectorId: 'dito', defaultCategory: 'utilities', type: 'expense', tags: ['dito', 'load', 'internet'] },
+  { name: 'Sky Cable TV & Fiber', vectorId: 'sky', defaultCategory: 'utilities', type: 'expense', tags: ['sky', 'skycable', 'cable', 'tv'] },
+  { name: 'Cignal Satellite TV', vectorId: 'cignal', defaultCategory: 'utilities', type: 'expense', tags: ['cignal', 'cable', 'tv'] },
+  { name: 'Netflix Subscription', vectorId: 'netflix', defaultCategory: 'entertainment', type: 'expense', tags: ['netflix', 'streaming', 'movie'] },
+  { name: 'Spotify Premium', vectorId: 'spotify', defaultCategory: 'entertainment', type: 'expense', tags: ['spotify', 'music', 'audio'] },
 
-  // E-wallets, Banking & Subscriptions
-  { name: 'GCash Money Transfer', vectorId: 'gcash', defaultCategory: 'other', tags: ['gcash', 'e-wallet'] },
-  { name: 'Maya E-Wallet Payment', vectorId: 'maya', defaultCategory: 'utilities', tags: ['maya', 'paymaya'] },
-  { name: 'Jeepney Commute Fare', vectorId: 'jeepney', defaultCategory: 'transport', tags: ['jeepney', 'commute'] },
-  { name: 'Netflix Subscription', vectorId: 'netflix', defaultCategory: 'entertainment', tags: ['netflix', 'streaming'] },
-  { name: 'Spotify Premium', vectorId: 'spotify', defaultCategory: 'entertainment', tags: ['spotify', 'music'] },
+  // ─── INCOME MERCHANTS ───
+  { name: 'BDO Company Payroll', vectorId: 'bdo', defaultCategory: 'income', type: 'income', tags: ['bdo', 'salary', 'payroll', 'income', 'company'] },
+  { name: 'BPI Payroll Salary Deposit', vectorId: 'bpi', defaultCategory: 'income', type: 'income', tags: ['bpi', 'salary', 'payroll', 'income', 'bank'] },
+  { name: 'GCash Cash In / Received Money', vectorId: 'gcash', defaultCategory: 'other_income', type: 'income', tags: ['gcash', 'received', 'income', 'transfer', 'cash in'] },
+  { name: 'Maya Cash In / Interest Earnings', vectorId: 'maya', defaultCategory: 'investment', type: 'income', tags: ['maya', 'interest', 'savings', 'cash in'] },
+  { name: 'Freelance Client Project Payout', vectorId: 'laptop', defaultCategory: 'freelance', type: 'income', tags: ['freelance', 'upwork', 'fiverr', 'client', 'project'] },
+  { name: 'Shopee Seller Store Payout', vectorId: 'shopee', defaultCategory: 'sales', type: 'income', tags: ['shopee', 'seller', 'store', 'business', 'payout'] },
+  { name: 'Lazada Merchant Store Payout', vectorId: 'lazada', defaultCategory: 'sales', type: 'income', tags: ['lazada', 'merchant', 'business', 'payout'] },
+  { name: 'Investment Dividend Payout', vectorId: 'piggy_bank', defaultCategory: 'investment', type: 'income', tags: ['investment', 'stocks', 'dividend', 'profit'] },
+  { name: 'Gift / Pamasko / Allowance', vectorId: 'gift_bag', defaultCategory: 'gift', type: 'income', tags: ['gift', 'pamasko', 'allowance', 'money'] },
 ]
 
 function getMerchantVectorId(merchant: string, type: TransactionType, currentCatIcon?: string): string {
@@ -364,18 +378,18 @@ export function AddTransactionModal() {
   const selectedCat = categories.find((c) => c.id === category) || categories[0]
   const selectedWallet = wallets.find((w) => w.id === walletId) || wallets[0]
 
-  // Filter merchant suggestions based on user input
+  // Filter merchant suggestions strictly by active TransactionType ('expense' vs 'income')
   const suggestions = useMemo(() => {
     if (!title.trim()) return []
     const q = title.toLowerCase()
     return MERCHANT_DATABASE.filter(
-      (m) => m.name.toLowerCase().includes(q) || m.tags.some((t) => t.includes(q))
+      (m) => m.type === type && (m.name.toLowerCase().includes(q) || m.tags.some((t) => t.includes(q)))
     ).slice(0, 5)
-  }, [title])
+  }, [title, type])
 
   const liveVectorId = getMerchantVectorId(title, type, selectedCat.iconId)
 
-  const handleSelectSuggestion = (merchant: (typeof MERCHANT_DATABASE)[0]) => {
+  const handleSelectSuggestion = (merchant: MerchantSuggestion) => {
     setTitle(merchant.name)
     if (merchant.defaultCategory) {
       setCategory(merchant.defaultCategory)
@@ -386,6 +400,8 @@ export function AddTransactionModal() {
   const handleTypeChange = (newType: TransactionType) => {
     setType(newType)
     setCategory(newType === 'expense' ? 'food' : 'income')
+    setTitle('')
+    setShowSuggestions(false)
     setStatus('idle')
     setErrorMessage('')
   }
@@ -571,7 +587,7 @@ export function AddTransactionModal() {
                 <div className="relative flex items-center">
                   <input
                     type="text"
-                    placeholder={type === 'expense' ? 'e.g. Jollibee, GCash, Grab, Meralco' : 'e.g. BDO Payroll, Freelance'}
+                    placeholder={type === 'expense' ? 'e.g. Jollibee, GCash, Grab, Meralco' : 'e.g. BDO Payroll, Freelance Client'}
                     value={title}
                     onFocus={() => setShowSuggestions(true)}
                     onChange={(e) => {
@@ -587,7 +603,7 @@ export function AddTransactionModal() {
                   </div>
                 </div>
 
-                {/* Autocomplete Suggestions Dropdown */}
+                {/* Autocomplete Suggestions Dropdown (Filtered strictly by type) */}
                 <AnimatePresence>
                   {showSuggestions && suggestions.length > 0 && (
                     <>
@@ -612,7 +628,7 @@ export function AddTransactionModal() {
                                   {m.name}
                                 </p>
                                 <p className="text-[10px] text-mochi-text-muted capitalize">
-                                  {m.defaultCategory}
+                                  {m.defaultCategory} • {m.type}
                                 </p>
                               </div>
                             </div>
