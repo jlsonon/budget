@@ -198,21 +198,15 @@ export function MochiCategoryVectorSVG({ id, size = 'md', className }: MochiCate
 
       {/* ─── OFFICIAL PHILIPPINE & GLOBAL BRAND VECTOR LOGOS ─── */}
 
-      {/* 18. Official GCash (Blue background + White Official G Loop Logo) */}
+      {/* GCash */}
       {(cleanId === 'gcash' || cleanId.includes('gcash')) && (
         <g>
           <rect width="48" height="48" rx="16" fill="#005CE6" />
-          {/* Official GCash G logo loop */}
-          <path
-            fillRule="evenodd"
-            clipRule="evenodd"
-            d="M24 10C16.268 10 10 16.268 10 24C10 31.732 16.268 38 24 38C29.5 38 34.2 34.8 36.5 30.2H25.5V24.5H38C38 16.268 31.732 10 24 10ZM24 15.5C19.3056 15.5 15.5 19.3056 15.5 24C15.5 28.6944 19.3056 32.5 24 32.5C26.8 32.5 29.25 31.15 30.8 29.1H25.5V26.5H32.2V29.1C30.4 31.9 27.4 33.8 24 33.8C18.6 33.8 14.2 29.4 14.2 24C14.2 18.6 18.6 14.2 24 14.2C27.2 14.2 30 15.8 31.7 18.2L33.2 16.7C31.1 13.8 27.8 12 24 12V15.5Z"
-            fill="white"
-          />
+          <path fillRule="evenodd" clipRule="evenodd" d="M24 10C16.268 10 10 16.268 10 24C10 31.732 16.268 38 24 38C29.5 38 34.2 34.8 36.5 30.2H25.5V24.5H38C38 16.268 31.732 10 24 10ZM24 15.5C19.3056 15.5 15.5 19.3056 15.5 24C15.5 28.6944 19.3056 32.5 24 32.5C26.8 32.5 29.25 31.15 30.8 29.1H25.5V26.5H32.2V29.1C30.4 31.9 27.4 33.8 24 33.8C18.6 33.8 14.2 29.4 14.2 24C14.2 18.6 18.6 14.2 24 14.2C27.2 14.2 30 15.8 31.7 18.2L33.2 16.7C31.1 13.8 27.8 12 24 12V15.5Z" fill="white" />
         </g>
       )}
 
-      {/* 19. Official Maya (Dark / Emerald Green + Official Folded Ribbon Logo) */}
+      {/* Maya */}
       {(cleanId === 'maya' || cleanId.includes('maya')) && (
         <g>
           <rect width="48" height="48" rx="16" fill="#000000" />
@@ -221,117 +215,219 @@ export function MochiCategoryVectorSVG({ id, size = 'md', className }: MochiCate
         </g>
       )}
 
-      {/* 20. Official Jollibee (Signature Red + Official Jollibee Smiling Bee Head Logo) */}
-      {(cleanId === 'jollibee' || cleanId.includes('jollibee') || cleanId.includes('chickenjoy')) && (
+      {/* Foodpanda / Pandamart */}
+      {(cleanId === 'foodpanda' || cleanId.includes('foodpanda') || cleanId.includes('pandamart')) && (
         <g>
-          <rect width="48" height="48" rx="16" fill="#D32F2F" />
-          {/* Chef Hat */}
-          <path d="M18 14C18 11.8 19.8 10 22 10C23 10 23.9 10.4 24.5 11C25.1 10.4 26 10 27 10C29.2 10 31 11.8 31 14C31 14.8 30.7 15.6 30.3 16.2H18.7C18.3 15.6 18 14.8 18 14Z" fill="white" />
-          {/* Face */}
-          <path d="M14 26C14 19.3726 18.4772 16 24 16C29.5228 16 34 19.3726 34 26C34 32.6274 29.5228 37 24 37C18.4772 37 14 32.6274 14 26Z" fill="#FFF8E1" />
-          {/* Eyes */}
-          <circle cx="19.5" cy="24" r="2.5" fill="#1E293B" />
-          <circle cx="28.5" cy="24" r="2.5" fill="#1E293B" />
-          <circle cx="20.5" cy="23" r="0.8" fill="white" />
-          <circle cx="29.5" cy="23" r="0.8" fill="white" />
-          {/* Red Cheeks */}
-          <circle cx="16.5" cy="27" r="2.5" fill="#D32F2F" />
-          <circle cx="31.5" cy="27" r="2.5" fill="#D32F2F" />
-          {/* Smile */}
-          <path d="M19 29.5C21 33 27 33 29 29.5" stroke="#D32F2F" strokeWidth="2.5" strokeLinecap="round" />
-          {/* Snout */}
-          <ellipse cx="24" cy="26" rx="2" ry="1.2" fill="#D32F2F" />
+          <rect width="48" height="48" rx="16" fill="#D70F64" />
+          <circle cx="18" cy="18" r="4" fill="white" />
+          <circle cx="30" cy="18" r="4" fill="white" />
+          <path d="M14 26C14 20 18 18 24 18C30 18 34 20 34 26C34 32 30 36 24 36C18 36 14 32 14 26Z" fill="white" />
+          <circle cx="20" cy="25" r="2" fill="#D70F64" />
+          <circle cx="28" cy="25" r="2" fill="#D70F64" />
+          <ellipse cx="24" cy="29" rx="2" ry="1.5" fill="#D70F64" />
         </g>
       )}
 
-      {/* 21. Official 7-Eleven (Green border + Red Bar + White 7 Numeral) */}
+      {/* Lalamove */}
+      {(cleanId === 'lalamove' || cleanId.includes('lalamove')) && (
+        <g>
+          <rect width="48" height="48" rx="16" fill="#F57C00" />
+          <path d="M10 28L24 14L38 28H28V36H18V28H10Z" fill="white" />
+          <path d="M20 20L28 20L24 26Z" fill="#F57C00" />
+        </g>
+      )}
+
+      {/* Angkas / JoyRide / Move It */}
+      {(cleanId === 'angkas' || cleanId.includes('angkas') || cleanId.includes('joyride') || cleanId.includes('move it') || cleanId.includes('moveit')) && (
+        <g>
+          <rect width="48" height="48" rx="16" fill="#00B4D8" />
+          <circle cx="24" cy="22" r="9" fill="white" />
+          <path d="M15 22C15 17 19 13 24 13C29 13 33 17 33 22H15Z" fill="#1E293B" />
+          <path d="M12 32H36M16 36H32" stroke="white" strokeWidth="3" strokeLinecap="round" />
+        </g>
+      )}
+
+      {/* SM Supermalls / SM Markets / Savemore */}
+      {(cleanId.includes('sm ') || cleanId === 'sm' || cleanId.includes('savemore') || cleanId.includes('hypermarket')) && (
+        <g>
+          <rect width="48" height="48" rx="16" fill="#003580" />
+          <text x="24" y="30" textAnchor="middle" fill="#FFC72C" fontSize="16" fontWeight="900" fontFamily="sans-serif">
+            SM
+          </text>
+        </g>
+      )}
+
+      {/* Ayala Malls */}
+      {(cleanId.includes('ayala') || cleanId.includes('ayalamalls')) && (
+        <g>
+          <rect width="48" height="48" rx="16" fill="#046A38" />
+          <path d="M24 12L34 36H28L24 26L20 36H14L24 12Z" fill="#A7D08D" />
+          <circle cx="24" cy="20" r="3" fill="white" />
+        </g>
+      )}
+
+      {/* Jollibee */}
+      {(cleanId === 'jollibee' || cleanId.includes('jollibee') || cleanId.includes('chickenjoy')) && (
+        <g>
+          <rect width="48" height="48" rx="16" fill="#D32F2F" />
+          <path d="M18 14C18 11.8 19.8 10 22 10C23 10 23.9 10.4 24.5 11C25.1 10.4 26 10 27 10C29.2 10 31 11.8 31 14C31 14.8 30.7 15.6 30.3 16.2H18.7C18.3 15.6 18 14.8 18 14Z" fill="white" />
+          <path d="M14 26C14 19.3726 18.4772 16 24 16C29.5228 16 34 19.3726 34 26C34 32.6274 29.5228 37 24 37C18.4772 37 14 32.6274 14 26Z" fill="#FFF8E1" />
+          <circle cx="19.5" cy="24" r="2.5" fill="#1E293B" />
+          <circle cx="28.5" cy="24" r="2.5" fill="#1E293B" />
+          <circle cx="16.5" cy="27" r="2.5" fill="#D32F2F" />
+          <circle cx="31.5" cy="27" r="2.5" fill="#D32F2F" />
+          <path d="M19 29.5C21 33 27 33 29 29.5" stroke="#D32F2F" strokeWidth="2.5" strokeLinecap="round" />
+        </g>
+      )}
+
+      {/* Chowking */}
+      {(cleanId === 'chowking' || cleanId.includes('chowking')) && (
+        <g>
+          <rect width="48" height="48" rx="16" fill="#B91C1C" />
+          <circle cx="24" cy="24" r="13" stroke="#FBBF24" strokeWidth="3" />
+          <path d="M16 26C20 30 28 30 32 26" stroke="#FBBF24" strokeWidth="3" strokeLinecap="round" />
+          <path d="M20 18L24 14L28 18" stroke="#FBBF24" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+        </g>
+      )}
+
+      {/* Mang Inasal */}
+      {(cleanId.includes('inasal') || cleanId.includes('mang inasal')) && (
+        <g>
+          <rect width="48" height="48" rx="16" fill="#15803D" />
+          <path d="M14 18H34V22H14V18Z" fill="#DC2626" />
+          <text x="24" y="32" textAnchor="middle" fill="#FACC15" fontSize="9" fontWeight="900" fontFamily="sans-serif">
+            INASAL
+          </text>
+        </g>
+      )}
+
+      {/* Greenwich */}
+      {(cleanId === 'greenwich' || cleanId.includes('greenwich')) && (
+        <g>
+          <rect width="48" height="48" rx="16" fill="#166534" />
+          <path d="M14 34L24 14L34 34H14Z" fill="#DC2626" />
+          <circle cx="24" cy="24" r="3" fill="#FACC15" />
+        </g>
+      )}
+
+      {/* Red Ribbon */}
+      {(cleanId.includes('red ribbon') || cleanId.includes('redribbon')) && (
+        <g>
+          <rect width="48" height="48" rx="16" fill="#DC2626" />
+          <path d="M18 16C15 16 13 19 16 22L24 26L32 22C35 19 33 16 30 16C27 16 24 20 24 20C24 20 21 16 18 16Z" fill="#FACC15" />
+          <path d="M20 25L14 34M28 25L34 34" stroke="#FACC15" strokeWidth="3" strokeLinecap="round" />
+        </g>
+      )}
+
+      {/* Goldilocks */}
+      {(cleanId.includes('goldilocks')) && (
+        <g>
+          <rect width="48" height="48" rx="16" fill="#0284C7" />
+          <path d="M14 20L19 14L24 20L29 14L34 20V32H14V20Z" fill="#FACC15" />
+          <circle cx="24" cy="26" r="3" fill="#0284C7" />
+        </g>
+      )}
+
+      {/* 7-Eleven */}
       {(cleanId === 'seven_eleven' || cleanId.includes('7-eleven') || cleanId.includes('7eleven')) && (
         <g>
           <rect width="48" height="48" rx="16" fill="#00843D" />
           <rect x="8" y="16" width="32" height="16" fill="white" rx="3" />
           <rect x="8" y="16" width="32" height="5" fill="#EE3124" />
           <path d="M18 24H28L21 38H26" stroke="#EE3124" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-          <path d="M25 29H30V38" stroke="#F58220" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
         </g>
       )}
 
-      {/* 22. Official Meralco (Deep Blue + Orange Official Power Bolt Logo) */}
-      {(cleanId === 'meralco' || cleanId.includes('meralco')) && (
+      {/* Uncle John's / Ministop */}
+      {(cleanId.includes('uncle john') || cleanId.includes('ministop')) && (
         <g>
-          <rect width="48" height="48" rx="16" fill="#00529B" />
-          <circle cx="24" cy="24" r="14" fill="#F58220" />
-          <path d="M26 12L15 26H24L21 36L33 22H24L26 12Z" fill="white" />
-        </g>
-      )}
-
-      {/* 23. Official Grab (Grab Emerald Green + Interlocking Double G Ribbon) */}
-      {(cleanId === 'grab' || cleanId.includes('grab')) && (
-        <g>
-          <rect width="48" height="48" rx="16" fill="#00B14F" />
-          <path
-            fillRule="evenodd"
-            clipRule="evenodd"
-            d="M24 12C17.3726 12 12 17.3726 12 24C12 30.6274 17.3726 36 24 36C28.2 36 31.8 33.8 33.9 30.5L30.2 28.2C28.8 30.4 26.5 31.8 24 31.8C19.7 31.8 16.2 28.3 16.2 24C16.2 19.7 19.7 16.2 24 16.2C26.5 16.2 28.8 17.6 30.2 19.8L33.9 17.5C31.8 14.2 28.2 12 24 12Z"
-            fill="white"
-          />
-          <path d="M24 21C22.3431 21 21 22.3431 21 24C21 25.6569 22.3431 27 24 27H33V21H24Z" fill="white" />
-        </g>
-      )}
-
-      {/* 24. Official Shopee (Shopee Orange + White Bag + S Curve Logo) */}
-      {(cleanId === 'shopee' || cleanId.includes('shopee')) && (
-        <g>
-          <rect width="48" height="48" rx="16" fill="#EE4D2D" />
-          <path d="M15 19H33L31.5 37H16.5L15 19Z" fill="white" />
-          <path d="M20 19V15C20 12.8 21.8 11 24 11C26.2 11 28 12.8 28 15V19" stroke="white" strokeWidth="2.5" strokeLinecap="round" />
-          <path d="M27 24.5C25.5 23.5 22.5 23.5 22.5 25.5C22.5 27.5 27 27.5 27 29.5C27 31.5 24 31.5 22.5 30.5" stroke="#EE4D2D" strokeWidth="2.5" strokeLinecap="round" />
-        </g>
-      )}
-
-      {/* 25. Official Lazada (Lazada Navy + Magenta Official Heart Ribbon L Logo) */}
-      {(cleanId === 'lazada' || cleanId.includes('lazada')) && (
-        <g>
-          <rect width="48" height="48" rx="16" fill="#0F146D" />
-          <path d="M15 14L33 24L15 34V14Z" fill="#F53400" />
-          <path d="M33 14L15 24L33 34V14Z" fill="#FF007A" opacity="0.9" />
-        </g>
-      )}
-
-      {/* 26. Official Jeepney (Classic Philippine Yellow & Red Metallic Grille) */}
-      {(cleanId === 'jeepney' || cleanId.includes('jeepney') || cleanId.includes('commute')) && (
-        <g>
-          <rect width="48" height="48" rx="16" fill="#FACC15" />
-          <rect x="10" y="16" width="28" height="20" rx="5" fill="#DC2626" stroke="#1E293B" strokeWidth="2.5" />
-          <rect x="14" y="20" width="20" height="7" rx="2" fill="#E2E8F0" stroke="#1E293B" strokeWidth="2" />
-          <circle cx="15" cy="34" r="3.5" fill="#1E293B" stroke="white" strokeWidth="1.5" />
-          <circle cx="33" cy="34" r="3.5" fill="#1E293B" stroke="white" strokeWidth="1.5" />
-          <path d="M20 30H28" stroke="#FACC15" strokeWidth="2.5" strokeLinecap="round" />
-        </g>
-      )}
-
-      {/* 27. Official BDO Unibank (Navy & Gold BDO Wordmark) */}
-      {(cleanId === 'bdo' || cleanId.includes('bdo')) && (
-        <g>
-          <rect width="48" height="48" rx="16" fill="#002D62" />
-          <rect x="8" y="18" width="32" height="12" fill="#FFB800" rx="3" />
-          <text x="24" y="27.5" textAnchor="middle" fill="#002D62" fontSize="11" fontWeight="900" fontFamily="sans-serif">
-            BDO
+          <rect width="48" height="48" rx="16" fill="#F59E0B" />
+          <rect x="8" y="16" width="32" height="16" fill="#1E3A8A" rx="3" />
+          <text x="24" y="28" textAnchor="middle" fill="#FACC15" fontSize="10" fontWeight="900" fontFamily="sans-serif">
+            UNCLE
           </text>
         </g>
       )}
 
-      {/* 28. Official BPI (Crimson Red & BPI Monogram Shield) */}
-      {(cleanId === 'bpi' || cleanId.includes('bpi')) && (
+      {/* Lawson */}
+      {(cleanId.includes('lawson')) && (
         <g>
-          <rect width="48" height="48" rx="16" fill="#B71C1C" />
-          <path d="M24 10L36 15V26C36 32 24 38 24 38C24 38 12 32 12 26V15L24 10Z" fill="white" opacity="0.2" />
-          <text x="24" y="28" textAnchor="middle" fill="white" fontSize="12" fontWeight="900" fontFamily="sans-serif">
-            BPI
+          <rect width="48" height="48" rx="16" fill="#0284C7" />
+          <path d="M18 16H30V32H18V16Z" fill="white" rx="2" />
+          <path d="M20 12H28V16H20V12Z" fill="white" />
+        </g>
+      )}
+
+      {/* FamilyMart */}
+      {(cleanId.includes('familymart') || cleanId.includes('family mart')) && (
+        <g>
+          <rect width="48" height="48" rx="16" fill="#059669" />
+          <rect x="8" y="24" width="32" height="12" fill="#0284C7" />
+          <text x="24" y="20" textAnchor="middle" fill="white" fontSize="9" fontWeight="900" fontFamily="sans-serif">
+            FamilyMart
           </text>
         </g>
       )}
 
-      {/* 29. Official McDonald's (McDo Red + Golden Arches M) */}
+      {/* Puregold */}
+      {(cleanId.includes('puregold')) && (
+        <g>
+          <rect width="48" height="48" rx="16" fill="#EAB308" />
+          <circle cx="24" cy="24" r="12" fill="#15803D" />
+          <text x="24" y="28" textAnchor="middle" fill="#FACC15" fontSize="13" fontWeight="900" fontFamily="sans-serif">
+            P
+          </text>
+        </g>
+      )}
+
+      {/* Robinsons Supermarket */}
+      {(cleanId.includes('robinsons')) && (
+        <g>
+          <rect width="48" height="48" rx="16" fill="#DC2626" />
+          <text x="24" y="30" textAnchor="middle" fill="white" fontSize="16" fontWeight="900" fontFamily="sans-serif">
+            R
+          </text>
+        </g>
+      )}
+
+      {/* WalterMart */}
+      {(cleanId.includes('waltermart') || cleanId.includes('walter mart')) && (
+        <g>
+          <rect width="48" height="48" rx="16" fill="#2563EB" />
+          <path d="M12 16L18 32L24 20L30 32L36 16" stroke="#F97316" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
+        </g>
+      )}
+
+      {/* Landers */}
+      {(cleanId.includes('landers')) && (
+        <g>
+          <rect width="48" height="48" rx="16" fill="#166534" />
+          <text x="24" y="30" textAnchor="middle" fill="white" fontSize="15" fontWeight="900" fontFamily="sans-serif">
+            LANDERS
+          </text>
+        </g>
+      )}
+
+      {/* S&R Membership */}
+      {(cleanId.includes('s&r') || cleanId.includes('snr')) && (
+        <g>
+          <rect width="48" height="48" rx="16" fill="#1E3A8A" />
+          <rect x="8" y="22" width="32" height="6" fill="#DC2626" />
+          <text x="24" y="32" textAnchor="middle" fill="white" fontSize="11" fontWeight="900" fontFamily="sans-serif">
+            S&R
+          </text>
+        </g>
+      )}
+
+      {/* MetroMart */}
+      {(cleanId.includes('metromart')) && (
+        <g>
+          <rect width="48" height="48" rx="16" fill="#16A34A" />
+          <path d="M14 18H34L31 34H17L14 18Z" fill="white" />
+        </g>
+      )}
+
+      {/* McDonald's */}
       {(cleanId === 'mcdo' || cleanId.includes('mcdo') || cleanId.includes('mcdonald')) && (
         <g>
           <rect width="48" height="48" rx="16" fill="#DA291C" />
@@ -339,7 +435,143 @@ export function MochiCategoryVectorSVG({ id, size = 'md', className }: MochiCate
         </g>
       )}
 
-      {/* 30. Official Starbucks (Deep Green + White Crown Siren) */}
+      {/* KFC */}
+      {(cleanId === 'kfc' || cleanId.includes('kfc')) && (
+        <g>
+          <rect width="48" height="48" rx="16" fill="#A3080C" />
+          <rect x="18" y="10" width="12" height="28" fill="white" />
+          <text x="24" y="28" textAnchor="middle" fill="#A3080C" fontSize="10" fontWeight="900" fontFamily="sans-serif">
+            KFC
+          </text>
+        </g>
+      )}
+
+      {/* Burger King */}
+      {(cleanId.includes('burger king') || cleanId.includes('burgerking')) && (
+        <g>
+          <rect width="48" height="48" rx="16" fill="#005CE6" />
+          <path d="M12 18H36C36 18 34 12 24 12C14 12 12 18 12 18Z" fill="#F57C00" />
+          <path d="M12 30H36C36 30 34 36 24 36C14 36 12 30 12 30Z" fill="#F57C00" />
+          <rect x="10" y="21" width="28" height="6" fill="#D32F2F" rx="3" />
+        </g>
+      )}
+
+      {/* Wendy's */}
+      {(cleanId.includes('wendy')) && (
+        <g>
+          <rect width="48" height="48" rx="16" fill="#E11D48" />
+          <circle cx="24" cy="22" r="8" fill="#FFF1F2" />
+          <path d="M16 18C16 18 18 14 24 14C30 14 32 18 32 18" stroke="#E11D48" strokeWidth="2.5" />
+        </g>
+      )}
+
+      {/* Popeyes */}
+      {(cleanId.includes('popeye')) && (
+        <g>
+          <rect width="48" height="48" rx="16" fill="#EA580C" />
+          <text x="24" y="30" textAnchor="middle" fill="white" fontSize="16" fontWeight="900" fontFamily="sans-serif">
+            P
+          </text>
+        </g>
+      )}
+
+      {/* Subway */}
+      {(cleanId.includes('subway')) && (
+        <g>
+          <rect width="48" height="48" rx="16" fill="#15803D" />
+          <path d="M12 24H24L20 18H12V24Z" fill="#FACC15" />
+          <path d="M36 24H24L28 30H36V24Z" fill="#FACC15" />
+        </g>
+      )}
+
+      {/* Shakey's */}
+      {(cleanId.includes('shakey')) && (
+        <g>
+          <rect width="48" height="48" rx="16" fill="#CA8A04" />
+          <path d="M14 34L24 14L34 34H14Z" fill="#DC2626" />
+        </g>
+      )}
+
+      {/* Pizza Hut */}
+      {(cleanId.includes('pizza hut') || cleanId.includes('pizzahut')) && (
+        <g>
+          <rect width="48" height="48" rx="16" fill="#DC2626" />
+          <path d="M12 22L24 12L36 22H12Z" fill="#111827" />
+          <rect x="16" y="22" width="16" height="10" fill="#FACC15" />
+        </g>
+      )}
+
+      {/* Domino's Pizza */}
+      {(cleanId.includes('domino')) && (
+        <g>
+          <rect width="48" height="48" rx="16" fill="#0284C7" />
+          <rect x="14" y="14" width="20" height="20" rx="4" fill="#E11D48" transform="rotate(45 24 24)" />
+          <circle cx="20" cy="20" r="2.5" fill="white" />
+          <circle cx="28" cy="28" r="2.5" fill="white" />
+        </g>
+      )}
+
+      {/* Tokyo Tokyo */}
+      {(cleanId.includes('tokyo')) && (
+        <g>
+          <rect width="48" height="48" rx="16" fill="#DC2626" />
+          <path d="M14 18H34M18 18V32M30 18V32M14 24H34" stroke="white" strokeWidth="3.5" strokeLinecap="round" />
+        </g>
+      )}
+
+      {/* Marugame Udon */}
+      {(cleanId.includes('marugame')) && (
+        <g>
+          <rect width="48" height="48" rx="16" fill="#1E293B" />
+          <path d="M14 24C14 30 18 34 24 34C30 34 34 30 34 24H14Z" fill="#F59E0B" />
+        </g>
+      )}
+
+      {/* BonChon Chicken */}
+      {(cleanId.includes('bonchon')) && (
+        <g>
+          <rect width="48" height="48" rx="16" fill="#111827" />
+          <text x="24" y="30" textAnchor="middle" fill="#DC2626" fontSize="16" fontWeight="900" fontFamily="sans-serif">
+            B
+          </text>
+        </g>
+      )}
+
+      {/* Paotsin / Master Siomai / Hen Lin */}
+      {(cleanId.includes('paotsin') || cleanId.includes('siomai') || cleanId.includes('hen lin')) && (
+        <g>
+          <rect width="48" height="48" rx="16" fill="#15803D" />
+          <ellipse cx="24" cy="26" rx="12" ry="7" fill="#FDE047" stroke="#166534" strokeWidth="2" />
+          <circle cx="24" cy="22" r="4" fill="#DC2626" />
+        </g>
+      )}
+
+      {/* CoCo Fresh Tea */}
+      {(cleanId.includes('coco')) && (
+        <g>
+          <rect width="48" height="48" rx="16" fill="#EA580C" />
+          <path d="M16 18L18 34H30L32 18H16Z" fill="#FFF7ED" />
+          <circle cx="24" cy="26" r="3" fill="#EA580C" />
+        </g>
+      )}
+
+      {/* Macao Imperial Tea */}
+      {(cleanId.includes('macao')) && (
+        <g>
+          <rect width="48" height="48" rx="16" fill="#D97706" />
+          <circle cx="24" cy="22" r="8" fill="#FEF3C7" />
+        </g>
+      )}
+
+      {/* Chatime */}
+      {(cleanId.includes('chatime')) && (
+        <g>
+          <rect width="48" height="48" rx="16" fill="#7E22CE" />
+          <path d="M16 18L18 34H30L32 18H16Z" fill="#FAF5FF" />
+        </g>
+      )}
+
+      {/* Starbucks */}
       {(cleanId === 'starbucks' || cleanId.includes('starbucks')) && (
         <g>
           <rect width="48" height="48" rx="16" fill="#006241" />
@@ -348,28 +580,44 @@ export function MochiCategoryVectorSVG({ id, size = 'md', className }: MochiCate
         </g>
       )}
 
-      {/* 31. Official Netflix (Black + Netflix Ribbon N) */}
-      {(cleanId === 'netflix' || cleanId.includes('netflix')) && (
+      {/* Dunkin' */}
+      {(cleanId.includes('dunkin')) && (
         <g>
-          <rect width="48" height="48" rx="16" fill="#000000" />
-          <path d="M16 10H21V38H16V10Z" fill="#E50914" />
-          <path d="M27 10H32V38H27V10Z" fill="#E50914" />
-          <path d="M16 10L32 38H27L16 10Z" fill="#B81D24" />
+          <rect width="48" height="48" rx="16" fill="#EC4899" />
+          <text x="24" y="30" textAnchor="middle" fill="#F97316" fontSize="16" fontWeight="900" fontFamily="sans-serif">
+            DD
+          </text>
         </g>
       )}
 
-      {/* 32. Official Spotify (Spotify Green + 3 Curved Wave Arcs) */}
-      {(cleanId === 'spotify' || cleanId.includes('spotify')) && (
+      {/* Mister Donut */}
+      {(cleanId.includes('mister donut') || cleanId.includes('misterdonut')) && (
         <g>
-          <rect width="48" height="48" rx="16" fill="#1DB954" />
-          <path d="M14 21C20 19 28 20 34 23" stroke="#121212" strokeWidth="3" strokeLinecap="round" />
-          <path d="M16 26C21 24.5 27 25 32 27.5" stroke="#121212" strokeWidth="2.5" strokeLinecap="round" />
-          <path d="M17 31C21 30 26 30.5 30 32" stroke="#121212" strokeWidth="2" strokeLinecap="round" />
+          <rect width="48" height="48" rx="16" fill="#F59E0B" />
+          <circle cx="24" cy="24" r="10" fill="#DC2626" />
+          <circle cx="24" cy="24" r="4" fill="#F59E0B" />
+        </g>
+      )}
+
+      {/* Official Meralco */}
+      {(cleanId === 'meralco' || cleanId.includes('meralco')) && (
+        <g>
+          <rect width="48" height="48" rx="16" fill="#00529B" />
+          <circle cx="24" cy="24" r="14" fill="#F58220" />
+          <path d="M26 12L15 26H24L21 36L33 22H24L26 12Z" fill="white" />
+        </g>
+      )}
+
+      {/* Official Grab */}
+      {(cleanId === 'grab' || cleanId.includes('grab')) && (
+        <g>
+          <rect width="48" height="48" rx="16" fill="#00B14F" />
+          <path fillRule="evenodd" clipRule="evenodd" d="M24 12C17.3726 12 12 17.3726 12 24C12 30.6274 17.3726 36 24 36C28.2 36 31.8 33.8 33.9 30.5L30.2 28.2C28.8 30.4 26.5 31.8 24 31.8C19.7 31.8 16.2 28.3 16.2 24C16.2 19.7 19.7 16.2 24 16.2C26.5 16.2 28.8 17.6 30.2 19.8L33.9 17.5C31.8 14.2 28.2 12 24 12Z" fill="white" />
         </g>
       )}
 
       {/* Default Fallback for unmatched IDs */}
-      {!['utensils', 'food', 'shopping_bag', 'shopping', 'house', 'housing', 'car', 'transport', 'electric', 'bills', 'gamepad', 'entertainment', 'heart', 'health', 'graduation', 'education', 'sofa', 'personal', 'plane', 'receipt', 'briefcase', 'salary', 'laptop', 'freelance', 'piggy_bank', 'savings', 'gift_bag', 'gifts', 'vault', 'coins', 'gcash', 'maya', 'jollibee', 'seven_eleven', 'meralco', 'grab', 'shopee', 'lazada', 'jeepney', 'bdo', 'bpi', 'mcdo', 'starbucks', 'netflix', 'spotify'].some(k => cleanId.includes(k)) && (
+      {!['utensils', 'food', 'shopping_bag', 'shopping', 'house', 'housing', 'car', 'transport', 'electric', 'bills', 'gamepad', 'entertainment', 'heart', 'health', 'graduation', 'education', 'sofa', 'personal', 'plane', 'receipt', 'briefcase', 'salary', 'laptop', 'freelance', 'piggy_bank', 'savings', 'gift_bag', 'gifts', 'vault', 'coins', 'gcash', 'maya', 'jollibee', 'seven_eleven', 'meralco', 'grab', 'shopee', 'lazada', 'jeepney', 'bdo', 'bpi', 'mcdo', 'starbucks', 'netflix', 'spotify', 'foodpanda', 'pandamart', 'lalamove', 'angkas', 'joyride', 'moveit', 'sm', 'savemore', 'hypermarket', 'ayala', 'chowking', 'inasal', 'greenwich', 'red ribbon', 'goldilocks', 'binalot', 'uncle john', 'ministop', 'lawson', 'familymart', 'puregold', 'robinsons', 'waltermart', 'landers', 's&r', 'snr', 'metromart', 'kfc', 'burger king', 'wendy', 'popeye', 'subway', 'shakey', 'pizza hut', 'domino', 'tokyo', 'marugame', 'bonchon', 'paotsin', 'siomai', 'coco', 'macao', 'chatime', 'dunkin', 'mister donut'].some(k => cleanId.includes(k)) && (
         <g>
           <rect width="48" height="48" rx="16" fill="#F3F4F6" />
           <circle cx="24" cy="24" r="10" fill="#9CA3AF" />

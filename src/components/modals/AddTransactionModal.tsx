@@ -44,38 +44,129 @@ const incomeCategories = [
 
 // Preset Merchant Suggestions Database with official icons and default categories
 const MERCHANT_DATABASE = [
-  { name: 'Jollibee Chickenjoy', vectorId: 'jollibee', defaultCategory: 'food', tags: ['fast food', 'food', 'meal'] },
-  { name: 'GCash Transfer', vectorId: 'gcash', defaultCategory: 'other', tags: ['gcash', 'e-wallet', 'send'] },
-  { name: 'Maya Payment', vectorId: 'maya', defaultCategory: 'utilities', tags: ['maya', 'e-wallet', 'pay'] },
-  { name: 'Meralco Electric Bill', vectorId: 'meralco', defaultCategory: 'utilities', tags: ['electricity', 'meralco', 'bill'] },
-  { name: 'GrabFood & GrabCar', vectorId: 'grab', defaultCategory: 'transport', tags: ['grab', 'food', 'car', 'ride'] },
-  { name: 'Shopee Mall Order', vectorId: 'shopee', defaultCategory: 'shopping', tags: ['shopee', 'online', 'shopping'] },
-  { name: 'Lazada Sale Order', vectorId: 'lazada', defaultCategory: 'shopping', tags: ['lazada', 'online', 'shopping'] },
-  { name: '7-Eleven Convenience', vectorId: 'seven_eleven', defaultCategory: 'food', tags: ['7-eleven', 'snacks', 'store'] },
-  { name: 'McDonald\'s (McDo)', vectorId: 'mcdo', defaultCategory: 'food', tags: ['mcdo', 'burger', 'fast food'] },
-  { name: 'Starbucks Coffee', vectorId: 'starbucks', defaultCategory: 'food', tags: ['coffee', 'starbucks', 'drink'] },
-  { name: 'Jeepney & LRT Fare', vectorId: 'jeepney', defaultCategory: 'transport', tags: ['jeepney', 'commute', 'fare'] },
-  { name: 'BDO Company Payroll', vectorId: 'bdo', defaultCategory: 'income', tags: ['bdo', 'salary', 'bank'] },
-  { name: 'BPI Bank Account', vectorId: 'bpi', defaultCategory: 'income', tags: ['bpi', 'salary', 'bank'] },
-  { name: 'Netflix Subscription', vectorId: 'netflix', defaultCategory: 'entertainment', tags: ['netflix', 'streaming', 'movie'] },
-  { name: 'Spotify Premium', vectorId: 'spotify', defaultCategory: 'entertainment', tags: ['spotify', 'music', 'audio'] },
+  // 1. Food Delivery & Courier Services
+  { name: 'GrabFood Order', vectorId: 'grab', defaultCategory: 'food', tags: ['grabfood', 'grab', 'food', 'delivery'] },
+  { name: 'Foodpanda Order', vectorId: 'foodpanda', defaultCategory: 'food', tags: ['foodpanda', 'panda', 'delivery'] },
+  { name: 'Move It Taxi / Delivery', vectorId: 'moveit', defaultCategory: 'transport', tags: ['move it', 'moveit', 'motorcycle', 'commute'] },
+  { name: 'Lalamove Delivery', vectorId: 'lalamove', defaultCategory: 'transport', tags: ['lalamove', 'courier', 'delivery'] },
+  { name: 'GrabExpress Booking', vectorId: 'grab', defaultCategory: 'transport', tags: ['grabexpress', 'express', 'delivery'] },
+  { name: 'Angkas Motorcycle Taxi', vectorId: 'angkas', defaultCategory: 'transport', tags: ['angkas', 'commute', 'ride'] },
+  { name: 'JoyRide Commute', vectorId: 'joyride', defaultCategory: 'transport', tags: ['joyride', 'motorcycle', 'ride'] },
+
+  // 2. Malls, Supermarkets & Convenience Stores
+  { name: 'SM Supermalls (SM North / Megamall)', vectorId: 'sm', defaultCategory: 'shopping', tags: ['sm', 'mall', 'sm megamall', 'sm north'] },
+  { name: 'Ayala Malls Shopping', vectorId: 'ayala', defaultCategory: 'shopping', tags: ['ayala', 'mall', 'glorietta', 'greenbelt'] },
+  { name: '7-Eleven Snacks & Drinks', vectorId: 'seven_eleven', defaultCategory: 'food', tags: ['7-eleven', '7eleven', 'store'] },
+  { name: 'Ministop / Uncle John\'s', vectorId: 'uncle_johns', defaultCategory: 'food', tags: ['ministop', 'uncle johns', 'fried chicken'] },
+  { name: 'Lawson Station', vectorId: 'lawson', defaultCategory: 'food', tags: ['lawson', 'bento', 'convenience'] },
+  { name: 'FamilyMart Mart', vectorId: 'familymart', defaultCategory: 'food', tags: ['familymart', 'onigiri', 'store'] },
+  { name: 'SM Supermarket / Savemore', vectorId: 'sm', defaultCategory: 'food', tags: ['sm supermarket', 'savemore', 'hypermarket', 'groceries'] },
+  { name: 'Puregold Grocery', vectorId: 'puregold', defaultCategory: 'food', tags: ['puregold', 'supermarket', 'groceries'] },
+  { name: 'Robinsons Supermarket', vectorId: 'robinsons', defaultCategory: 'food', tags: ['robinsons', 'groceries'] },
+  { name: 'WalterMart Supermarket', vectorId: 'waltermart', defaultCategory: 'food', tags: ['waltermart', 'groceries'] },
+  { name: 'Landers Superstore', vectorId: 'landers', defaultCategory: 'food', tags: ['landers', 'membership', 'groceries'] },
+  { name: 'S&R Membership Shopping', vectorId: 'snr', defaultCategory: 'food', tags: ['s&r', 'snr', 'pizza', 'groceries'] },
+  { name: 'GrabMart Express', vectorId: 'grab', defaultCategory: 'food', tags: ['grabmart', 'groceries'] },
+  { name: 'Pandamart Express', vectorId: 'pandamart', defaultCategory: 'food', tags: ['pandamart', 'foodpanda', 'groceries'] },
+  { name: 'Shopee Supermarket', vectorId: 'shopee', defaultCategory: 'shopping', tags: ['shopee', 'online'] },
+  { name: 'Lazada LazMart', vectorId: 'lazada', defaultCategory: 'shopping', tags: ['lazada', 'lazmart'] },
+  { name: 'MetroMart Online Grocery', vectorId: 'metromart', defaultCategory: 'food', tags: ['metromart', 'groceries'] },
+
+  // 3. Pinoy Fast Food & Bakery Chains
+  { name: 'Jollibee Chickenjoy', vectorId: 'jollibee', defaultCategory: 'food', tags: ['jollibee', 'yumburger', 'chickenjoy'] },
+  { name: 'Chowking Laopao Meal', vectorId: 'chowking', defaultCategory: 'food', tags: ['chowking', 'chao fan', 'halo halo'] },
+  { name: 'Mang Inasal Chicken Inasal', vectorId: 'mang_inasal', defaultCategory: 'food', tags: ['mang inasal', 'inasal', 'bbq'] },
+  { name: 'Greenwich Pizza & Pasta', vectorId: 'greenwich', defaultCategory: 'food', tags: ['greenwich', 'pizza', 'pasta'] },
+  { name: 'Red Ribbon Cake', vectorId: 'red_ribbon', defaultCategory: 'food', tags: ['red ribbon', 'cake', 'pastry'] },
+  { name: 'Goldilocks Bakery', vectorId: 'goldilocks', defaultCategory: 'food', tags: ['goldilocks', 'cake', 'polvoron'] },
+  { name: 'Binalot Fiesta Rice', vectorId: 'binalot', defaultCategory: 'food', tags: ['binalot', 'adobo', 'rice'] },
+
+  // 4. Western Fast Food & Pizza Chains
+  { name: 'McDonald\'s (McDo)', vectorId: 'mcdo', defaultCategory: 'food', tags: ['mcdo', 'mcdonald', 'fries', 'burger'] },
+  { name: 'KFC Chicken Bucket', vectorId: 'kfc', defaultCategory: 'food', tags: ['kfc', 'zinger', 'chicken'] },
+  { name: 'Burger King Flame-Grilled', vectorId: 'burger_king', defaultCategory: 'food', tags: ['burger king', 'whopper'] },
+  { name: 'Wendy\'s Burger & Frosty', vectorId: 'wendys', defaultCategory: 'food', tags: ['wendys', 'frosty'] },
+  { name: 'Popeyes Louisiana Chicken', vectorId: 'popeyes', defaultCategory: 'food', tags: ['popeyes', 'biscuits', 'chicken'] },
+  { name: 'Subway Sandwich', vectorId: 'subway', defaultCategory: 'food', tags: ['subway', 'sub', 'sandwich'] },
+  { name: 'Shakey\'s Pizza & Mojos', vectorId: 'shakeys', defaultCategory: 'food', tags: ['shakeys', 'pizza', 'mojos'] },
+  { name: 'Pizza Hut Super Supreme', vectorId: 'pizza_hut', defaultCategory: 'food', tags: ['pizza hut', 'pizza'] },
+  { name: 'Domino\'s Pizza', vectorId: 'dominos', defaultCategory: 'food', tags: ['dominos', 'pizza'] },
+
+  // 5. Asian & Milk Tea / Coffee Chains
+  { name: 'Tokyo Tokyo Bento', vectorId: 'tokyo_tokyo', defaultCategory: 'food', tags: ['tokyo tokyo', 'ramen', 'bento'] },
+  { name: 'Marugame Udon & Tempura', vectorId: 'marugame', defaultCategory: 'food', tags: ['marugame', 'udon', 'tempura'] },
+  { name: 'BonChon Korean Fried Chicken', vectorId: 'bonchon', defaultCategory: 'food', tags: ['bonchon', 'korean chicken'] },
+  { name: 'Paotsin Dumpling Rice', vectorId: 'paotsin', defaultCategory: 'food', tags: ['paotsin', 'siomai', 'dumplings'] },
+  { name: 'Master Siomai', vectorId: 'siomai', defaultCategory: 'food', tags: ['master siomai', 'siomai'] },
+  { name: 'Hen Lin Dimsum', vectorId: 'paotsin', defaultCategory: 'food', tags: ['hen lin', 'siopao', 'dimsum'] },
+  { name: 'CoCo Fresh Tea & Juice', vectorId: 'coco', defaultCategory: 'food', tags: ['coco', 'boba', 'milk tea'] },
+  { name: 'Macao Imperial Tea', vectorId: 'macao', defaultCategory: 'food', tags: ['macao', 'milk tea', 'cheesecake'] },
+  { name: 'Chatime Milk Tea', vectorId: 'chatime', defaultCategory: 'food', tags: ['chatime', 'boba', 'tea'] },
+  { name: 'Starbucks Coffee', vectorId: 'starbucks', defaultCategory: 'food', tags: ['starbucks', 'coffee', 'frappe'] },
+  { name: 'Dunkin\' Donuts & Coffee', vectorId: 'dunkin', defaultCategory: 'food', tags: ['dunkin', 'donuts', 'coffee'] },
+  { name: 'Mister Donut Pon de Ring', vectorId: 'mister_donut', defaultCategory: 'food', tags: ['mister donut', 'donuts'] },
+
+  // E-wallets, Utilities & Subscriptions
+  { name: 'GCash Money Transfer', vectorId: 'gcash', defaultCategory: 'other', tags: ['gcash', 'e-wallet'] },
+  { name: 'Maya E-Wallet Payment', vectorId: 'maya', defaultCategory: 'utilities', tags: ['maya', 'paymaya'] },
+  { name: 'Meralco Electric Bill', vectorId: 'meralco', defaultCategory: 'utilities', tags: ['meralco', 'electricity'] },
+  { name: 'Jeepney Commute Fare', vectorId: 'jeepney', defaultCategory: 'transport', tags: ['jeepney', 'commute'] },
+  { name: 'Netflix Subscription', vectorId: 'netflix', defaultCategory: 'entertainment', tags: ['netflix', 'streaming'] },
+  { name: 'Spotify Premium', vectorId: 'spotify', defaultCategory: 'entertainment', tags: ['spotify', 'music'] },
 ]
 
 function getMerchantVectorId(merchant: string, type: TransactionType, currentCatIcon?: string): string {
   const m = (merchant || '').toLowerCase()
   if (m.includes('gcash')) return 'gcash'
   if (m.includes('maya')) return 'maya'
+  if (m.includes('foodpanda') || m.includes('pandamart')) return 'foodpanda'
+  if (m.includes('lalamove')) return 'lalamove'
+  if (m.includes('angkas') || m.includes('joyride') || m.includes('move it') || m.includes('moveit')) return 'angkas'
+  if (m.includes('sm') || m.includes('savemore') || m.includes('hypermarket')) return 'sm'
+  if (m.includes('ayala')) return 'ayala'
   if (m.includes('jollibee') || m.includes('chickenjoy')) return 'jollibee'
+  if (m.includes('chowking')) return 'chowking'
+  if (m.includes('inasal')) return 'mang_inasal'
+  if (m.includes('greenwich')) return 'greenwich'
+  if (m.includes('red ribbon') || m.includes('redribbon')) return 'red_ribbon'
+  if (m.includes('goldilocks')) return 'goldilocks'
+  if (m.includes('binalot')) return 'binalot'
+  if (m.includes('7-eleven') || m.includes('7eleven')) return 'seven_eleven'
+  if (m.includes('uncle john') || m.includes('ministop')) return 'uncle_johns'
+  if (m.includes('lawson')) return 'lawson'
+  if (m.includes('familymart') || m.includes('family mart')) return 'familymart'
+  if (m.includes('puregold')) return 'puregold'
+  if (m.includes('robinsons')) return 'robinsons'
+  if (m.includes('waltermart') || m.includes('walter mart')) return 'waltermart'
+  if (m.includes('landers')) return 'landers'
+  if (m.includes('s&r') || m.includes('snr')) return 'snr'
+  if (m.includes('metromart')) return 'metromart'
   if (m.includes('mcdo') || m.includes('mcdonald')) return 'mcdo'
+  if (m.includes('kfc')) return 'kfc'
+  if (m.includes('burger king') || m.includes('burgerking')) return 'burger_king'
+  if (m.includes('wendy')) return 'wendys'
+  if (m.includes('popeye')) return 'popeyes'
+  if (m.includes('subway')) return 'subway'
+  if (m.includes('shakey')) return 'shakeys'
+  if (m.includes('pizza hut') || m.includes('pizzahut')) return 'pizza_hut'
+  if (m.includes('domino')) return 'dominos'
+  if (m.includes('tokyo')) return 'tokyo_tokyo'
+  if (m.includes('marugame')) return 'marugame'
+  if (m.includes('bonchon')) return 'bonchon'
+  if (m.includes('paotsin') || m.includes('siomai') || m.includes('hen lin')) return 'paotsin'
+  if (m.includes('coco')) return 'coco'
+  if (m.includes('macao')) return 'macao'
+  if (m.includes('chatime')) return 'chatime'
+  if (m.includes('starbucks')) return 'starbucks'
+  if (m.includes('dunkin')) return 'dunkin'
+  if (m.includes('mister donut') || m.includes('misterdonut')) return 'mister_donut'
+  if (m.includes('meralco') || m.includes('electric')) return 'meralco'
+  if (m.includes('grab')) return 'grab'
   if (m.includes('shopee')) return 'shopee'
   if (m.includes('lazada')) return 'lazada'
-  if (m.includes('grab')) return 'grab'
-  if (m.includes('meralco') || m.includes('electric')) return 'meralco'
-  if (m.includes('7-eleven') || m.includes('7eleven') || m.includes('7 eleven')) return 'seven_eleven'
-  if (m.includes('jeepney') || m.includes('angkas') || m.includes('commute') || m.includes('joyride')) return 'jeepney'
+  if (m.includes('jeepney') || m.includes('commute')) return 'jeepney'
   if (m.includes('bdo')) return 'bdo'
   if (m.includes('bpi')) return 'bpi'
-  if (m.includes('starbucks')) return 'starbucks'
   if (m.includes('netflix')) return 'netflix'
   if (m.includes('spotify')) return 'spotify'
   return currentCatIcon || (type === 'expense' ? 'receipt' : 'briefcase')
