@@ -1,4 +1,4 @@
-import { initializeApp } from 'firebase/app'
+import { initializeApp, getApps } from 'firebase/app'
 import { getAuth } from 'firebase/auth'
 import {
   initializeFirestore,
@@ -8,15 +8,22 @@ import {
 import { getStorage } from 'firebase/storage'
 
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || 'placeholder',
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || 'placeholder',
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || 'placeholder',
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || 'placeholder',
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || 'placeholder',
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || 'placeholder',
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || '',
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || '',
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || '',
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || '',
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || '',
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || '',
 }
 
-const app = initializeApp(firebaseConfig)
+export const isFirebaseConfigured = Boolean(
+  firebaseConfig.apiKey &&
+  firebaseConfig.apiKey !== 'placeholder' &&
+  firebaseConfig.projectId
+)
+
+// Prevent multiple app initialization
+const app = getApps().length > 0 ? getApps()[0] : initializeApp(firebaseConfig)
 
 export const auth = getAuth(app)
 export const db = initializeFirestore(app, {
