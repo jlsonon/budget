@@ -179,7 +179,7 @@ function TransactionDetailSheet({
                 'w-16 h-16 rounded-3xl flex items-center justify-center shadow-md mb-3',
                 isIncome ? 'bg-emerald-500/15 border border-emerald-500/30' : 'bg-rose-500/15 border border-rose-500/30'
               )}>
-                <MochiCategoryVectorSVG id={category?.icon || 'receipt'} size="md" />
+                <MochiCategoryVectorSVG id={getMerchantVectorId(transaction.merchant, transaction.paymentMethod, category?.icon)} size="lg" />
               </div>
               <h2 className="text-xl font-black text-mochi-text">{transaction.merchant}</h2>
               <p className="text-xs text-mochi-text-muted font-bold mt-0.5">{category?.name || transaction.categoryId}</p>
