@@ -792,16 +792,16 @@ export default function WalletsPage() {
   const [selectedWallet, setSelectedWallet] = useState<Wallet | null>(null)
 
   const totalAssets = wallets
-    .filter((w) => w.includeInTotal)
-    .reduce((sum, w) => sum + w.balance, 0)
+    .filter((w: Wallet) => w.includeInTotal)
+    .reduce((sum: number, w: Wallet) => sum + w.balance, 0)
 
   const walletsByType: Record<string, Wallet[]> = {
-    'Cash': wallets.filter((w) => w.type === 'cash'),
-    'Digital Banks & E-Wallets': wallets.filter((w) => w.type === 'digital_bank'),
-    'Bank Accounts': wallets.filter((w) => w.type === 'traditional_bank'),
-    'Credit Cards': wallets.filter((w) => w.type === 'credit_card'),
-    'Savings & Funds': wallets.filter((w) => ['savings', 'emergency', 'investment'].includes(w.type)),
-    'Other': wallets.filter((w) => w.type === 'paypal'),
+    'Cash': wallets.filter((w: Wallet) => w.type === 'cash'),
+    'Digital Banks & E-Wallets': wallets.filter((w: Wallet) => w.type === 'digital_bank'),
+    'Bank Accounts': wallets.filter((w: Wallet) => w.type === 'traditional_bank'),
+    'Credit Cards': wallets.filter((w: Wallet) => w.type === 'credit_card'),
+    'Savings & Funds': wallets.filter((w: Wallet) => ['savings', 'emergency', 'investment'].includes(w.type)),
+    'Other': wallets.filter((w: Wallet) => w.type === 'paypal'),
   }
 
 
@@ -879,7 +879,7 @@ export default function WalletsPage() {
         >
           {formatCurrency(totalAssets, 'PHP')}
         </motion.p>
-        <p className="text-xs text-mochi-text-muted mt-1">{wallets.filter((w) => w.includeInTotal).length} wallets tracked</p>
+        <p className="text-xs text-mochi-text-muted mt-1">{wallets.filter((w: Wallet) => w.includeInTotal).length} wallets tracked</p>
 
         {/* Asset Allocation Breakdown Bar */}
         {totalAssets > 0 && (
@@ -890,10 +890,10 @@ export default function WalletsPage() {
             </div>
             <div className="h-3 bg-mochi-border/40 rounded-full overflow-hidden flex gap-0.5 p-0.5">
               {Object.entries({
-                Cash: wallets.filter((w) => w.type === 'cash').reduce((s, w) => s + w.balance, 0),
-                'E-Wallets': wallets.filter((w) => w.type === 'digital_bank').reduce((s, w) => s + w.balance, 0),
-                Banks: wallets.filter((w) => w.type === 'traditional_bank').reduce((s, w) => s + w.balance, 0),
-                Savings: wallets.filter((w) => ['savings', 'emergency', 'investment'].includes(w.type)).reduce((s, w) => s + w.balance, 0),
+                Cash: wallets.filter((w: Wallet) => w.type === 'cash').reduce((s: number, w: Wallet) => s + w.balance, 0),
+                'E-Wallets': wallets.filter((w: Wallet) => w.type === 'digital_bank').reduce((s: number, w: Wallet) => s + w.balance, 0),
+                Banks: wallets.filter((w: Wallet) => w.type === 'traditional_bank').reduce((s: number, w: Wallet) => s + w.balance, 0),
+                Savings: wallets.filter((w: Wallet) => ['savings', 'emergency', 'investment'].includes(w.type)).reduce((s: number, w: Wallet) => s + w.balance, 0),
               }).map(([label, val], idx) => {
                 const pct = Math.round((val / totalAssets) * 100)
                 if (pct <= 0) return null

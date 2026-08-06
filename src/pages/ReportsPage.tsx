@@ -93,13 +93,13 @@ function useReportsData(period: Period) {
       other: Wallet,
     }
     const categoryColors: Record<string, string> = {
-      food: '#F97316',
-      transportation: '#3B82F6',
-      shopping: '#A855F7',
-      utilities: '#EF4444',
-      housing: '#8B5CF6',
-      entertainment: '#F59E0B',
-      other: '#6B7280',
+      food: 'var(--color-warning)',
+      transportation: 'var(--color-primary)',
+      shopping: 'var(--color-secondary)',
+      utilities: 'var(--color-danger)',
+      housing: 'var(--color-accent, #8B5CF6)',
+      entertainment: 'var(--color-success)',
+      other: 'var(--color-text-muted)',
     }
 
     const expenseCategories = Object.entries(categoryTotals).map(([catId, amt]) => {
@@ -319,7 +319,7 @@ function ExpenseBreakdownCard({ data }: { data: ReturnType<typeof useReportsData
 }
 
 function IncomeSourcesCard({ data }: { data: ReturnType<typeof useReportsData> }) {
-  const colors = ['#10B981', '#3B82F6', '#8B5CF6']
+  const colors = ['var(--color-success)', 'var(--color-primary)', 'var(--color-secondary)']
 
   return (
     <div className="mochi-card">

@@ -64,7 +64,7 @@ export const useThemeStore = create<ThemeState>()(
       setTheme: (theme) => {
         document.documentElement.setAttribute('data-theme', theme)
         // Apply dark class for dark themes
-        const themeInfo = THEMES.find((t) => t.id === theme)
+        const themeInfo = THEMES.find((t: any) => t.id === theme)
         if (themeInfo?.isDark) {
           document.documentElement.classList.add('dark')
           set({ theme, darkMode: true })
@@ -82,8 +82,8 @@ export const useThemeStore = create<ThemeState>()(
         document.documentElement.classList.toggle('dark', next)
         set({ darkMode: next })
       },
-      toggleSounds: () => set((s) => ({ soundsEnabled: !s.soundsEnabled })),
-      toggleAnimations: () => set((s) => ({ animationsEnabled: !s.animationsEnabled })),
+      toggleSounds: () => set((state) => ({ soundsEnabled: !state.soundsEnabled })),
+      toggleAnimations: () => set((state) => ({ animationsEnabled: !state.animationsEnabled })),
       initialize: () => {
         const saved = JSON.parse(localStorage.getItem('mochi-theme') || '{}')
         if (saved.state?.darkMode) {
@@ -93,7 +93,7 @@ export const useThemeStore = create<ThemeState>()(
           document.documentElement.setAttribute('data-theme', saved.state.theme)
         }
         // Also handle dark themes
-        const themeInfo = THEMES.find((t) => t.id === saved.state?.theme)
+        const themeInfo = THEMES.find((t: any) => t.id === saved.state?.theme)
         if (themeInfo?.isDark) {
           document.documentElement.classList.add('dark')
         }

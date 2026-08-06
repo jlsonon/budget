@@ -36,7 +36,7 @@ export const useAuthStore = create<AuthState>()(
       error: null,
       setUser: (user) => set({ user, isAuthenticated: !!user, error: null }),
       updateUser: (updates) =>
-        set((s) => ({
+        set((s: AuthState) => ({
           user: s.user ? { ...s.user, ...updates, updatedAt: new Date().toISOString() } : null,
         })),
       setAuthenticated: (value) => set({ isAuthenticated: value }),

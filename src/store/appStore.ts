@@ -1,478 +1,79 @@
 import { create } from 'zustand'
-import {
-  Transaction,
-  Budget,
-  SavingsGoal,
-  Debt,
-  Subscription,
-  DailyMission,
-  Achievement,
-  Streak,
-  MochiCircle,
-  TravelStamp,
-  Wallet,
-} from '../types'
-import { saveDocToCloud, deleteDocFromCloud } from '../services/cloudSync'
-import { FIRESTORE_COLLECTIONS } from '../services/firestoreCollections'
+import { useTransactionStore, TransactionState } from './transactionStore'
+import { useWalletStore, WalletState } from './walletStore'
+import { useBudgetStore, BudgetState } from './budgetStore'
+import { useSavingsStore, SavingsState } from './savingsStore'
+import { useDebtStore, DebtState } from './debtStore'
+import { useSubscriptionStore, SubscriptionState } from './subscriptionStore'
+import { useCircleStore, CircleState } from './circleStore'
+import { useUIStore, UISlice } from './uiStore'
+import { useSyncStore, SyncState } from './syncStore'
 import { useAuthStore } from './authStore'
+import { Transaction, Wallet, Budget, SavingsGoal, Debt, Subscription, MochiCircle } from '../types'
+
+export type AppState = TransactionState &
+  WalletState &
+  BudgetState &
+  SavingsState &
+  DebtState &
+  SubscriptionState &
+  CircleState &
+  UISlice &
+  SyncState
 
 const getUid = (): string => useAuthStore.getState().user?.id || 'anon'
 
-interface AppState {
-  // Transactions
-  transactions: Transaction[]
-  isLoadingTransactions: boolean
-  setTransactions: (txns: Transaction[]) => void
-  addTransaction: (txn: Transaction) => void
-  updateTransaction: (id: string, updates: Partial<Transaction>) => void
-  deleteTransaction: (id: string) => void
+export const useAppStore = create<AppState>()((set) => ({
+  ...useTransactionStore.getState(),
+  ...useWalletStore.getState(),
+  ...useBudgetStore.getState(),
+  ...useSavingsStore.getState(),
+  ...useDebtStore.getState(),
+  ...useSubscriptionStore.getState(),
+  ...useCircleStore.getState(),
+  ...useUIStore.getState(),
+  ...useSyncStore.getState(),
 
-  // Budgets
-  budgets: Budget[]
-  setBudgets: (budgets: Budget[]) => void
-  addBudget: (budget: Budget) => void
-  updateBudget: (id: string, updates: Partial<Budget>) => void
+  setTransactions: (txns: Transaction[]) => { useTransactionStore.getState().setTransactions(txns); set({ transactions: txns }) },
+  addTransaction: async (txn: Transaction) => { await useTransactionStore.getState().addTransaction(txn); set({ transactions: useTransactionStore.getState().transactions }) },
+  updateTransaction: async (id: string, updates: Partial<Transaction>) => { await useTransactionStore.getState().updateTransaction(id, updates); set({ transactions: useTransactionStore.getState().transactions }) },
+  deleteTransaction: async (id: string) => { await useTransactionStore.getState().deleteTransaction(id); set({ transactions: useTransactionStore.getState().transactions }) },
 
-  // Savings
-  savingsGoals: SavingsGoal[]
-  setSavingsGoals: (goals: SavingsGoal[]) => void
-  addSavingsGoal: (goal: SavingsGoal) => void
-  contributeToGoal: (goalId: string, amount: number) => void
+  setWallets: (wallets: Wallet[]) => { useWalletStore.getState().setWallets(wallets); set({ wallets }) },
+  addWallet: async (wallet: Wallet) => { await useWalletStore.getState().addWallet(wallet); set({ wallets: useWalletStore.getState().wallets }) },
+  updateWallet: async (id: string, updates: Partial<Wallet>) => { await useWalletStore.getState().updateWallet(id, updates); set({ wallets: useWalletStore.getState().wallets }) },
+  deleteWallet: async (id: string) => { await useWalletStore.getState().deleteWallet(id); set({ wallets: useWalletStore.getState().wallets }) },
+  adjustWalletBalance: async (id: string, amount: number) => { await useWalletStore.getState().adjustWalletBalance(id, amount); set({ wallets: useWalletStore.getState().wallets }) },
 
-  // Debts
-  debts: Debt[]
-  setDebts: (debts: Debt[]) => void
-  addDebt: (debt: Debt) => void
-  makeDebtPayment: (debtId: string, amount: number) => void
+  setBudgets: (budgets: Budget[]) => { useBudgetStore.getState().setBudgets(budgets); set({ budgets }) },
+  addBudget: async (b: Budget) => { await useBudgetStore.getState().addBudget(b); set({ budgets: useBudgetStore.getState().budgets }) },
+  updateBudget: async (id: string, u: Partial<Budget>) => { await useBudgetStore.getState().updateBudget(id, u); set({ budgets: useBudgetStore.getState().budgets }) },
 
-  // Subscriptions
-  subscriptions: Subscription[]
-  setSubscriptions: (subs: Subscription[]) => void
-  addSubscription: (sub: Subscription) => void
-  updateSubscription: (id: string, updates: Partial<Subscription>) => void
-  deleteSubscription: (id: string) => void
-  processDueRecurring: () => void
+  setSavingsGoals: (g: SavingsGoal[]) => { useSavingsStore.getState().setSavingsGoals(g); set({ savingsGoals: g }) },
+  addSavingsGoal: async (g: SavingsGoal) => { await useSavingsStore.getState().addSavingsGoal(g); set({ savingsGoals: useSavingsStore.getState().savingsGoals }) },
+  contributeToGoal: async (id: string, amt: number) => { await useSavingsStore.getState().contributeToGoal(id, amt); set({ savingsGoals: useSavingsStore.getState().savingsGoals }) },
 
-  // Missions
-  missions: DailyMission[]
-  setMissions: (missions: DailyMission[]) => void
-  completeMission: (id: string) => void
+  setDebts: (d: Debt[]) => { useDebtStore.getState().setDebts(d); set({ debts: d }) },
+  addDebt: async (d: Debt) => { await useDebtStore.getState().addDebt(d); set({ debts: useDebtStore.getState().debts }) },
+  makeDebtPayment: async (id: string, amt: number) => { await useDebtStore.getState().makeDebtPayment(id, amt); set({ debts: useDebtStore.getState().debts }) },
 
-  // Achievements
-  achievements: Achievement[]
-  setAchievements: (achievements: Achievement[]) => void
+  setSubscriptions: (s: Subscription[]) => { useSubscriptionStore.getState().setSubscriptions(s); set({ subscriptions: s }) },
+  addSubscription: async (sub: Subscription) => { await useSubscriptionStore.getState().addSubscription(sub); set({ subscriptions: useSubscriptionStore.getState().subscriptions }) },
+  updateSubscription: async (id: string, u: Partial<Subscription>) => { await useSubscriptionStore.getState().updateSubscription(id, u); set({ subscriptions: useSubscriptionStore.getState().subscriptions }) },
+  deleteSubscription: async (id: string) => { await useSubscriptionStore.getState().deleteSubscription(id); set({ subscriptions: useSubscriptionStore.getState().subscriptions }) },
+  processDueRecurring: async () => { await useSubscriptionStore.getState().processDueRecurring(); set({ subscriptions: useSubscriptionStore.getState().subscriptions }) },
 
-  // Streaks
-  streaks: Streak[]
-  setStreaks: (streaks: Streak[]) => void
-  incrementStreak: (type: Streak['type']) => void
+  setCircles: (c: MochiCircle[]) => { useCircleStore.getState().setCircles(c); set({ circles: c }) },
+  addCircle: async (c: MochiCircle) => { await useCircleStore.getState().addCircle(c); set({ circles: useCircleStore.getState().circles }) },
+  contributeToCircle: async (id: string, amt: number, note?: string) => { await useCircleStore.getState().contributeToCircle(id, amt, note); set({ circles: useCircleStore.getState().circles }) },
+  toggleCircleWishlist: async (id: string, item: string) => { await useCircleStore.getState().toggleCircleWishlist(id, item); set({ circles: useCircleStore.getState().circles }) },
+  voteCirclePoll: async (cid: string, pid: string, opt: string) => { await useCircleStore.getState().voteCirclePoll(cid, pid, opt); set({ circles: useCircleStore.getState().circles }) },
+  addCircleWishlistItem: async (id: string, t: string, c?: number) => { await useCircleStore.getState().addCircleWishlistItem(id, t, c); set({ circles: useCircleStore.getState().circles }) },
+  addCirclePoll: async (id: string, q: string, o: string[]) => { await useCircleStore.getState().addCirclePoll(id, q, o); set({ circles: useCircleStore.getState().circles }) },
 
-  // Mochi Circles
-  circles: MochiCircle[]
-  passportStamps: TravelStamp[]
-  addCircle: (circle: MochiCircle) => void
-  contributeToCircle: (circleId: string, amount: number, note?: string) => void
-  toggleCircleWishlist: (circleId: string, itemId: string) => void
-  voteCirclePoll: (circleId: string, pollId: string, optionId: string) => void
-  addCircleWishlistItem: (circleId: string, title: string, cost?: number) => void
-  addCirclePoll: (circleId: string, question: string, options: string[]) => void
-
-  // Wallets
-  wallets: Wallet[]
-  setWallets: (wallets: Wallet[]) => void
-  addWallet: (wallet: Wallet) => void
-  updateWallet: (id: string, updates: Partial<Wallet>) => void
-  deleteWallet: (id: string) => void
-  adjustWalletBalance: (id: string, amount: number) => void
-
-  // UI
-  isAddModalOpen: boolean
-  defaultModalType: 'expense' | 'income'
-  setAddModalOpen: (open: boolean, type?: 'expense' | 'income') => void
-}
-
-const initialCircles: MochiCircle[] = []
-const initialPassportStamps: TravelStamp[] = []
-
-export const useAppStore = create<AppState>()((set, get) => ({
-  transactions: [],
-  isLoadingTransactions: false,
-  setTransactions: (txns) => set({ transactions: txns }),
-  addTransaction: (txn) => {
-    set((s) => {
-      let nextWallets = [...s.wallets]
-      let targetWalletId = txn.walletId
-
-      // Auto-provision default Cash Wallet if wallets array is empty or no walletId assigned
-      if (nextWallets.length === 0 || !targetWalletId) {
-        const defaultWallet: Wallet = {
-          id: `wallet_cash_default`,
-          userId: txn.userId || getUid(),
-          name: 'Cash Wallet',
-          type: 'cash',
-          balance: 0,
-          currency: 'PHP',
-          color: '#10B981',
-          isDefault: true,
-          includeInTotal: true,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        }
-        nextWallets = [defaultWallet]
-        targetWalletId = defaultWallet.id
-        txn.walletId = defaultWallet.id
-        saveDocToCloud(FIRESTORE_COLLECTIONS.WALLETS, defaultWallet)
-      }
-
-      const delta = txn.type === 'expense' ? -txn.amount : txn.amount
-      nextWallets = nextWallets.map((w) =>
-        w.id === targetWalletId ? { ...w, balance: Math.max(0, w.balance + delta), updatedAt: new Date().toISOString() } : w
-      )
-
-      const updatedWallet = nextWallets.find((w) => w.id === targetWalletId)
-      if (updatedWallet) {
-        saveDocToCloud(FIRESTORE_COLLECTIONS.WALLETS, updatedWallet)
-      }
-
-      const nextTxns = [txn, ...s.transactions]
-      return { transactions: nextTxns, wallets: nextWallets }
-    })
-    
-    // Persist transaction to Firestore
-    saveDocToCloud(FIRESTORE_COLLECTIONS.TRANSACTIONS, txn)
-  },
-  updateTransaction: (id, updates) => {
-    set((s) => ({
-      transactions: s.transactions.map((t) => (t.id === id ? { ...t, ...updates, updatedAt: new Date().toISOString() } : t)),
-    }))
-    const updated = get().transactions.find((t) => t.id === id)
-    if (updated) saveDocToCloud(FIRESTORE_COLLECTIONS.TRANSACTIONS, { ...updated, ...updates, updatedAt: new Date().toISOString() })
-  },
-  deleteTransaction: (id) => {
-    set((s) => {
-      const target = s.transactions.find((t) => t.id === id)
-      let nextWallets = s.wallets
-      if (target && target.walletId) {
-        const delta = target.type === 'expense' ? target.amount : -target.amount
-        nextWallets = s.wallets.map((w) =>
-          w.id === target.walletId ? { ...w, balance: Math.max(0, w.balance + delta), updatedAt: new Date().toISOString() } : w
-        )
-        const updatedWallet = nextWallets.find((w) => w.id === target.walletId)
-        if (updatedWallet) saveDocToCloud(FIRESTORE_COLLECTIONS.WALLETS, updatedWallet)
-      }
-      return {
-        transactions: s.transactions.filter((t) => t.id !== id),
-        wallets: nextWallets,
-      }
-    })
-    deleteDocFromCloud(FIRESTORE_COLLECTIONS.TRANSACTIONS, id)
-  },
-
-  budgets: [],
-  setBudgets: (budgets) => set({ budgets }),
-  addBudget: (budget) => {
-    set((s) => ({ budgets: [...s.budgets, budget] }))
-    saveDocToCloud(FIRESTORE_COLLECTIONS.BUDGETS, budget)
-  },
-  updateBudget: (id, updates) => {
-    set((s) => ({
-      budgets: s.budgets.map((b) => (b.id === id ? { ...b, ...updates, updatedAt: new Date().toISOString() } : b)),
-    }))
-    const updated = get().budgets.find((b) => b.id === id)
-    if (updated) saveDocToCloud(FIRESTORE_COLLECTIONS.BUDGETS, { ...updated, ...updates })
-  },
-
-  savingsGoals: [],
-  setSavingsGoals: (goals) => set({ savingsGoals: goals }),
-  addSavingsGoal: (goal) => {
-    set((s) => ({ savingsGoals: [...s.savingsGoals, goal] }))
-    saveDocToCloud(FIRESTORE_COLLECTIONS.SAVINGS, goal)
-  },
-  contributeToGoal: (goalId, amount) => {
-    set((s) => ({
-      savingsGoals: s.savingsGoals.map((g) => {
-        if (g.id !== goalId) return g
-        const newAmount = g.currentAmount + amount
-        return {
-          ...g,
-          currentAmount: newAmount,
-          contributions: [...g.contributions, { id: crypto.randomUUID(), amount, date: new Date().toISOString() }],
-          updatedAt: new Date().toISOString(),
-        }
-      }),
-    }))
-    const updated = get().savingsGoals.find((g) => g.id === goalId)
-    if (updated) saveDocToCloud(FIRESTORE_COLLECTIONS.SAVINGS, { ...updated, currentAmount: updated.currentAmount + amount })
-  },
-
-  debts: [],
-  setDebts: (debts) => set({ debts }),
-  addDebt: (debt) => {
-    set((s) => ({ debts: [...s.debts, debt] }))
-    saveDocToCloud(FIRESTORE_COLLECTIONS.DEBTS, debt)
-  },
-  makeDebtPayment: (debtId, amount) => {
-    set((s) => ({
-      debts: s.debts.map((d) => {
-        if (d.id !== debtId) return d
-        const newBalance = Math.max(0, d.currentBalance - amount)
-        return {
-          ...d,
-          currentBalance: newBalance,
-          payments: [...d.payments, { id: crypto.randomUUID(), amount, date: new Date().toISOString(), method: 'cash' }],
-          updatedAt: new Date().toISOString(),
-        }
-      }),
-    }))
-    const updated = get().debts.find((d) => d.id === debtId)
-    if (updated) saveDocToCloud(FIRESTORE_COLLECTIONS.DEBTS, { ...updated, currentBalance: Math.max(0, updated.currentBalance - amount) })
-  },
-
-  subscriptions: [],
-  setSubscriptions: (subs) => set({ subscriptions: subs }),
-  addSubscription: (sub) => {
-    set((s) => ({ subscriptions: [...s.subscriptions, sub] }))
-    saveDocToCloud(FIRESTORE_COLLECTIONS.SUBSCRIPTIONS, sub)
-  },
-  updateSubscription: (id, updates) => {
-    set((s) => ({
-      subscriptions: s.subscriptions.map((sub) =>
-        sub.id === id ? { ...sub, ...updates, updatedAt: new Date().toISOString() } : sub
-      ),
-    }))
-    const updated = get().subscriptions.find((s) => s.id === id)
-    if (updated) saveDocToCloud(FIRESTORE_COLLECTIONS.SUBSCRIPTIONS, { ...updated, ...updates })
-  },
-  deleteSubscription: (id) => {
-    set((s) => ({ subscriptions: s.subscriptions.filter((sub) => sub.id !== id) }))
-    deleteDocFromCloud(FIRESTORE_COLLECTIONS.SUBSCRIPTIONS, id)
-  },
-
-  processDueRecurring: () =>
-    set((s) => {
-      const today = new Date().toISOString().split('T')[0]
-      const newTxns = [...s.transactions]
-      let updatedWallets = [...s.wallets]
-
-      // Process due subscriptions
-      const nextSubs = s.subscriptions.map((sub) => {
-        if (sub.status === 'active' && sub.nextBilling && sub.nextBilling <= today) {
-          const targetWalletId = sub.walletId || s.wallets.find((w) => w.isDefault)?.id || s.wallets[0]?.id
-          
-          // Create auto-logged transaction
-          newTxns.unshift({
-            id: `auto_sub_${Date.now()}_${sub.id}`,
-            userId: sub.userId || '1',
-            type: 'expense',
-            amount: sub.amount,
-            currency: 'PHP',
-            categoryId: sub.category || 'utilities',
-            merchant: sub.name,
-            paymentMethod: 'other',
-            walletId: targetWalletId,
-            date: today,
-            isFavorite: false,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          })
-
-          // Deduct from wallet balance
-          if (targetWalletId) {
-            updatedWallets = updatedWallets.map((w) =>
-              w.id === targetWalletId ? { ...w, balance: Math.max(0, w.balance - sub.amount), updatedAt: new Date().toISOString() } : w
-            )
-          }
-
-          // Advance next billing by frequency
-          const d = new Date(sub.nextBilling)
-          if (sub.frequency === 'weekly') d.setDate(d.getDate() + 7)
-          else if (sub.frequency === 'monthly') d.setMonth(d.getMonth() + 1)
-          else if (sub.frequency === 'annual') d.setFullYear(d.getFullYear() + 1)
-          else d.setMonth(d.getMonth() + 1)
-
-          return { ...sub, nextBilling: d.toISOString().split('T')[0], updatedAt: new Date().toISOString() }
-        }
-        return sub
-      })
-
-      return {
-        transactions: newTxns,
-        wallets: updatedWallets,
-        subscriptions: nextSubs,
-      }
-    }),
-
-  missions: [],
-  setMissions: (missions) => set({ missions }),
-  completeMission: (id) =>
-    set((s) => ({
-      missions: s.missions.map((m) => (m.id === id ? { ...m, status: 'completed' as const, completedAt: new Date().toISOString() } : m)),
-    })),
-
-  achievements: [],
-  setAchievements: (achievements) => set({ achievements }),
-
-  streaks: [],
-  setStreaks: (streaks) => set({ streaks }),
-  incrementStreak: (type) =>
-    set((s) => ({
-      streaks: s.streaks.map((st) =>
-        st.type === type
-          ? { ...st, current: st.current + 1, longest: Math.max(st.longest, st.current + 1), lastActiveDate: new Date().toISOString().split('T')[0] }
-          : st
-      ),
-    })),
-
-  // Mochi Circles State & Actions
-  circles: initialCircles,
-  passportStamps: initialPassportStamps,
-  addCircle: (circle) => set((s) => ({ circles: [circle, ...s.circles] })),
-  contributeToCircle: (circleId, amount, note) =>
-    set((s) => ({
-      circles: s.circles.map((c) => {
-        if (c.id !== circleId) return c
-        const newCurrent = c.currentAmount + amount
-        const newStatus = newCurrent >= c.targetAmount ? ('completed' as const) : c.status
-        const updatedMembers = c.members.map((m) =>
-          m.id === 'm1' ? { ...m, totalContributed: m.totalContributed + amount } : m
-        )
-        const newContrib = {
-          id: crypto.randomUUID(),
-          memberId: 'm1',
-          memberName: 'Jericho (You)',
-          mascot: 'cat' as const,
-          amount,
-          date: new Date().toISOString().split('T')[0],
-          note,
-        }
-
-        // Check if completing circle and generate stamp
-        let stamps = s.passportStamps
-        if (newCurrent >= c.targetAmount && c.status !== 'completed') {
-          stamps = [
-            ...stamps,
-            {
-              id: crypto.randomUUID(),
-              circleId: c.id,
-              circleName: c.name,
-              theme: c.theme,
-              completedDate: new Date().toISOString().split('T')[0],
-              totalSaved: newCurrent,
-              memberCount: c.members.length,
-              stampIcon: '✈️',
-            },
-          ]
-        }
-
-        return {
-          ...c,
-          currentAmount: newCurrent,
-          status: newStatus,
-          completedAt: newCurrent >= c.targetAmount ? new Date().toISOString().split('T')[0] : c.completedAt,
-          members: updatedMembers,
-          contributions: [newContrib, ...c.contributions],
-          updatedAt: new Date().toISOString(),
-        }
-      }),
-      passportStamps: s.passportStamps,
-    })),
-
-  toggleCircleWishlist: (circleId, itemId) =>
-    set((s) => ({
-      circles: s.circles.map((c) => {
-        if (c.id !== circleId) return c
-        return {
-          ...c,
-          wishlist: c.wishlist.map((item) => (item.id === itemId ? { ...item, completed: !item.completed } : item)),
-        }
-      }),
-    })),
-
-  voteCirclePoll: (circleId, pollId, optionId) =>
-    set((s) => ({
-      circles: s.circles.map((c) => {
-        if (c.id !== circleId) return c
-        return {
-          ...c,
-          polls: c.polls.map((poll) => {
-            if (poll.id !== pollId) return poll
-            return {
-              ...poll,
-              options: poll.options.map((opt) => {
-                const hasVoted = opt.votes.includes('m1')
-                if (opt.id === optionId) {
-                  return { ...opt, votes: hasVoted ? opt.votes : [...opt.votes, 'm1'] }
-                } else {
-                  return { ...opt, votes: opt.votes.filter((v) => v !== 'm1') }
-                }
-              }),
-            }
-          }),
-        }
-      }),
-    })),
-
-  addCircleWishlistItem: (circleId, title, cost) =>
-    set((s) => ({
-      circles: s.circles.map((c) => {
-        if (c.id !== circleId) return c
-        return {
-          ...c,
-          wishlist: [...c.wishlist, { id: crypto.randomUUID(), title, estimatedCost: cost, completed: false }],
-        }
-      }),
-    })),
-
-  addCirclePoll: (circleId, question, options) =>
-    set((s) => ({
-      circles: s.circles.map((c) => {
-        if (c.id !== circleId) return c
-        return {
-          ...c,
-          polls: [
-            ...c.polls,
-            {
-              id: crypto.randomUUID(),
-              question,
-              active: true,
-              options: options.map((opt, i) => ({ id: `opt_${i}`, text: opt, votes: [] })),
-            },
-          ],
-        }
-      }),
-    })),
-
-  // Wallet actions
-  wallets: [],
-  setWallets: (wallets) => set({ wallets }),
-  addWallet: (wallet) => {
-    set((s) => ({ wallets: [...s.wallets, wallet] }))
-    saveDocToCloud(FIRESTORE_COLLECTIONS.WALLETS, wallet)
-  },
-  updateWallet: (id, updates) => {
-    set((s) => ({
-      wallets: s.wallets.map((w) => (w.id === id ? { ...w, ...updates, updatedAt: new Date().toISOString() } : w)),
-    }))
-    const updated = get().wallets.find((w) => w.id === id)
-    if (updated) saveDocToCloud(FIRESTORE_COLLECTIONS.WALLETS, { ...updated, ...updates })
-  },
-  deleteWallet: (id) => {
-    set((s) => ({ wallets: s.wallets.filter((w) => w.id !== id) }))
-    deleteDocFromCloud(FIRESTORE_COLLECTIONS.WALLETS, id)
-  },
-  adjustWalletBalance: (id, amount) => {
-    set((s) => ({
-      wallets: s.wallets.map((w) =>
-        w.id === id ? { ...w, balance: w.balance + amount, updatedAt: new Date().toISOString() } : w
-      ),
-    }))
-    const updated = get().wallets.find((w) => w.id === id)
-    if (updated) saveDocToCloud(FIRESTORE_COLLECTIONS.WALLETS, { ...updated, balance: updated.balance + amount })
-  },
-
-  isAddModalOpen: false,
-  defaultModalType: 'expense',
-  setAddModalOpen: (open, type) => set({ isAddModalOpen: open, defaultModalType: type ?? 'expense' }),
+  setAddModalOpen: (open: boolean, type?: 'expense' | 'income') => { useUIStore.getState().setAddModalOpen(open, type); set({ isAddModalOpen: open, defaultModalType: type ?? 'expense' }) },
+  setReceiptModalOpen: (open: boolean) => { useUIStore.getState().setReceiptModalOpen(open); set({ isReceiptModalOpen: open }) },
+  setAIChatModalOpen: (open: boolean) => { useUIStore.getState().setAIChatModalOpen(open); set({ isAIChatModalOpen: open }) },
 }))
 
 export { getUid }

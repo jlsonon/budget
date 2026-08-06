@@ -3,7 +3,13 @@ export type TransactionType = 'income' | 'expense' | 'transfer'
 export type PaymentMethod = 'cash' | 'credit_card' | 'debit_card' | 'bank_transfer' | 'gcash' | 'maya' | 'other'
 export type RecurringFrequency = 'daily' | 'weekly' | 'biweekly' | 'monthly' | 'quarterly' | 'yearly' | 'once'
 
-export interface Transaction {
+export interface BaseDocument {
+  schemaVersion?: number
+  isDeleted?: boolean
+  deletedAt?: string
+}
+
+export interface Transaction extends BaseDocument {
   id: string
   userId: string
   type: TransactionType
@@ -37,7 +43,7 @@ export interface Transaction {
 
 // Budget types
 export type BudgetPeriod = 'weekly' | 'monthly' | 'custom'
-export interface Budget {
+export interface Budget extends BaseDocument {
   id: string
   userId: string
   categoryId: string
@@ -52,7 +58,7 @@ export interface Budget {
 }
 
 // Savings/Goal types
-export interface SavingsGoal {
+export interface SavingsGoal extends BaseDocument {
   id: string
   userId: string
   name: string
@@ -84,7 +90,7 @@ export interface Contribution {
 }
 
 // Debt types
-export interface Debt {
+export interface Debt extends BaseDocument {
   id: string
   userId: string
   lender: string
@@ -121,7 +127,7 @@ export interface DebtPayment {
 
 // Subscription types
 export type SubscriptionFrequency = 'weekly' | 'monthly' | 'quarterly' | 'biannual' | 'annual'
-export interface Subscription {
+export interface Subscription extends BaseDocument {
   id: string
   userId: string
   name: string
@@ -326,7 +332,7 @@ export interface CircleMilestone {
   rewardLabel: string
 }
 
-export interface MochiCircle {
+export interface MochiCircle extends BaseDocument {
   id: string
   userId?: string
   name: string
@@ -383,7 +389,7 @@ export interface TimelineMilestone {
 // Wallet types
 export type WalletType = 'cash' | 'digital_bank' | 'traditional_bank' | 'credit_card' | 'savings' | 'emergency' | 'investment' | 'paypal'
 
-export interface Wallet {
+export interface Wallet extends BaseDocument {
   id: string
   userId: string
   name: string

@@ -5,6 +5,7 @@ import {
   createUserWithEmailAndPassword,
   signOut,
   onAuthStateChanged,
+  sendPasswordResetEmail,
   type User,
 } from 'firebase/auth'
 import { doc, setDoc, getDoc } from 'firebase/firestore'
@@ -105,4 +106,17 @@ export async function logout() {
 
 export function subscribeToAuthChanges(callback: (user: User | null) => void) {
   return onAuthStateChanged(auth, callback)
+}
+
+export async function resetPassword(email: string) {
+  try {
+    await sendPasswordResetEmail(auth, email)
+  } catch (err: any) {
+    if (err?.code === 'auth/user-not-found') {
+      throw new Error('No user found with this email address.')
+    } else if (err?.code === 'auth/invalid-email') {
+      throw new Error('Please enter a valid email address.')
+    }
+    throw new Error(err?.message || 'Could not send password reset email.')
+  }
 }
