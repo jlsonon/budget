@@ -388,8 +388,9 @@ export function AddTransactionModal() {
       setAmount('')
       setStatus('idle')
       setErrorMessage('')
+      setWalletId(wallets.find((w) => w.isDefault)?.id || wallets[0]?.id || '')
     }
-  }, [isAddModalOpen, defaultModalType])
+  }, [isAddModalOpen, defaultModalType, wallets])
 
   const categories = type === 'expense' ? expenseCategories : incomeCategories
   const selectedCat = categories.find((c) => c.id === category) || categories[0]

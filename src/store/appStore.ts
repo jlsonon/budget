@@ -100,19 +100,44 @@ export const useAppStore = create<AppState>()((set, get) => ({
   setTransactions: (txns) => set({ transactions: txns }),
   addTransaction: (txn) => {
     set((s) => {
-      const nextTxns = [txn, ...s.transactions]
-      let nextWallets = s.wallets
-      if (txn.walletId) {
-        const delta = txn.type === 'expense' ? -txn.amount : txn.amount
-        nextWallets = s.wallets.map((w) =>
-          w.id === txn.walletId ? { ...w, balance: Math.max(0, w.balance + delta), updatedAt: new Date().toISOString() } : w
-        )
-        // Persist updated wallet balance to Firestore
-        const updatedWallet = nextWallets.find((w) => w.id === txn.walletId)
-        if (updatedWallet) saveDocToCloud(FIRESTORE_COLLECTIONS.WALLETS, updatedWallet)
+      let nextWallets = [...s.wallets]
+      let targetWalletId = txn.walletId
+
+      // Auto-provision default Cash Wallet if wallets array is empty or no walletId assigned
+      if (nextWallets.length === 0 || !targetWalletId) {
+        const defaultWallet: Wallet = {
+          id: `wallet_cash_default`,
+          userId: txn.userId || getUid(),
+          name: 'Cash Wallet',
+          type: 'cash',
+          balance: 0,
+          currency: 'PHP',
+          color: '#10B981',
+          isDefault: true,
+          includeInTotal: true,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        }
+        nextWallets = [defaultWallet]
+        targetWalletId = defaultWallet.id
+        txn.walletId = defaultWallet.id
+        saveDocToCloud(FIRESTORE_COLLECTIONS.WALLETS, defaultWallet)
       }
+
+      const delta = txn.type === 'expense' ? -txn.amount : txn.amount
+      nextWallets = nextWallets.map((w) =>
+        w.id === targetWalletId ? { ...w, balance: Math.max(0, w.balance + delta), updatedAt: new Date().toISOString() } : w
+      )
+
+      const updatedWallet = nextWallets.find((w) => w.id === targetWalletId)
+      if (updatedWallet) {
+        saveDocToCloud(FIRESTORE_COLLECTIONS.WALLETS, updatedWallet)
+      }
+
+      const nextTxns = [txn, ...s.transactions]
       return { transactions: nextTxns, wallets: nextWallets }
     })
+    
     // Persist transaction to Firestore
     saveDocToCloud(FIRESTORE_COLLECTIONS.TRANSACTIONS, txn)
   },
