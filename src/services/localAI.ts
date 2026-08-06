@@ -5,6 +5,23 @@ export const OPTIMAL_LOCAL_MODEL = 'Llama-3.2-3B-Instruct-q4f16_1-MLC'
 
 let engineInstance: MLCEngine | null = null
 let isPrewarming = false
+let idleTimer: any = null
+
+const IDLE_UNLOAD_MS = 3 * 60 * 1000 // 3 minutes
+
+function resetIdleTimer() {
+  if (idleTimer) clearTimeout(idleTimer)
+  idleTimer = setTimeout(async () => {
+    if (engineInstance) {
+      try {
+        await engineInstance.unload()
+      } catch (e) {
+        console.warn('VRAM idle auto-unload notice:', e)
+      }
+      engineInstance = null
+    }
+  }, IDLE_UNLOAD_MS)
+}
 
 export function checkWebGPUSupport(): boolean {
   return typeof navigator !== 'undefined' && 'gpu' in navigator
@@ -17,6 +34,8 @@ export function isLocalAILoaded(): boolean {
 export async function getOrInitLocalAI(
   onProgress?: (report: InitProgressReport) => void
 ): Promise<MLCEngine> {
+  resetIdleTimer()
+
   if (engineInstance) {
     return engineInstance
   }

@@ -12,12 +12,14 @@ import {
   ChevronRight,
   ShieldAlert,
   Sparkles,
+  Receipt,
 } from 'lucide-react'
 import { useAppStore } from '@/store/appStore'
 import { useAuthStore } from '@/store/authStore'
 import Dialog from '@/components/ui/Dialog'
 import Mascot from '@/components/ui/Mascot'
 import MochiCategoryVectorSVG from '@/components/ui/MochiCategoryVectorSVG'
+import ReceiptScannerModal from './ReceiptScannerModal'
 import type { Transaction, TransactionType } from '@/types'
 
 const expenseCategories = [
@@ -372,6 +374,7 @@ export function AddTransactionModal() {
   const [walletId, setWalletId] = useState<string>(wallets.find((w) => w.isDefault)?.id || wallets[0]?.id || '')
   const [isCategoryPickerOpen, setIsCategoryPickerOpen] = useState(false)
   const [showSuggestions, setShowSuggestions] = useState(false)
+  const [isScannerOpen, setIsScannerOpen] = useState(false)
 
   const [status, setStatus] = useState<'idle' | 'success' | 'error'>('idle')
   const [errorMessage, setErrorMessage] = useState('')
@@ -485,6 +488,8 @@ export function AddTransactionModal() {
         type={type}
       />
 
+      <ReceiptScannerModal isOpen={isScannerOpen} onClose={() => setIsScannerOpen(false)} />
+
       <Dialog isOpen={isAddModalOpen} onClose={() => setAddModalOpen(false)} size="md">
         <div className="space-y-4">
           {/* Modal Header */}
@@ -500,13 +505,27 @@ export function AddTransactionModal() {
                 </p>
               </div>
             </div>
-            <button
-              onClick={() => setAddModalOpen(false)}
-              className="p-1.5 rounded-full hover:bg-mochi-surface-alt text-mochi-text-muted hover:text-mochi-text transition-colors"
-              aria-label="Close"
-            >
-              <X className="w-5 h-5" />
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setAddModalOpen(false)
+                  setIsScannerOpen(true)
+                }}
+                className="px-3 py-1.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-extrabold text-xs flex items-center gap-1.5 border border-emerald-500/20 transition-all"
+                title="Scan Receipt Photo"
+              >
+                <Receipt className="w-3.5 h-3.5" />
+                <span>Scan Receipt</span>
+              </button>
+              <button
+                onClick={() => setAddModalOpen(false)}
+                className="p-1.5 rounded-full hover:bg-mochi-surface-alt text-mochi-text-muted hover:text-mochi-text transition-colors"
+                aria-label="Close"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
           </div>
 
           {/* Type Tabs */}

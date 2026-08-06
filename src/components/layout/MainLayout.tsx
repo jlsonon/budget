@@ -35,7 +35,9 @@ import { getGreeting } from '../../lib/utils'
 import Mascot from '../ui/Mascot'
 import AddTransactionModal from '../modals/AddTransactionModal'
 
+import { Receipt } from 'lucide-react'
 import MascotAIChatModal from '../ai/MascotAIChatModal'
+import ReceiptScannerModal from '../modals/ReceiptScannerModal'
 import { backgroundPrewarmAI } from '../../services/localAI'
 
 const navItems = [
@@ -67,6 +69,7 @@ export default function MainLayout() {
   const [showProfileMenu, setShowProfileMenu] = useState(false)
   const [backupSuccess, setBackupSuccess] = useState(false)
   const [showAIChat, setShowAIChat] = useState(false)
+  const [showScanner, setShowScanner] = useState(false)
 
   // Pre-warm local AI engine silently in the background on app load
   useEffect(() => {
@@ -103,6 +106,7 @@ export default function MainLayout() {
     <div className="min-h-screen bg-mochi-bg pb-20 md:pb-0 md:pl-20">
       <AddTransactionModal />
       <MascotAIChatModal isOpen={showAIChat} onClose={() => setShowAIChat(false)} />
+      <ReceiptScannerModal isOpen={showScanner} onClose={() => setShowScanner(false)} />
 
       {/* Modern Top Header */}
       <header className="sticky top-0 z-40 bg-mochi-surface/85 backdrop-blur-xl border-b border-mochi-border px-4 py-3 safe-top">
@@ -134,8 +138,18 @@ export default function MainLayout() {
             </div>
           </div>
 
-          {/* Right: Mochi AI, Theme Toggle, Notifications, Profile Dropdown */}
+          {/* Right: Scan Receipt, Mochi AI, Theme Toggle, Notifications, Profile Dropdown */}
           <div className="flex items-center gap-2">
+            {/* Scan Receipt Button */}
+            <button
+              onClick={() => setShowScanner(true)}
+              className="p-2 rounded-2xl bg-gradient-to-r from-emerald-500/15 to-teal-500/15 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 hover:scale-105 active:scale-95 transition-all flex items-center gap-1.5 px-3 text-xs font-black shadow-xs"
+              title="Scan Receipt Offline"
+            >
+              <Receipt className="w-4 h-4 text-emerald-500" />
+              <span className="hidden sm:inline">Scan Receipt</span>
+            </button>
+
             {/* Mochi Local AI Button */}
             <button
               onClick={() => setShowAIChat(true)}
