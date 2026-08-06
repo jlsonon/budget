@@ -31,6 +31,7 @@ import {
 import { useAuthStore } from '../../store/authStore'
 import { useAppStore } from '../../store/appStore'
 import { useThemeStore } from '../../store/themeStore'
+import { useNotificationStore } from '../../store/notificationStore'
 import { getGreeting } from '../../lib/utils'
 import Mascot from '../ui/Mascot'
 import AddTransactionModal from '../modals/AddTransactionModal'
@@ -64,6 +65,8 @@ export default function MainLayout() {
   const { user, logout } = useAuthStore()
   const { setAddModalOpen, streaks, wallets, transactions, circles } = useAppStore()
   const { theme, setTheme } = useThemeStore()
+  const notifications = useNotificationStore((s) => s.notifications)
+  const hasUnreadNotifs = notifications.some((n) => !n.read)
 
   const [showMore, setShowMore] = useState(false)
   const [showProfileMenu, setShowProfileMenu] = useState(false)
@@ -177,7 +180,9 @@ export default function MainLayout() {
               aria-label="Notifications"
             >
               <Bell className="w-4 h-4" />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-mochi-primary rounded-full" />
+              {hasUnreadNotifs && (
+                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-mochi-primary rounded-full animate-pulse" />
+              )}
             </button>
 
             {/* Profile Avatar Dropdown Trigger */}

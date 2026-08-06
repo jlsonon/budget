@@ -10,6 +10,7 @@ import {
 import Mascot from '@/components/ui/Mascot'
 import MochiCategoryVectorSVG from '@/components/ui/MochiCategoryVectorSVG'
 import { cn, formatDate } from '@/lib/utils'
+import { useNotificationStore } from '@/store/notificationStore'
 import type { AppNotification } from '@/types'
 
 const notifCategoryIcons: Record<string, string> = {
@@ -38,9 +39,6 @@ const notifTargetRoutes: Record<string, string> = {
   insight: '/transactions',
 }
 
-// Empty fallback notifications
-const mockNotifications: AppNotification[] = []
-
 function groupByDate(notifications: AppNotification[]) {
   const today = new Date().toDateString()
   const yesterday = new Date(Date.now() - 86400000).toDateString()
@@ -62,7 +60,13 @@ function groupByDate(notifications: AppNotification[]) {
 
 export default function NotificationsPage() {
   const navigate = useNavigate()
-  const [notifications, setNotifications] = useState(mockNotifications)
+  const {
+    notifications,
+    markAsRead,
+    markAllAsRead,
+    deleteNotification,
+    clearAll: clearAllNotifications,
+  } = useNotificationStore()
   const [filter, setFilter] = useState<'all' | 'unread' | 'bills' | 'milestones'>('all')
 
   const filteredNotifs = useMemo(() => {
@@ -74,24 +78,6 @@ export default function NotificationsPage() {
 
   const groups = useMemo(() => groupByDate(filteredNotifs), [filteredNotifs])
   const unreadCount = notifications.filter((n) => !n.read).length
-
-  const markAsRead = (id: string) => {
-    setNotifications((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, read: true } : n))
-    )
-  }
-
-  const markAllAsRead = () => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })))
-  }
-
-  const deleteNotification = (id: string) => {
-    setNotifications((prev) => prev.filter((n) => n.id !== id))
-  }
-
-  const clearAllNotifications = () => {
-    setNotifications([])
-  }
 
   return (
     <motion.div
