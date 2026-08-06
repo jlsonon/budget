@@ -94,12 +94,13 @@ export interface Debt extends BaseDocument {
   id: string
   userId: string
   lender: string
-  type: 'borrowed' | 'lent' | 'credit_card' | 'loan' | 'mortgage' | 'car_loan' | 'personal' | 'business'
+  type: 'borrowed' | 'lent' | 'credit_card' | 'loan' | 'mortgage' | 'car_loan' | 'personal' | 'business' | 'bnpl' | 'medical' | 'student_loan' | 'tax'
   originalBalance: number
   currentBalance: number
   interestRate: number
   interestType: 'simple' | 'compound'
   dueDate: string
+  dueDayOfMonth?: number
   minimumPayment: number
   schedule: PaymentSchedule[]
   payments: DebtPayment[]

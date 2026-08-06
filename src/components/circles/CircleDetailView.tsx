@@ -141,7 +141,15 @@ export function CircleDetailView({
               <Coins className="w-4 h-4" />
               Add Contribution
             </button>
-            <button className="text-xs font-semibold text-mochi-text-secondary hover:text-mochi-primary flex items-center gap-1">
+            <button
+              type="button"
+              onClick={() => {
+                const code = `MOCHI-${circle.id.slice(0, 4)}`
+                navigator.clipboard?.writeText(code)
+                alert(`Invite code ${code} copied to clipboard!`)
+              }}
+              className="text-xs font-semibold text-mochi-text-secondary hover:text-mochi-primary flex items-center gap-1 transition-colors"
+            >
               <Share2 className="w-3.5 h-3.5" /> Invite Code: MOCHI-{circle.id.slice(0, 4)}
             </button>
           </div>

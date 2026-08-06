@@ -88,7 +88,7 @@ function EmptySavings({ onOpenModal }: { onOpenModal: () => void }) {
       <MochiIllustration type="empty_savings" size="lg" />
       <h3 className="text-lg font-semibold text-mochi-text mt-3">Dream it, save it!</h3>
       <p className="mt-2 text-sm text-mochi-text-muted max-w-xs">
-        Your savings goals are like seeds 🌱 plant one today and watch it grow!
+        Your savings goals are like seeds — plant one today and watch it grow!
       </p>
       <button onClick={onOpenModal} className="mochi-btn-primary mt-4 cursor-pointer hover:scale-105 transition-transform flex items-center gap-1.5">
         <Plus className="w-4 h-4" />
@@ -245,7 +245,7 @@ export default function SavingsPage() {
       <div className="flex items-center justify-between mb-4">
         <div>
           <h1 className="text-xl font-bold text-mochi-text">Savings Goals</h1>
-          <p className="text-xs text-mochi-text-muted mt-0.5">Every little bit counts ✨</p>
+          <p className="text-xs text-mochi-text-muted mt-0.5">Every little bit counts toward your dreams</p>
         </div>
         <button onClick={() => setIsModalOpen(true)} className="mochi-btn-primary text-sm flex items-center gap-1.5">
           <Plus className="w-4 h-4" />

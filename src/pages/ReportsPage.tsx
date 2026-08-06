@@ -149,7 +149,12 @@ function useReportsData(period: Period) {
     const weeklySpend = dailyMap.map((amt) => Math.round((amt / maxDaily) * 100))
 
     const savingsRate = income > 0 ? Math.round(((income - expenses) / income) * 100) : 0
-    const healthScore = Math.max(20, Math.min(100, Math.round(50 + (savingsRate * 0.4) - (totalDebt > 0 ? 10 : 0))))
+    
+    // Dynamic Health Score formula matching Home Dashboard (no hardcoded 50 baseline)
+    const savingsPillar = Math.min(45, Math.max(0, savingsRate * 0.9))
+    const surplusPillar = income > 0 ? Math.min(35, Math.max(0, ((income - expenses) / income) * 35)) : 15
+    const debtPillar = totalDebt === 0 ? 20 : Math.max(0, 20 - (totalDebt / Math.max(1, income)) * 5)
+    const healthScore = Math.min(100, Math.max(15, Math.round(savingsPillar + surplusPillar + debtPillar)))
 
     return {
       income,
@@ -158,9 +163,9 @@ function useReportsData(period: Period) {
       debtPaid,
       subscriptionCost: subMonthly,
       healthScore,
-      previousHealthScore: Math.max(0, healthScore - 4),
+      previousHealthScore: Math.max(10, healthScore - 2),
       savingsRate: Math.max(0, savingsRate),
-      previousSavingsRate: Math.max(0, savingsRate - 3),
+      previousSavingsRate: Math.max(0, savingsRate - 2),
       totalDebt,
       debtFreeDate: totalDebt > 0 ? 'Dec 2026' : 'Debt Free!',
       expenseCategories,
@@ -534,6 +539,7 @@ export default function ReportsPage() {
     return () => clearTimeout(timer)
   }, [])
 
+  const { transactions } = useAppStore()
   const data = useReportsData(period)
 
   if (isLoading) {
@@ -566,9 +572,23 @@ export default function ReportsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-bold text-mochi-text">Reports</h1>
-        <button className="mochi-btn-secondary text-xs gap-1.5">
-          <Download className="w-3.5 h-3.5" />
-          Export
+        <button
+          onClick={() => {
+            const csvRows = ['Date,Type,Amount,Category,Merchant,Notes']
+            transactions.forEach((t) => {
+              csvRows.push(`"${t.date}","${t.type}",${t.amount},"${t.categoryId || ''}","${t.merchant || ''}","${t.notes || ''}"`)
+            })
+            const blob = new Blob([csvRows.join('\n')], { type: 'text/csv' })
+            const url = URL.createObjectURL(blob)
+            const a = document.createElement('a')
+            a.href = url
+            a.download = `mochi_financial_report_${period}_${Date.now()}.csv`
+            a.click()
+          }}
+          className="mochi-btn-secondary text-xs gap-1.5 flex items-center"
+        >
+          <Download className="w-3.5 h-3.5 text-mochi-primary" />
+          <span>Export CSV</span>
         </button>
       </div>
 

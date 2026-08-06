@@ -110,11 +110,15 @@ export function CircleScrapbook({ circles }: CircleScrapbookProps) {
                 <ul className="text-xs space-y-1 text-mochi-text-secondary">
                   {circle.wishlist.map((item) => (
                     <li key={item.id} className="flex items-center gap-1.5">
-                      <span className="text-emerald-500 font-bold">✓</span>
-                      <span className="line-through">{item.title}</span>
+                      <span className={item.completed ? 'text-emerald-500 font-bold' : 'text-mochi-text-muted font-normal'}>
+                        {item.completed ? '✓' : '○'}
+                      </span>
+                      <span className={item.completed ? 'line-through text-mochi-text-muted' : 'text-mochi-text font-medium'}>
+                        {item.title}
+                      </span>
                     </li>
                   ))}
-                  {circle.wishlist.length === 0 && <li>All bucket list items achieved!</li>}
+                  {circle.wishlist.length === 0 && <li className="text-mochi-text-muted italic">All bucket list items achieved!</li>}
                 </ul>
               </div>
             </div>

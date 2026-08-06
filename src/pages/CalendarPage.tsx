@@ -168,7 +168,7 @@ export default function CalendarPage() {
   const renderEmptyState = () => (
     <div className="flex flex-col items-center justify-center p-8 bg-mochi-surface rounded-3xl border border-mochi-border/50 shadow-sm text-center mt-8">
       <Mascot mood="neutral" size="lg" className="mb-4 drop-shadow-md" />
-      <h3 className="text-lg font-bold text-mochi-text mb-2">All clear! 🌙</h3>
+      <h3 className="text-lg font-bold text-mochi-text mb-2">All clear!</h3>
       <p className="text-sm text-mochi-text-secondary">No events planned for this view. Add a transaction to see it here!</p>
     </div>
   )

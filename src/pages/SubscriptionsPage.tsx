@@ -14,6 +14,7 @@ import { useAppStore, getUid } from '@/store/appStore'
 import { Subscription, SubscriptionFrequency } from '@/types'
 import Mascot from '@/components/ui/Mascot'
 import Dialog from '@/components/ui/Dialog'
+import { SubscriptionBrandLogo } from '@/components/ui/SubscriptionBrandLogo'
 import { formatCurrency, cn } from '@/lib/utils'
 
 export interface PresetService {
@@ -22,47 +23,26 @@ export interface PresetService {
   amount: number
   color: string
   frequency: SubscriptionFrequency
-  logoText: string
 }
 
 const PRESET_SERVICES: PresetService[] = [
-  { name: 'Netflix', category: 'Entertainment', amount: 549, color: '#E50914', frequency: 'monthly', logoText: 'N' },
-  { name: 'Spotify', category: 'Music', amount: 149, color: '#1DB954', frequency: 'monthly', logoText: '🎵' },
-  { name: 'YouTube Premium', category: 'Entertainment', amount: 159, color: '#FF0000', frequency: 'monthly', logoText: '▶' },
-  { name: 'Apple Music', category: 'Music', amount: 139, color: '#FA243C', frequency: 'monthly', logoText: '🍎' },
-  { name: 'iCloud+', category: 'Storage', amount: 149, color: '#007AFF', frequency: 'monthly', logoText: '☁️' },
-  { name: 'Disney+', category: 'Entertainment', amount: 369, color: '#113CCF', frequency: 'monthly', logoText: '✨' },
-  { name: 'ChatGPT Plus', category: 'Software', amount: 1150, color: '#10A37F', frequency: 'monthly', logoText: '🤖' },
-  { name: 'Amazon Prime', category: 'Entertainment', amount: 149, color: '#FF9900', frequency: 'monthly', logoText: '📦' },
-  { name: 'Adobe Creative Cloud', category: 'Software', amount: 2800, color: '#FF0000', frequency: 'monthly', logoText: 'Ai' },
-  { name: 'Figma Pro', category: 'Software', amount: 850, color: '#F24E1E', frequency: 'monthly', logoText: '🎨' },
-  { name: 'GitHub Pro', category: 'Software', amount: 250, color: '#24292E', frequency: 'monthly', logoText: '🐱' },
-  { name: 'Notion', category: 'Software', amount: 450, color: '#000000', frequency: 'monthly', logoText: 'N' },
-  { name: 'Canva Pro', category: 'Software', amount: 490, color: '#00C4CC', frequency: 'monthly', logoText: 'C' },
-  { name: 'Discord Nitro', category: 'Entertainment', amount: 299, color: '#5865F2', frequency: 'monthly', logoText: '🎮' },
-  { name: 'PlayStation Plus', category: 'Gaming', amount: 490, color: '#003791', frequency: 'monthly', logoText: 'PS' },
-  { name: 'Xbox Game Pass', category: 'Gaming', amount: 490, color: '#107C41', frequency: 'monthly', logoText: '🎮' },
+  { name: 'Netflix', category: 'Entertainment', amount: 549, color: '#E50914', frequency: 'monthly' },
+  { name: 'Spotify', category: 'Music', amount: 149, color: '#1DB954', frequency: 'monthly' },
+  { name: 'YouTube Premium', category: 'Entertainment', amount: 159, color: '#FF0000', frequency: 'monthly' },
+  { name: 'Apple Music', category: 'Music', amount: 139, color: '#FA243C', frequency: 'monthly' },
+  { name: 'iCloud+', category: 'Storage', amount: 149, color: '#007AFF', frequency: 'monthly' },
+  { name: 'Disney+', category: 'Entertainment', amount: 369, color: '#113CCF', frequency: 'monthly' },
+  { name: 'ChatGPT Plus', category: 'Software', amount: 1150, color: '#10A37F', frequency: 'monthly' },
+  { name: 'Amazon Prime', category: 'Entertainment', amount: 149, color: '#FF9900', frequency: 'monthly' },
+  { name: 'Adobe Creative Cloud', category: 'Software', amount: 2800, color: '#FF0000', frequency: 'monthly' },
+  { name: 'Figma Pro', category: 'Software', amount: 850, color: '#F24E1E', frequency: 'monthly' },
+  { name: 'GitHub Pro', category: 'Software', amount: 250, color: '#24292E', frequency: 'monthly' },
+  { name: 'Notion', category: 'Software', amount: 450, color: '#000000', frequency: 'monthly' },
+  { name: 'Canva Pro', category: 'Software', amount: 490, color: '#00C4CC', frequency: 'monthly' },
+  { name: 'Discord Nitro', category: 'Entertainment', amount: 299, color: '#5865F2', frequency: 'monthly' },
+  { name: 'PlayStation Plus', category: 'Gaming', amount: 490, color: '#003791', frequency: 'monthly' },
+  { name: 'Xbox Game Pass', category: 'Gaming', amount: 490, color: '#107C41', frequency: 'monthly' },
 ]
-
-function SubscriptionBrandLogo({ name }: { name: string }) {
-  const matched = PRESET_SERVICES.find((s) => s.name.toLowerCase() === name.toLowerCase())
-  if (matched) {
-    return (
-      <div
-        className="w-11 h-11 rounded-2xl flex items-center justify-center text-white font-black text-sm shadow-md transition-transform group-hover:scale-105"
-        style={{ backgroundColor: matched.color }}
-      >
-        {matched.logoText}
-      </div>
-    )
-  }
-
-  return (
-    <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-mochi-primary to-mochi-secondary flex items-center justify-center text-white font-black text-base shadow-sm">
-      {name.charAt(0).toUpperCase()}
-    </div>
-  )
-}
 
 export default function SubscriptionsPage() {
   const { subscriptions, addSubscription, updateSubscription, deleteSubscription } = useAppStore()
@@ -224,7 +204,7 @@ export default function SubscriptionsPage() {
             Subscriptions & Services
           </h1>
           <p className="text-xs sm:text-sm text-mochi-text-secondary mt-1">
-            Track recurring memberships, streaming, and software with brand icons & reminders ✨
+            Track recurring memberships, streaming, and software with brand icons & reminders
           </p>
         </div>
         <button 
@@ -419,12 +399,7 @@ export default function SubscriptionsPage() {
                       : 'border-mochi-border bg-mochi-surface hover:border-mochi-primary/30'
                   )}
                 >
-                  <span
-                    className="w-6 h-6 rounded-lg text-white font-black text-[10px] flex items-center justify-center shadow-xs"
-                    style={{ backgroundColor: preset.color }}
-                  >
-                    {preset.logoText}
-                  </span>
+                  <SubscriptionBrandLogo name={preset.name} size="sm" />
                   <span className="text-[10px] font-bold text-mochi-text line-clamp-1">{preset.name}</span>
                 </button>
               ))}
