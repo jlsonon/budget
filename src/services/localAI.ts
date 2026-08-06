@@ -1,7 +1,7 @@
 import { CreateMLCEngine, MLCEngine, InitProgressReport } from '@mlc-ai/web-llm'
 
-// Meta's SOTA Llama 3.2 3B Instruct - 100% Free, advanced 3B reasoning & function execution model
-export const OPTIMAL_LOCAL_MODEL = 'Llama-3.2-3B-Instruct-q4f16_1-MLC'
+// Fast, reliable 1B WebGPU model (10x smaller download, instant load)
+export const OPTIMAL_LOCAL_MODEL = 'Llama-3.2-1B-Instruct-q4f16_1-MLC'
 
 let engineInstance: MLCEngine | null = null
 let isPrewarming = false
@@ -81,14 +81,72 @@ export interface ParsedAIAction {
   payload?: any
 }
 
+// Fallback rule-based AI parser when offline, WebGPU unsupported, or model fetch fails
+function fallbackRuleBasedAI(
+  userQuery: string,
+  financialSummaryText: string
+): { text: string; action?: ParsedAIAction } {
+  const query = userQuery.toLowerCase().trim()
+
+  // Match expense logging
+  const expenseMatch = query.match(/(?:spent|log|pay|paid|buy|bought|cost|expense)\s+(\d+(?:\.\d+)?)\s+(?:on|for)?\s*([a-z0-9\s]+)/i)
+    || query.match(/(\d+(?:\.\d+)?)\s+(?:on|for)\s+([a-z0-9\s]+)/i)
+  
+  if (expenseMatch) {
+    const amount = parseFloat(expenseMatch[1] || expenseMatch[2])
+    const merchant = (expenseMatch[2] || expenseMatch[1] || 'Expense').trim()
+    return {
+      text: `Recorded expense of ₱${amount} for ${merchant}.`,
+      action: {
+        action: 'add_transaction',
+        payload: { type: 'expense', amount, merchant, category: 'food' }
+      }
+    }
+  }
+
+  // Match income logging
+  const incomeMatch = query.match(/(?:received|income|salary|earn|earned|got paid|deposit)\s+(\d+(?:\.\d+)?)/i)
+  if (incomeMatch) {
+    const amount = parseFloat(incomeMatch[1])
+    return {
+      text: `Recorded income of ₱${amount}.`,
+      action: {
+        action: 'add_transaction',
+        payload: { type: 'income', amount, merchant: 'Income Deposit', category: 'salary' }
+      }
+    }
+  }
+
+  // Match savings goal
+  const goalMatch = query.match(/(?:create|add|set|new)\s+(?:savings\s+)?goal\s+([a-z0-9\s]+)\s+(\d+)/i)
+  if (goalMatch) {
+    const name = goalMatch[1].trim()
+    const targetAmount = parseFloat(goalMatch[2])
+    return {
+      text: `Created savings goal "${name}" with target ₱${targetAmount}.`,
+      action: {
+        action: 'add_savings_goal',
+        payload: { name, targetAmount }
+      }
+    }
+  }
+
+  // General summary response
+  return {
+    text: `Here is your current financial summary:\n${financialSummaryText}\n\nYou can ask me to log expenses, create savings goals, or check your balance!`,
+    action: { action: 'none' }
+  }
+}
+
 export async function askMochiAI(
   userQuery: string,
   financialSummaryText: string,
   onStreamChunk?: (chunk: string) => void
 ): Promise<{ text: string; action?: ParsedAIAction }> {
-  const engine = await getOrInitLocalAI()
+  try {
+    const engine = await getOrInitLocalAI()
 
-  const systemPrompt = `You are Mochi, a practical and direct personal financial assistant for the Mochi Money app.
+    const systemPrompt = `You are Mochi, a practical and direct personal financial assistant for the Mochi Money app.
 Your goal is to answer questions, analyze finances, and execute user commands cleanly.
 
 CRITICAL FORMATTING CONSTRAINTS:
@@ -109,38 +167,46 @@ ACTION_JSON: {"action": "transfer_funds", "payload": {"amount": 1000, "fromWalle
 USER CURRENT FINANCIAL CONTEXT:
 ${financialSummaryText}`
 
-  const messages = [
-    { role: 'system' as const, content: systemPrompt },
-    { role: 'user' as const, content: userQuery },
-  ]
+    const messages = [
+      { role: 'system' as const, content: systemPrompt },
+      { role: 'user' as const, content: userQuery },
+    ]
 
-  if (onStreamChunk) {
-    const completion = await engine.chat.completions.create({
-      messages,
-      stream: true,
-      temperature: 0.2,
-    })
+    if (onStreamChunk) {
+      const completion = await engine.chat.completions.create({
+        messages,
+        stream: true,
+        temperature: 0.2,
+      })
 
-    let rawText = ''
-    for await (const chunk of completion) {
-      const delta = chunk.choices[0]?.delta?.content || ''
-      rawText += delta
-      
-      const cleanDisplay = rawText
-        .replace(/ACTION_JSON:[\s\S]*$/, '')
-        .replace(/```json[\s\S]*?```/, '')
-        .trim()
-      onStreamChunk(cleanDisplay)
+      let rawText = ''
+      for await (const chunk of completion) {
+        const delta = chunk.choices[0]?.delta?.content || ''
+        rawText += delta
+        
+        const cleanDisplay = rawText
+          .replace(/ACTION_JSON:[\s\S]*$/, '')
+          .replace(/```json[\s\S]*?```/, '')
+          .trim()
+        onStreamChunk(cleanDisplay)
+      }
+
+      return processFinalText(rawText)
+    } else {
+      const response = await engine.chat.completions.create({
+        messages,
+        temperature: 0.2,
+      })
+      const rawText = response.choices[0]?.message?.content || 'Unable to process query.'
+      return processFinalText(rawText)
     }
-
-    return processFinalText(rawText)
-  } else {
-    const response = await engine.chat.completions.create({
-      messages,
-      temperature: 0.2,
-    })
-    const rawText = response.choices[0]?.message?.content || 'Unable to process query.'
-    return processFinalText(rawText)
+  } catch (err: any) {
+    console.warn('WebGPU AI model fetch/initialization fallback:', err)
+    const fallbackResult = fallbackRuleBasedAI(userQuery, financialSummaryText)
+    if (onStreamChunk) {
+      onStreamChunk(fallbackResult.text)
+    }
+    return fallbackResult
   }
 }
 
