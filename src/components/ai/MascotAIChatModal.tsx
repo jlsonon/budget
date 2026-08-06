@@ -33,9 +33,6 @@ export default function MascotAIChatModal({ isOpen, onClose }: MascotAIChatModal
     savingsGoals,
     subscriptions,
     debts,
-    addTransaction,
-    addSavingsGoal,
-    deleteSubscription,
   } = useAppStore()
 
   const [messages, setMessages] = useState<Message[]>([
@@ -107,70 +104,143 @@ Budgets Active: ${budgets.length}`
     }
   }
 
-  const executeAction = (actionObj: any): string | undefined => {
-    if (!actionObj || !actionObj.action || actionObj.action === 'none') return undefined
-
-    const { action, payload } = actionObj
+  const executeAction = (actionObj: any, userPrompt?: string): string | undefined => {
+    const store = useAppStore.getState()
+    const activeWallets = store.wallets
     const uid = getUid()
     const now = new Date().toISOString()
     const today = now.split('T')[0]
 
-    if (action === 'add_transaction' && payload) {
-      const amount = Number(payload.amount) || 0
-      const type = payload.type === 'income' ? 'income' : 'expense'
-      const merchant = payload.merchant || payload.notes || 'Transaction'
-      const defaultWallet = wallets.find((w) => w.isDefault) || wallets[0]
-
-      addTransaction({
-        id: `txn_ai_${Date.now()}`,
+    // Ensure default wallet exists
+    let defaultWallet = activeWallets.find((w) => w.isDefault) || activeWallets[0]
+    if (!defaultWallet) {
+      const newWallet = {
+        id: `wallet_cash_${Date.now()}`,
         userId: uid,
-        type,
-        amount,
+        name: 'Cash Wallet',
+        type: 'cash' as const,
+        balance: 0,
         currency: 'PHP',
-        categoryId: payload.category || 'other',
-        merchant,
-        paymentMethod: 'cash',
-        walletId: defaultWallet?.id,
-        date: today,
-        notes: `Added via AI Assistant`,
-        isFavorite: false,
-        createdAt: now,
-        updatedAt: now,
-      })
-
-      return `Action executed: Logged ${type} of ₱${amount.toLocaleString()} for ${merchant}.`
-    }
-
-    if (action === 'add_savings_goal' && payload) {
-      const targetAmount = Number(payload.targetAmount) || 1000
-      const name = payload.name || 'New Savings Goal'
-
-      addSavingsGoal({
-        id: `goal_ai_${Date.now()}`,
-        userId: uid,
-        name,
-        targetAmount,
-        currentAmount: 0,
-        currency: 'PHP',
-        icon: 'target',
+        icon: 'wallet',
         color: '#10B981',
-        milestones: [],
-        contributions: [],
+        isDefault: true,
+        includeInTotal: true,
         createdAt: now,
         updatedAt: now,
-      })
-
-      return `Action executed: Created savings goal "${name}" with target ₱${targetAmount.toLocaleString()}.`
+      }
+      store.addWallet(newWallet)
+      defaultWallet = newWallet
     }
 
-    if (action === 'delete_subscription' && payload) {
-      const nameQuery = String(payload.name || '').toLowerCase()
-      const targetSub = subscriptions.find((s) => s.name.toLowerCase().includes(nameQuery))
-      if (targetSub) {
-        deleteSubscription(targetSub.id)
-        return `Action executed: Deleted subscription "${targetSub.name}".`
-      } else {
-        return `Notice: Could not find subscription matching "${payload.name}".`
+    // 1. Process explicit action object from LLM
+    if (actionObj && actionObj.action && actionObj.action !== 'none') {
+      const { action, payload } = actionObj
+
+      if (action === 'add_transaction' && payload) {
+        const amount = Number(payload.amount) || 0
+        const type = payload.type === 'income' ? 'income' : 'expense'
+        const merchant = payload.merchant || payload.notes || 'Transaction'
+
+        if (amount > 0) {
+          store.addTransaction({
+            id: `txn_ai_${Date.now()}`,
+            userId: uid,
+            type,
+            amount,
+            currency: 'PHP',
+            categoryId: payload.category || 'other',
+            merchant,
+            paymentMethod: 'cash',
+            walletId: defaultWallet.id,
+            date: today,
+            notes: `Added via Mochi AI`,
+            isFavorite: false,
+            createdAt: now,
+            updatedAt: now,
+          })
+
+          return `Action executed: Logged ${type} of ₱${amount.toLocaleString()} for ${merchant}.`
+        }
+      }
+
+      if (action === 'add_savings_goal' && payload) {
+        const targetAmount = Number(payload.targetAmount) || 1000
+        const name = payload.name || 'New Savings Goal'
+
+        store.addSavingsGoal({
+          id: `goal_ai_${Date.now()}`,
+          userId: uid,
+          name,
+          targetAmount,
+          currentAmount: 0,
+          currency: 'PHP',
+          icon: 'target',
+          color: '#10B981',
+          milestones: [],
+          contributions: [],
+          createdAt: now,
+          updatedAt: now,
+        })
+
+        return `Action executed: Created savings goal "${name}" with target ₱${targetAmount.toLocaleString()}.`
+      }
+
+      if (action === 'delete_subscription' && payload) {
+        const nameQuery = String(payload.name || '').toLowerCase()
+        const targetSub = store.subscriptions.find((s) => s.name.toLowerCase().includes(nameQuery))
+        if (targetSub) {
+          store.deleteSubscription(targetSub.id)
+          return `Action executed: Deleted subscription "${targetSub.name}".`
+        } else {
+          return `Notice: Could not find subscription matching "${payload.name}".`
+        }
+      }
+    }
+
+    // 2. Intelligent NLP Fallback: if user explicit intent was to log/spent/buy
+    if (userPrompt) {
+      const promptLower = userPrompt.toLowerCase()
+      const isLogIntent = /(?:log|add|spent|spend|bought|buy|pay|paid|cost|expense|income)/i.test(promptLower)
+      const numMatch = userPrompt.match(/(?:₱|php|\$)?\s*(\d+(?:\.\d{1,2})?)/i)
+
+      if (isLogIntent && numMatch) {
+        const amount = parseFloat(numMatch[1])
+        if (!isNaN(amount) && amount > 0) {
+          const type = /(?:income|earned|salary|deposit|received)/i.test(promptLower) ? 'income' : 'expense'
+          
+          // Extract merchant/description cleanly
+          let merchant = userPrompt
+            .replace(/(?:log|add|spent|spend|bought|buy|pay|paid|cost|expense|income|for|at|on|₱|php|\$|\d+(?:\.\d{1,2})?)/gi, '')
+            .trim()
+          if (!merchant || merchant.length < 2) {
+            merchant = type === 'expense' ? 'Expense Item' : 'Income Deposit'
+          }
+          merchant = merchant.charAt(0).toUpperCase() + merchant.slice(1)
+
+          let category = 'other'
+          if (/(?:lunch|dinner|breakfast|food|coffee|jollibee|mcdonald|starbucks|eat|restaurant)/i.test(promptLower)) category = 'food'
+          else if (/(?:groceries|grocery|supermarket|mart)/i.test(promptLower)) category = 'groceries'
+          else if (/(?:gas|fuel|ride|grab|bus|transpo|taxi)/i.test(promptLower)) category = 'transportation'
+
+          store.addTransaction({
+            id: `txn_ai_${Date.now()}`,
+            userId: uid,
+            type,
+            amount,
+            currency: 'PHP',
+            categoryId: category,
+            merchant,
+            paymentMethod: 'cash',
+            walletId: defaultWallet.id,
+            date: today,
+            notes: `Auto-logged via Mochi AI NLP`,
+            isFavorite: false,
+            createdAt: now,
+            updatedAt: now,
+          })
+
+          return `Action executed: Logged ${type} of ₱${amount.toLocaleString()} for ${merchant}.`
+        }
       }
     }
 
@@ -214,10 +284,7 @@ Budgets Active: ${budgets.length}`
         )
       })
 
-      let notice: string | undefined = undefined
-      if (result.action) {
-        notice = executeAction(result.action)
-      }
+      const notice = executeAction(result.action, textToSend)
 
       setMessages((prev) =>
         prev.map((msg) =>
