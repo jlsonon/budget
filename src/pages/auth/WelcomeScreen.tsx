@@ -1,17 +1,10 @@
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { ArrowRight, Sparkles } from 'lucide-react'
+import { ArrowRight } from 'lucide-react'
 import Mascot from '../../components/ui/Mascot'
-import { useAuthStore } from '../../store/authStore'
 
 export default function WelcomeScreen() {
   const navigate = useNavigate()
-  const { loginAsGuest } = useAuthStore()
-
-  const handleBypass = () => {
-    loginAsGuest()
-    navigate('/')
-  }
 
   return (
     <div className="flex flex-col items-center text-center">
@@ -48,26 +41,18 @@ export default function WelcomeScreen() {
         transition={{ delay: 0.4 }}
       >
         <button
-          onClick={handleBypass}
+          onClick={() => navigate('/register')}
           className="w-full mochi-btn-primary py-3.5 text-base shadow-md font-semibold flex items-center justify-center gap-2"
         >
-          <Sparkles className="w-5 h-5 text-yellow-200" />
-          Enter Dashboard Immediately
+          <span>Get Started / Create Account</span>
           <ArrowRight className="w-4 h-4 ml-1" />
         </button>
 
         <button
-          onClick={() => navigate('/register')}
-          className="w-full mochi-btn-secondary py-3.5 text-base"
-        >
-          Setup New Account
-        </button>
-
-        <button
           onClick={() => navigate('/login')}
-          className="w-full mochi-btn-ghost py-2.5 text-sm"
+          className="w-full mochi-btn-secondary py-3.5 text-base font-semibold"
         >
-          Sign In
+          Sign In to Existing Account
         </button>
       </motion.div>
 

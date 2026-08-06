@@ -1,24 +1,17 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Eye, EyeOff, Mail, Lock, Sparkles } from 'lucide-react'
+import { Eye, EyeOff, Mail, Lock } from 'lucide-react'
 import Mascot from '../../components/ui/Mascot'
 import { signInWithGoogle, signInWithEmail } from '../../services/auth'
-import { useAuthStore } from '../../store/authStore'
 
 export default function LoginPage() {
   const navigate = useNavigate()
-  const { loginAsGuest } = useAuthStore()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-
-  const handleBypass = () => {
-    loginAsGuest()
-    navigate('/')
-  }
 
   const handleGoogleLogin = async () => {
     try {
@@ -54,14 +47,7 @@ export default function LoginPage() {
       <h1 className="mt-6 text-2xl font-bold text-mochi-text">Welcome back</h1>
       <p className="mt-1 text-sm text-mochi-text-secondary">Sign in to your Mochi account</p>
 
-      {/* Bypass Login Button */}
-      <button
-        onClick={handleBypass}
-        className="mt-6 w-full mochi-btn-primary py-3 gap-2 shadow-md font-semibold text-sm"
-      >
-        <Sparkles className="w-4 h-4 text-yellow-200" />
-        Bypass Login & Go Direct to Dashboard
-      </button>
+
 
       <div className="mt-6 w-full space-y-3">
         {/* Google */}

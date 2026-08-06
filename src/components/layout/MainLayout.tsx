@@ -246,6 +246,25 @@ export default function MainLayout() {
 
                   {/* Menu Action Links */}
                   <div className="p-2 space-y-1">
+                    {/* Superadmin Link */}
+                    {(user?.role === 'superadmin' || user?.email === 'jlsonon12@gmail.com') && (
+                      <button
+                        onClick={() => {
+                          setShowProfileMenu(false)
+                          navigate('/superadmin')
+                        }}
+                        className="w-full flex items-center justify-between p-2.5 rounded-2xl bg-purple-500/10 hover:bg-purple-500/20 text-purple-600 dark:text-purple-300 transition-colors text-left border border-purple-500/20 mb-1"
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <div className="p-1.5 bg-purple-500/20 text-purple-600 dark:text-purple-300 rounded-xl">
+                            <Shield className="w-4 h-4" />
+                          </div>
+                          <span className="text-xs font-black">Superadmin Console</span>
+                        </div>
+                        <ChevronRight className="w-4 h-4 text-purple-500" />
+                      </button>
+                    )}
+
                     <button
                       onClick={() => {
                         setShowProfileMenu(false)

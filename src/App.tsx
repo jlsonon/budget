@@ -27,6 +27,7 @@ import SettingsPage from './pages/SettingsPage'
 import NotificationsPage from './pages/NotificationsPage'
 import CirclesPage from './pages/CirclesPage'
 import WalletsPage from './pages/WalletsPage'
+import SuperadminDashboardPage from './pages/SuperadminDashboardPage'
 
 // Layouts
 import AuthLayout from './components/layout/AuthLayout'
@@ -209,6 +210,14 @@ function AnimatedRoutes() {
               element={
                 <PageTransition>
                   <NotificationsPage />
+                </PageTransition>
+              }
+            />
+            <Route
+              path="/superadmin"
+              element={
+                <PageTransition>
+                  <SuperadminDashboardPage />
                 </PageTransition>
               }
             />

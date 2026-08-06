@@ -243,6 +243,11 @@ export interface UserProfile {
   language: string
   theme: string
   pin?: string
+  role?: 'user' | 'admin' | 'superadmin'
+  subscriptionTier?: 'free' | 'pro'
+  subscriptionStatus?: 'active' | 'free' | 'expired'
+  paidAmount?: number
+  paidAt?: string
   createdAt: string
   updatedAt: string
 }
