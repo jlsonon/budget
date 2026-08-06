@@ -1,7 +1,7 @@
 import { CreateMLCEngine, MLCEngine, InitProgressReport } from '@mlc-ai/web-llm'
 
-// Fast, reliable 1B WebGPU model (10x smaller download, instant load)
-export const OPTIMAL_LOCAL_MODEL = 'Llama-3.2-1B-Instruct-q4f16_1-MLC'
+// Ultra-fast, reliable 0.5B WebGPU model (~180MB download, instant load)
+export const OPTIMAL_LOCAL_MODEL = 'Qwen2.5-0.5B-Instruct-q4f16_1-MLC'
 
 let engineInstance: MLCEngine | null = null
 let isPrewarming = false
@@ -81,60 +81,131 @@ export interface ParsedAIAction {
   payload?: any
 }
 
-// Fallback rule-based AI parser when offline, WebGPU unsupported, or model fetch fails
+// Enriched natural conversational AI parser for fallback / instant response
 function fallbackRuleBasedAI(
   userQuery: string,
   financialSummaryText: string
 ): { text: string; action?: ParsedAIAction } {
   const query = userQuery.toLowerCase().trim()
 
-  // Match expense logging
-  const expenseMatch = query.match(/(?:spent|log|pay|paid|buy|bought|cost|expense)\s+(\d+(?:\.\d+)?)\s+(?:on|for)?\s*([a-z0-9\s]+)/i)
-    || query.match(/(\d+(?:\.\d+)?)\s+(?:on|for)\s+([a-z0-9\s]+)/i)
-  
+  // 1. Match expense logging (e.g. "spent 180 on lunch", "log 500 coffee", "paid 250 for gas")
+  const expenseMatch =
+    query.match(/(?:spent|log|pay|paid|buy|bought|cost|expense)\s+(?:₱|php)?\s*(\d+(?:\.\d+)?)\s+(?:on|for)?\s*([a-z0-9\s]+)/i) ||
+    query.match(/(\d+(?:\.\d+)?)\s+(?:on|for)\s+([a-z0-9\s]+)/i)
+
   if (expenseMatch) {
-    const amount = parseFloat(expenseMatch[1] || expenseMatch[2])
-    const merchant = (expenseMatch[2] || expenseMatch[1] || 'Expense').trim()
-    return {
-      text: `Recorded expense of ₱${amount} for ${merchant}.`,
-      action: {
-        action: 'add_transaction',
-        payload: { type: 'expense', amount, merchant, category: 'food' }
+    const rawNum = parseFloat(expenseMatch[1] || expenseMatch[2])
+    const merchantStr = (expenseMatch[2] || expenseMatch[1] || 'Expense').trim()
+    if (!isNaN(rawNum) && rawNum > 0) {
+      return {
+        text: `Recorded an expense of ₱${rawNum.toLocaleString()} for "${merchantStr}". Your balances and reports have been updated.`,
+        action: {
+          action: 'add_transaction',
+          payload: { type: 'expense', amount: rawNum, merchant: merchantStr, category: 'food' },
+        },
       }
     }
   }
 
-  // Match income logging
-  const incomeMatch = query.match(/(?:received|income|salary|earn|earned|got paid|deposit)\s+(\d+(?:\.\d+)?)/i)
+  // 2. Match income logging (e.g. "received 5000 salary", "got paid 12000", "income 20000")
+  const incomeMatch = query.match(/(?:received|income|salary|earn|earned|got paid|deposit)\s+(?:₱|php)?\s*(\d+(?:\.\d+)?)/i)
   if (incomeMatch) {
-    const amount = parseFloat(incomeMatch[1])
-    return {
-      text: `Recorded income of ₱${amount}.`,
-      action: {
-        action: 'add_transaction',
-        payload: { type: 'income', amount, merchant: 'Income Deposit', category: 'salary' }
+    const rawNum = parseFloat(incomeMatch[1])
+    if (!isNaN(rawNum) && rawNum > 0) {
+      return {
+        text: `Recorded income deposit of ₱${rawNum.toLocaleString()}. Your wallet balance has been increased.`,
+        action: {
+          action: 'add_transaction',
+          payload: { type: 'income', amount: rawNum, merchant: 'Income Deposit', category: 'salary' },
+        },
       }
     }
   }
 
-  // Match savings goal
+  // 3. Match savings goal creation (e.g. "add goal Japan 50000", "create savings goal Emergency 20000")
   const goalMatch = query.match(/(?:create|add|set|new)\s+(?:savings\s+)?goal\s+([a-z0-9\s]+)\s+(\d+)/i)
   if (goalMatch) {
     const name = goalMatch[1].trim()
     const targetAmount = parseFloat(goalMatch[2])
-    return {
-      text: `Created savings goal "${name}" with target ₱${targetAmount}.`,
-      action: {
-        action: 'add_savings_goal',
-        payload: { name, targetAmount }
+    if (name && !isNaN(targetAmount) && targetAmount > 0) {
+      return {
+        text: `Created new savings goal "${name}" with a target of ₱${targetAmount.toLocaleString()}.`,
+        action: {
+          action: 'add_savings_goal',
+          payload: { name, targetAmount },
+        },
       }
     }
   }
 
-  // General summary response
+  // 4. Greetings
+  if (/^(hi|hello|hey|greetings|good\s*(morning|afternoon|evening)|who\s*are\s*you)/i.test(query)) {
+    return {
+      text: `Hello. I am Mochi, your personal financial assistant. I run locally on your device to keep your financial data 100% private. How can I help you today?`,
+      action: { action: 'none' },
+    }
+  }
+
+  // 5. Balance & Assets queries
+  if (/(?:balance|assets|total\s*money|wallets|how\s*much\s*money)/i.test(query)) {
+    const assetMatch = financialSummaryText.match(/Total Assets:\s*(₱[\d,.]+)/i)
+    const walletMatch = financialSummaryText.match(/Wallets:\s*([^\n]+)/i)
+    const total = assetMatch ? assetMatch[1] : 'your accounts'
+    const list = walletMatch ? walletMatch[1] : 'Cash Wallet'
+    return {
+      text: `Your current total balance is ${total} across ${list}.`,
+      action: { action: 'none' },
+    }
+  }
+
+  // 6. Expense & Spending queries
+  if (/(?:spending|spent|expenses|monthly\s*spend|how\s*much\s*did\s*i\s*spend)/i.test(query)) {
+    const expMatch = financialSummaryText.match(/Monthly Expenses Tracked:\s*(₱[\d,.]+)/i)
+    const spentText = expMatch ? expMatch[1] : '₱0.00'
+    return {
+      text: `You have tracked ${spentText} in total expenses this month. Check out your Reports tab for a category breakdown!`,
+      action: { action: 'none' },
+    }
+  }
+
+  // 7. Income queries
+  if (/(?:income|earned|salary|earnings)/i.test(query)) {
+    const incMatch = financialSummaryText.match(/Monthly Income Tracked:\s*(₱[\d,.]+)/i)
+    const incText = incMatch ? incMatch[1] : '₱0.00'
+    return {
+      text: `You have tracked ${incText} in monthly income deposits so far.`,
+      action: { action: 'none' },
+    }
+  }
+
+  // 8. Financial Advice & Tips
+  if (/(?:advice|tip|tips|recommend|recommendation|how\s*to\s*save|budget\s*help)/i.test(query)) {
+    return {
+      text: `Here are 3 core financial tips tailored for your budget:\n1. Aim to save at least 20% of your net income each month.\n2. Review subscription renewals to catch any unused recurring services.\n3. Build a 3-month emergency buffer in your savings goals.`,
+      action: { action: 'none' },
+    }
+  }
+
+  // 9. Help & Commands
+  if (/(?:help|command|commands|what\s*can\s*you\s*do|features)/i.test(query)) {
+    return {
+      text: `Here is what I can do for you:\n• Log expenses: e.g. "spent 250 on lunch at Jollibee"\n• Record income: e.g. "received 15000 salary"\n• Create savings goals: e.g. "create goal Travel 50000"\n• Answer inquiries about your balances, spending, and budgets.`,
+      action: { action: 'none' },
+    }
+  }
+
+  // 10. Summary / Overview queries
+  if (/(?:summary|overview|status|report|financial\s*health)/i.test(query)) {
+    return {
+      text: `Here is your financial overview:\n\n${financialSummaryText}`,
+      action: { action: 'none' },
+    }
+  }
+
+  // 11. Default friendly response
   return {
-    text: `Here is your current financial summary:\n${financialSummaryText}\n\nYou can ask me to log expenses, create savings goals, or check your balance!`,
-    action: { action: 'none' }
+    text: `I'm here to help manage your finances. You can ask me to log an expense (e.g. "spent 200 on coffee"), check your balance, or give you financial tips!`,
+    action: { action: 'none' },
   }
 }
 
