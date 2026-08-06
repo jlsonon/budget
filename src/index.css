@@ -22,21 +22,25 @@
   --color-text-muted: #9CA3AF;
   --color-border: #E5E7EB;
 
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
-  --radius-xl: 20px;
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 18px;
+  --radius-xl: 22px;
+  --radius-2xl: 28px;
   --radius-full: 9999px;
 
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07);
-  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
-  --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.12);
+  --shadow-xs: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.03);
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.08), 0 2px 6px rgba(0, 0, 0, 0.05);
+  --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.10), 0 4px 10px rgba(0, 0, 0, 0.06);
+  --shadow-xl: 0 20px 50px rgba(0, 0, 0, 0.12), 0 8px 20px rgba(0, 0, 0, 0.08);
+  --shadow-cozy: 0 8px 24px rgba(249, 168, 212, 0.18), 0 2px 8px rgba(0, 0, 0, 0.05);
 
   --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
   --transition-base: 250ms cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-slow: 350ms cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-spring: 400ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  --transition-slow: 380ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-spring: 500ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  --transition-bounce: 600ms cubic-bezier(0.68, -0.55, 0.265, 1.55);
 }
 
 /* Dark Theme — Moonlight */
@@ -273,10 +277,18 @@
 
 @layer components {
   .mochi-card {
-    @apply rounded-lg p-4 transition-all duration-base;
+    @apply p-4 transition-all;
+    border-radius: var(--radius-xl);
     background-color: var(--color-surface);
     box-shadow: var(--shadow-md);
     border: 1px solid var(--color-border);
+    transition-duration: 300ms;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .mochi-card:hover {
+    box-shadow: var(--shadow-lg);
+    transform: translateY(-1px);
   }
 
   .mochi-card-elevated {
@@ -285,46 +297,77 @@
     box-shadow: var(--shadow-lg);
   }
 
+  .mochi-card-cozy {
+    @apply mochi-card;
+    box-shadow: var(--shadow-cozy);
+    border-color: color-mix(in srgb, var(--color-primary) 20%, var(--color-border));
+  }
+
   .mochi-btn {
     @apply inline-flex items-center justify-center gap-2 px-4 py-2.5
-           rounded-md font-medium text-sm transition-all duration-base
+           font-semibold text-sm transition-all
            focus-visible:outline-none focus-visible:ring-2
            focus-visible:ring-mochi-primary focus-visible:ring-offset-2
            disabled:opacity-50 disabled:cursor-not-allowed
-           active:scale-95;
+           active:scale-[0.96];
+    border-radius: var(--radius-xl);
+    transition-duration: 200ms;
+    transition-timing-function: cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  .mochi-btn:hover:not(:disabled) {
+    transform: translateY(-1px);
+  }
+
+  .mochi-btn:active:not(:disabled) {
+    transform: scale(0.96) translateY(0);
   }
 
   .mochi-btn-primary {
     @apply mochi-btn text-white;
     background-color: var(--color-primary);
+    box-shadow: 0 4px 14px color-mix(in srgb, var(--color-primary) 40%, transparent);
   }
 
   .mochi-btn-primary:hover:not(:disabled) {
     background-color: var(--color-primary-hover);
+    box-shadow: 0 6px 20px color-mix(in srgb, var(--color-primary) 50%, transparent);
   }
 
   .mochi-btn-secondary {
     @apply mochi-btn;
     background-color: var(--color-surface);
     color: var(--color-text);
-    border: 1px solid var(--color-border);
+    border: 1.5px solid var(--color-border);
+    box-shadow: var(--shadow-xs);
   }
 
   .mochi-btn-ghost {
-    @apply mochi-btn bg-transparent text-mochi-text-secondary hover:bg-mochi-surface;
+    @apply mochi-btn bg-transparent;
+    color: var(--color-text-secondary);
+  }
+
+  .mochi-btn-ghost:hover:not(:disabled) {
+    background-color: var(--color-surface);
+    color: var(--color-text);
   }
 
   .mochi-btn-danger {
     @apply mochi-btn text-white;
     background-color: var(--color-error);
+    box-shadow: 0 4px 14px color-mix(in srgb, var(--color-error) 30%, transparent);
   }
 
   .mochi-input {
-    @apply w-full px-3 py-2.5 rounded-md text-sm transition-all duration-base
+    @apply w-full px-3.5 py-3 text-sm transition-all
            bg-mochi-surface border border-mochi-border text-mochi-text
            placeholder-mochi-text-muted
-           focus:outline-none focus:ring-2 focus:ring-mochi-primary focus:border-transparent
+           focus:outline-none focus:ring-2 focus:ring-mochi-primary focus:border-mochi-primary
            disabled:opacity-50 disabled:cursor-not-allowed;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-xs);
+    transition-duration: 200ms;
+    --tw-ring-opacity: 0.35;
   }
 
   .mochi-label {

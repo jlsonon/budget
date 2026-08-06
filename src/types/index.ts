@@ -328,6 +328,7 @@ export interface CircleMilestone {
 
 export interface MochiCircle {
   id: string
+  userId?: string
   name: string
   description: string
   targetAmount: number

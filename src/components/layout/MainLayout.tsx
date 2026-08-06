@@ -1,5 +1,5 @@
 import { Outlet, useNavigate, useLocation } from 'react-router-dom'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Home,
@@ -35,6 +35,9 @@ import { getGreeting } from '../../lib/utils'
 import Mascot from '../ui/Mascot'
 import AddTransactionModal from '../modals/AddTransactionModal'
 
+import MascotAIChatModal from '../ai/MascotAIChatModal'
+import { backgroundPrewarmAI } from '../../services/localAI'
+
 const navItems = [
   { icon: Home, label: 'Home', path: '/' },
   { icon: ReceiptText, label: 'Transactions', path: '/transactions' },
@@ -43,10 +46,10 @@ const navItems = [
 ]
 
 const moreItems = [
-  { icon: Users, label: 'Mochi Circles', path: '/circles', color: 'text-sky-500 bg-sky-500/10' },
+  { icon: Users, label: 'Circles', path: '/circles', color: 'text-sky-500 bg-sky-500/10' },
   { icon: PiggyBank, label: 'Savings', path: '/savings', color: 'text-emerald-500 bg-emerald-500/10' },
-  { icon: LayoutDashboard, label: 'Budget', path: '/budget', color: 'text-amber-500 bg-amber-500/10' },
-  { icon: CreditCard, label: 'Debts', path: '/debts', color: 'text-rose-500 bg-rose-500/10' },
+  { icon: LayoutDashboard, label: 'Plans', path: '/budget', color: 'text-amber-500 bg-amber-500/10' },
+  { icon: CreditCard, label: 'Debt', path: '/debts', color: 'text-rose-500 bg-rose-500/10' },
   { icon: Repeat, label: 'Subscriptions', path: '/subscriptions', color: 'text-purple-500 bg-purple-500/10' },
   { icon: Calendar, label: 'Calendar', path: '/calendar', color: 'text-indigo-500 bg-indigo-500/10' },
   { icon: BarChart3, label: 'Reports', path: '/reports', color: 'text-mochi-primary bg-mochi-primary/10' },
@@ -63,6 +66,12 @@ export default function MainLayout() {
   const [showMore, setShowMore] = useState(false)
   const [showProfileMenu, setShowProfileMenu] = useState(false)
   const [backupSuccess, setBackupSuccess] = useState(false)
+  const [showAIChat, setShowAIChat] = useState(false)
+
+  // Pre-warm local AI engine silently in the background on app load
+  useEffect(() => {
+    backgroundPrewarmAI()
+  }, [])
 
   const activeStreak = streaks.reduce((max, s) => Math.max(max, s.current), 3)
 
@@ -93,6 +102,7 @@ export default function MainLayout() {
   return (
     <div className="min-h-screen bg-mochi-bg pb-20 md:pb-0 md:pl-20">
       <AddTransactionModal />
+      <MascotAIChatModal isOpen={showAIChat} onClose={() => setShowAIChat(false)} />
 
       {/* Modern Top Header */}
       <header className="sticky top-0 z-40 bg-mochi-surface/85 backdrop-blur-xl border-b border-mochi-border px-4 py-3 safe-top">
@@ -124,8 +134,18 @@ export default function MainLayout() {
             </div>
           </div>
 
-          {/* Right: Theme Toggle, Notifications, Profile Dropdown */}
+          {/* Right: Mochi AI, Theme Toggle, Notifications, Profile Dropdown */}
           <div className="flex items-center gap-2">
+            {/* Mochi Local AI Button */}
+            <button
+              onClick={() => setShowAIChat(true)}
+              className="p-2 rounded-2xl bg-gradient-to-r from-mochi-primary/15 via-purple-500/15 to-pink-500/15 border border-mochi-primary/30 text-mochi-primary hover:scale-105 active:scale-95 transition-all flex items-center gap-1.5 px-3 text-xs font-black shadow-xs"
+              title="Open Local Mochi AI Assistant"
+            >
+              <Sparkles className="w-4 h-4 text-mochi-primary" />
+              <span className="hidden sm:inline">Mochi AI</span>
+            </button>
+
             {/* Quick Dark / Light Theme Switcher */}
             <button
               onClick={() => setTheme(theme === 'moonlight' || theme === 'night-sky' ? 'sakura' : 'moonlight')}
@@ -358,6 +378,22 @@ export default function MainLayout() {
           <Plus className="w-6 h-6 stroke-[3]" />
         </button>
       </aside>
+
+      {/* Movable / Draggable Floating Action Button (FAB) for Mochi AI */}
+      <motion.div
+        drag
+        dragConstraints={{ left: -320, right: 20, top: -500, bottom: 20 }}
+        dragElastic={0.05}
+        dragMomentum={false}
+        whileHover={{ scale: 1.08 }}
+        whileTap={{ scale: 0.95 }}
+        onClick={() => setShowAIChat(true)}
+        className="fixed bottom-20 right-4 md:bottom-6 md:right-6 z-40 p-3 rounded-full bg-gradient-to-r from-mochi-primary via-purple-500 to-pink-500 text-white shadow-2xl cursor-grab active:cursor-grabbing flex items-center gap-2 border-2 border-white dark:border-mochi-surface touch-none group select-none"
+        title="Drag anywhere • Tap to open Mochi Local AI"
+      >
+        <Sparkles className="w-5 h-5 text-amber-200 group-hover:rotate-12 transition-transform pointer-events-none" />
+        <span className="text-xs font-black pr-1 hidden sm:inline pointer-events-none">Mochi AI</span>
+      </motion.div>
 
       {/* More Modules Dropdown Sheet */}
       <AnimatePresence>

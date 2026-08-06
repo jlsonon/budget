@@ -18,6 +18,7 @@ import {
   ShieldAlert,
 } from 'lucide-react'
 import { useAppStore } from '@/store/appStore'
+import { useAuthStore } from '@/store/authStore'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import type { Wallet, WalletType } from '@/types'
 
@@ -151,6 +152,7 @@ interface AddWalletSheetProps {
 
 function AddWalletSheet({ isOpen, onClose }: AddWalletSheetProps) {
   const { addWallet } = useAppStore()
+  const { user } = useAuthStore()
   const [name, setName] = useState('')
   const [type, setType] = useState<WalletType>('cash')
   const [balance, setBalance] = useState('')
@@ -161,7 +163,7 @@ function AddWalletSheet({ isOpen, onClose }: AddWalletSheetProps) {
     if (!name.trim() || isNaN(parseFloat(balance))) return
     addWallet({
       id: `w_${Date.now()}`,
-      userId: '1',
+      userId: user?.id || 'anon',
       name: name.trim(),
       type,
       balance: parseFloat(balance),
@@ -312,7 +314,8 @@ function TransferFundsSheet({
   onClose: () => void
   initialSourceId?: string
 }) {
-  const { wallets, adjustWalletBalance, addTransaction } = useAppStore()
+  const { wallets, addTransaction } = useAppStore()
+  const { user } = useAuthStore()
   const [fromId, setFromId] = useState(initialSourceId || wallets[0]?.id || '')
   const [toId, setToId] = useState(wallets.find((w) => w.id !== initialSourceId)?.id || wallets[1]?.id || '')
   const [amount, setAmount] = useState('')
@@ -330,13 +333,13 @@ function TransferFundsSheet({
 
     if (isNaN(parsedAmount) || parsedAmount <= 0) {
       setStatus('error')
-      setErrorMsg('Please enter a valid transfer amount greater than 0.')
+      setErrorMsg('Hmm, that doesn\'t look right. Please enter an amount greater than zero.')
       return
     }
 
     if (!fromId || !toId || fromId === toId) {
       setStatus('error')
-      setErrorMsg('Please select two different wallets for transfer.')
+      setErrorMsg('The source and destination wallets need to be different!')
       return
     }
 
@@ -344,30 +347,49 @@ function TransferFundsSheet({
     if (sourceWallet && totalDeduction > sourceWallet.balance) {
       setStatus('error')
       setErrorMsg(
-        `Insufficient balance in ${sourceWallet.name}! Available: ₱${sourceWallet.balance.toLocaleString()}, Required: ₱${totalDeduction.toLocaleString()}.`
+        `${sourceWallet.name} only has ₱${sourceWallet.balance.toLocaleString()} available. Try a smaller amount!`
       )
       return
     }
 
-    // Adjust balances
-    adjustWalletBalance(fromId, -totalDeduction)
-    adjustWalletBalance(toId, parsedAmount)
+    // Double-entry: addTransaction handles wallet balance adjustments
+    const now = new Date().toISOString()
+    const today = now.split('T')[0]
 
-    // Log transaction
+    // Debit from source wallet
     addTransaction({
-      id: `txn_transfer_${Date.now()}`,
-      userId: '1',
-      type: 'transfer',
-      amount: parsedAmount,
+      id: `txn_transfer_out_${Date.now()}`,
+      userId: user?.id || 'anon',
+      type: 'expense',
+      amount: totalDeduction,
       currency: 'PHP',
       categoryId: 'other',
-      merchant: `Transfer: ${sourceWallet?.name || 'Wallet'} ➔ ${destWallet?.name || 'Wallet'}`,
-      paymentMethod: 'other',
+      merchant: `Transfer Out to ${destWallet?.name || 'Wallet'}`,
+      paymentMethod: 'bank_transfer',
       walletId: fromId,
-      date: new Date().toISOString().split('T')[0],
+      date: today,
+      notes: `Transfer to ${destWallet?.name}${parsedFee > 0 ? ` (includes ₱${parsedFee} fee)` : ''}`,
       isFavorite: false,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+      createdAt: now,
+      updatedAt: now,
+    })
+
+    // Credit to destination wallet
+    addTransaction({
+      id: `txn_transfer_in_${Date.now() + 1}`,
+      userId: user?.id || 'anon',
+      type: 'income',
+      amount: parsedAmount,
+      currency: 'PHP',
+      categoryId: 'other_income',
+      merchant: `Transfer In from ${sourceWallet?.name || 'Wallet'}`,
+      paymentMethod: 'bank_transfer',
+      walletId: toId,
+      date: today,
+      notes: `Transfer from ${sourceWallet?.name}`,
+      isFavorite: false,
+      createdAt: now,
+      updatedAt: now,
     })
 
     setStatus('success')
@@ -763,7 +785,7 @@ function WalletDetailSheet({
 
 /* ─── Main WalletsPage ────────────────────────────────────────────────── */
 export default function WalletsPage() {
-  const { wallets, deleteWallet } = useAppStore()
+  const { wallets, deleteWallet, setAddModalOpen } = useAppStore()
   const [showAddSheet, setShowAddSheet] = useState(false)
   const [showTransferSheet, setShowTransferSheet] = useState(false)
   const [transferSourceId, setTransferSourceId] = useState<string | undefined>()
@@ -893,15 +915,34 @@ export default function WalletsPage() {
       {/* Quick Actions */}
       <div className="grid grid-cols-3 gap-3">
         {[
-          { icon: ArrowUpRight, label: 'Expense', color: 'bg-rose-100 text-rose-600 dark:bg-rose-900/20 dark:text-rose-400' },
-          { icon: ArrowDownLeft, label: 'Income', color: 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400' },
-          { icon: RefreshCw, label: 'Transfer', color: 'bg-blue-100 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400' },
+          {
+            icon: ArrowUpRight,
+            label: 'Expense',
+            color: 'bg-rose-100 text-rose-600 dark:bg-rose-900/20 dark:text-rose-400',
+            onClick: () => setAddModalOpen(true, 'expense'),
+          },
+          {
+            icon: ArrowDownLeft,
+            label: 'Income',
+            color: 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400',
+            onClick: () => setAddModalOpen(true, 'income'),
+          },
+          {
+            icon: RefreshCw,
+            label: 'Transfer',
+            color: 'bg-blue-100 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400',
+            onClick: () => {
+              setTransferSourceId(undefined)
+              setShowTransferSheet(true)
+            },
+          },
         ].map((action) => {
           const Icon = action.icon
           return (
             <button
               key={action.label}
-              className="mochi-card flex flex-col items-center gap-2 py-4 hover:shadow-md active:scale-95 transition-all"
+              onClick={action.onClick}
+              className="mochi-card flex flex-col items-center gap-2 py-4 hover:shadow-md active:scale-95 transition-all cursor-pointer"
             >
               <div className={`w-10 h-10 rounded-full flex items-center justify-center ${action.color}`}>
                 <Icon className="w-5 h-5" />

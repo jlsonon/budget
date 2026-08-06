@@ -11,6 +11,7 @@ import {
   CheckCircle2,
 } from 'lucide-react'
 import { useAppStore } from '@/store/appStore'
+import { useAuthStore } from '@/store/authStore'
 import { formatCurrency, calculateProgress } from '@/lib/utils'
 import type { Debt } from '@/types'
 import MochiIllustration from '@/components/ui/MochiIllustrations'
@@ -104,20 +105,18 @@ function EmptyDebts() {
   return (
     <div className="flex flex-col items-center justify-center py-16 text-center">
       <MochiIllustration type="debt_paid" size="lg" />
-      <h3 className="text-lg font-semibold text-mochi-text">No debts tracked</h3>
+      <h3 className="text-lg font-semibold text-mochi-text mt-3">You're doing amazing!</h3>
       <p className="mt-2 text-sm text-mochi-text-muted max-w-xs">
-        You&apos;re debt-free! Or you haven&apos;t added any debts yet.
+        No debts tracked yet. If you have any, tracking them is the first step to being debt-free.
       </p>
-      <button className="mochi-btn-primary mt-4">
-        <Plus className="w-4 h-4" />
-        Add Debt
-      </button>
+      <p className="text-xs text-mochi-primary mt-1 font-medium">Every journey starts with one step ✨</p>
     </div>
   )
 }
 
 export default function DebtPage() {
   const { debts, addDebt } = useAppStore()
+  const { user } = useAuthStore()
   const [isLoading, setIsLoading] = useState(true)
   const [isModalOpen, setIsModalOpen] = useState(false)
 
@@ -166,7 +165,7 @@ export default function DebtPage() {
 
     const newDebt: Debt = {
       id: `debt_${Date.now()}`,
-      userId: '1',
+      userId: user?.id || 'anon',
       lender: lenderName.trim(),
       type: debtType as any,
       originalBalance: origBal,
@@ -296,10 +295,13 @@ export default function DebtPage() {
       </Dialog>
 
       <div className="flex items-center justify-between mb-4">
-        <h1 className="text-xl font-bold text-mochi-text">Debts</h1>
+        <div>
+          <h1 className="text-xl font-bold text-mochi-text">Debt Progress</h1>
+          <p className="text-xs text-mochi-text-muted mt-0.5">Let's work toward being debt-free 🌱</p>
+        </div>
         <button onClick={() => setIsModalOpen(true)} className="mochi-btn-primary text-sm flex items-center gap-1.5">
           <Plus className="w-4 h-4" />
-          <span>Add Debt</span>
+          <span>Track Debt</span>
         </button>
       </div>
 
@@ -310,7 +312,7 @@ export default function DebtPage() {
             <TrendingDown className="w-5 h-5 text-mochi-error" />
           </div>
           <div>
-            <p className="text-xs text-mochi-text-muted">Total Debt</p>
+            <p className="text-xs text-mochi-text-muted">Remaining Balance</p>
             <p className="text-lg font-bold text-mochi-error">{formatCurrency(totalDebt)}</p>
           </div>
         </div>

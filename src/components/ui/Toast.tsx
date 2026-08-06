@@ -27,23 +27,24 @@ const typeConfig: Record<ToastType, { icon: typeof CheckCircle; bgColor: string;
 function ToastItem({ id, type, title, message, onClose }: ToastProps) {
   const config = typeConfig[type]
   const Icon = config.icon
+  const iconColor = type === 'success' ? 'text-emerald-500' : type === 'error' ? 'text-rose-500' : type === 'warning' ? 'text-amber-500' : 'text-sky-500'
 
   return (
     <motion.div
-      initial={{ opacity: 0, x: 300, scale: 0.95 }}
+      initial={{ opacity: 0, x: 300, scale: 0.92 }}
       animate={{ opacity: 1, x: 0, scale: 1 }}
-      exit={{ opacity: 0, x: 300, scale: 0.95 }}
-      transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+      exit={{ opacity: 0, x: 300, scale: 0.92 }}
+      transition={{ type: 'spring', damping: 28, stiffness: 350 }}
       className={cn(
-        'flex items-start gap-3 p-4 rounded-xl border shadow-lg max-w-sm',
+        'flex items-start gap-3 p-4 rounded-2xl border shadow-lg max-w-sm backdrop-blur-sm',
         config.bgColor,
         config.borderColor
       )}
       role="alert"
     >
-      <Icon className={cn('w-5 h-5 mt-0.5 flex-shrink-0', `text-${type === 'success' ? 'mochi-success' : type === 'error' ? 'mochi-error' : type === 'warning' ? 'mochi-warning' : 'blue-500'}`)} />
+      <Icon className={cn('w-5 h-5 mt-0.5 flex-shrink-0', iconColor)} />
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-mochi-text">{title}</p>
+        <p className="text-sm font-semibold text-mochi-text">{title}</p>
         {message && <p className="mt-0.5 text-xs text-mochi-text-secondary">{message}</p>}
       </div>
       <button
@@ -56,6 +57,7 @@ function ToastItem({ id, type, title, message, onClose }: ToastProps) {
     </motion.div>
   )
 }
+
 
 // Simple toast store
 let toasts: Toast[] = []

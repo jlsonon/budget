@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   X,
@@ -14,6 +14,7 @@ import {
   Sparkles,
 } from 'lucide-react'
 import { useAppStore } from '@/store/appStore'
+import { useAuthStore } from '@/store/authStore'
 import Dialog from '@/components/ui/Dialog'
 import Mascot from '@/components/ui/Mascot'
 import MochiCategoryVectorSVG from '@/components/ui/MochiCategoryVectorSVG'
@@ -360,9 +361,10 @@ function CategoryPickerSheet({ isOpen, onClose, categories, selected, onSelect, 
 }
 
 export function AddTransactionModal() {
-  const { isAddModalOpen, setAddModalOpen, addTransaction, wallets } = useAppStore()
+  const { isAddModalOpen, setAddModalOpen, addTransaction, wallets, defaultModalType } = useAppStore()
+  const { user } = useAuthStore()
 
-  const [type, setType] = useState<TransactionType>('expense')
+  const [type, setType] = useState<TransactionType>(defaultModalType)
   const [amount, setAmount] = useState('')
   const [title, setTitle] = useState('')
   const [category, setCategory] = useState<string>('food')
@@ -373,6 +375,18 @@ export function AddTransactionModal() {
 
   const [status, setStatus] = useState<'idle' | 'success' | 'error'>('idle')
   const [errorMessage, setErrorMessage] = useState('')
+
+  // Sync type when modal opens with a specific type (e.g. Add Income from dashboard)
+  useEffect(() => {
+    if (isAddModalOpen) {
+      setType(defaultModalType)
+      setCategory(defaultModalType === 'expense' ? 'food' : 'income')
+      setTitle('')
+      setAmount('')
+      setStatus('idle')
+      setErrorMessage('')
+    }
+  }, [isAddModalOpen, defaultModalType])
 
   const categories = type === 'expense' ? expenseCategories : incomeCategories
   const selectedCat = categories.find((c) => c.id === category) || categories[0]
@@ -434,7 +448,7 @@ export function AddTransactionModal() {
 
     const newTxn: Transaction = {
       id: `txn_${Date.now()}`,
-      userId: '1',
+      userId: user?.id || 'anon',
       type,
       amount: parsedAmount,
       currency: 'PHP',

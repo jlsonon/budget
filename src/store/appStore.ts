@@ -12,6 +12,11 @@ import {
   TravelStamp,
   Wallet,
 } from '../types'
+import { saveDocToCloud, deleteDocFromCloud } from '../services/cloudSync'
+import { FIRESTORE_COLLECTIONS } from '../services/firestoreCollections'
+import { useAuthStore } from './authStore'
+
+const getUid = (): string => useAuthStore.getState().user?.id || 'anon'
 
 interface AppState {
   // Transactions
@@ -82,78 +87,83 @@ interface AppState {
 
   // UI
   isAddModalOpen: boolean
-  setAddModalOpen: (open: boolean) => void
+  defaultModalType: 'expense' | 'income'
+  setAddModalOpen: (open: boolean, type?: 'expense' | 'income') => void
 }
 
 const initialCircles: MochiCircle[] = []
 const initialPassportStamps: TravelStamp[] = []
 
-const initialWallets: Wallet[] = [
-  {
-    id: 'w_cash',
-    userId: '1',
-    name: 'Cash Wallet',
-    type: 'cash',
-    balance: 0,
-    currency: 'PHP',
-    color: '#F59E0B',
-    isDefault: true,
-    includeInTotal: true,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-]
-
-export const useAppStore = create<AppState>()((set) => ({
+export const useAppStore = create<AppState>()((set, get) => ({
   transactions: [],
   isLoadingTransactions: false,
   setTransactions: (txns) => set({ transactions: txns }),
-  addTransaction: (txn) =>
+  addTransaction: (txn) => {
     set((s) => {
       const nextTxns = [txn, ...s.transactions]
-      // Adjust wallet balance automatically
       let nextWallets = s.wallets
       if (txn.walletId) {
         const delta = txn.type === 'expense' ? -txn.amount : txn.amount
         nextWallets = s.wallets.map((w) =>
           w.id === txn.walletId ? { ...w, balance: Math.max(0, w.balance + delta), updatedAt: new Date().toISOString() } : w
         )
+        // Persist updated wallet balance to Firestore
+        const updatedWallet = nextWallets.find((w) => w.id === txn.walletId)
+        if (updatedWallet) saveDocToCloud(FIRESTORE_COLLECTIONS.WALLETS, updatedWallet)
       }
       return { transactions: nextTxns, wallets: nextWallets }
-    }),
-  updateTransaction: (id, updates) =>
+    })
+    // Persist transaction to Firestore
+    saveDocToCloud(FIRESTORE_COLLECTIONS.TRANSACTIONS, txn)
+  },
+  updateTransaction: (id, updates) => {
     set((s) => ({
       transactions: s.transactions.map((t) => (t.id === id ? { ...t, ...updates, updatedAt: new Date().toISOString() } : t)),
-    })),
-  deleteTransaction: (id) =>
+    }))
+    const updated = get().transactions.find((t) => t.id === id)
+    if (updated) saveDocToCloud(FIRESTORE_COLLECTIONS.TRANSACTIONS, { ...updated, ...updates, updatedAt: new Date().toISOString() })
+  },
+  deleteTransaction: (id) => {
     set((s) => {
       const target = s.transactions.find((t) => t.id === id)
       let nextWallets = s.wallets
       if (target && target.walletId) {
-        // Reverse transaction effect
         const delta = target.type === 'expense' ? target.amount : -target.amount
         nextWallets = s.wallets.map((w) =>
           w.id === target.walletId ? { ...w, balance: Math.max(0, w.balance + delta), updatedAt: new Date().toISOString() } : w
         )
+        const updatedWallet = nextWallets.find((w) => w.id === target.walletId)
+        if (updatedWallet) saveDocToCloud(FIRESTORE_COLLECTIONS.WALLETS, updatedWallet)
       }
       return {
         transactions: s.transactions.filter((t) => t.id !== id),
         wallets: nextWallets,
       }
-    }),
+    })
+    deleteDocFromCloud(FIRESTORE_COLLECTIONS.TRANSACTIONS, id)
+  },
 
   budgets: [],
   setBudgets: (budgets) => set({ budgets }),
-  addBudget: (budget) => set((s) => ({ budgets: [...s.budgets, budget] })),
-  updateBudget: (id, updates) =>
+  addBudget: (budget) => {
+    set((s) => ({ budgets: [...s.budgets, budget] }))
+    saveDocToCloud(FIRESTORE_COLLECTIONS.BUDGETS, budget)
+  },
+  updateBudget: (id, updates) => {
     set((s) => ({
       budgets: s.budgets.map((b) => (b.id === id ? { ...b, ...updates, updatedAt: new Date().toISOString() } : b)),
-    })),
+    }))
+    const updated = get().budgets.find((b) => b.id === id)
+    if (updated) saveDocToCloud(FIRESTORE_COLLECTIONS.BUDGETS, { ...updated, ...updates })
+  },
 
   savingsGoals: [],
   setSavingsGoals: (goals) => set({ savingsGoals: goals }),
-  addSavingsGoal: (goal) => set((s) => ({ savingsGoals: [...s.savingsGoals, goal] })),
-  contributeToGoal: (goalId, amount) =>
+  addSavingsGoal: (goal) => {
+    set((s) => ({ savingsGoals: [...s.savingsGoals, goal] }))
+    saveDocToCloud(FIRESTORE_COLLECTIONS.SAVINGS, goal)
+  },
+  contributeToGoal: (goalId, amount) => {
     set((s) => ({
       savingsGoals: s.savingsGoals.map((g) => {
         if (g.id !== goalId) return g
@@ -165,12 +175,18 @@ export const useAppStore = create<AppState>()((set) => ({
           updatedAt: new Date().toISOString(),
         }
       }),
-    })),
+    }))
+    const updated = get().savingsGoals.find((g) => g.id === goalId)
+    if (updated) saveDocToCloud(FIRESTORE_COLLECTIONS.SAVINGS, { ...updated, currentAmount: updated.currentAmount + amount })
+  },
 
   debts: [],
   setDebts: (debts) => set({ debts }),
-  addDebt: (debt) => set((s) => ({ debts: [...s.debts, debt] })),
-  makeDebtPayment: (debtId, amount) =>
+  addDebt: (debt) => {
+    set((s) => ({ debts: [...s.debts, debt] }))
+    saveDocToCloud(FIRESTORE_COLLECTIONS.DEBTS, debt)
+  },
+  makeDebtPayment: (debtId, amount) => {
     set((s) => ({
       debts: s.debts.map((d) => {
         if (d.id !== debtId) return d
@@ -182,21 +198,30 @@ export const useAppStore = create<AppState>()((set) => ({
           updatedAt: new Date().toISOString(),
         }
       }),
-    })),
+    }))
+    const updated = get().debts.find((d) => d.id === debtId)
+    if (updated) saveDocToCloud(FIRESTORE_COLLECTIONS.DEBTS, { ...updated, currentBalance: Math.max(0, updated.currentBalance - amount) })
+  },
 
   subscriptions: [],
   setSubscriptions: (subs) => set({ subscriptions: subs }),
-  addSubscription: (sub) => set((s) => ({ subscriptions: [...s.subscriptions, sub] })),
-  updateSubscription: (id, updates) =>
+  addSubscription: (sub) => {
+    set((s) => ({ subscriptions: [...s.subscriptions, sub] }))
+    saveDocToCloud(FIRESTORE_COLLECTIONS.SUBSCRIPTIONS, sub)
+  },
+  updateSubscription: (id, updates) => {
     set((s) => ({
       subscriptions: s.subscriptions.map((sub) =>
         sub.id === id ? { ...sub, ...updates, updatedAt: new Date().toISOString() } : sub
       ),
-    })),
-  deleteSubscription: (id) =>
-    set((s) => ({
-      subscriptions: s.subscriptions.filter((sub) => sub.id !== id),
-    })),
+    }))
+    const updated = get().subscriptions.find((s) => s.id === id)
+    if (updated) saveDocToCloud(FIRESTORE_COLLECTIONS.SUBSCRIPTIONS, { ...updated, ...updates })
+  },
+  deleteSubscription: (id) => {
+    set((s) => ({ subscriptions: s.subscriptions.filter((sub) => sub.id !== id) }))
+    deleteDocFromCloud(FIRESTORE_COLLECTIONS.SUBSCRIPTIONS, id)
+  },
 
   processDueRecurring: () =>
     set((s) => {
@@ -393,21 +418,36 @@ export const useAppStore = create<AppState>()((set) => ({
     })),
 
   // Wallet actions
-  wallets: initialWallets,
+  wallets: [],
   setWallets: (wallets) => set({ wallets }),
-  addWallet: (wallet) => set((s) => ({ wallets: [...s.wallets, wallet] })),
-  updateWallet: (id, updates) =>
+  addWallet: (wallet) => {
+    set((s) => ({ wallets: [...s.wallets, wallet] }))
+    saveDocToCloud(FIRESTORE_COLLECTIONS.WALLETS, wallet)
+  },
+  updateWallet: (id, updates) => {
     set((s) => ({
       wallets: s.wallets.map((w) => (w.id === id ? { ...w, ...updates, updatedAt: new Date().toISOString() } : w)),
-    })),
-  deleteWallet: (id) => set((s) => ({ wallets: s.wallets.filter((w) => w.id !== id) })),
-  adjustWalletBalance: (id, amount) =>
+    }))
+    const updated = get().wallets.find((w) => w.id === id)
+    if (updated) saveDocToCloud(FIRESTORE_COLLECTIONS.WALLETS, { ...updated, ...updates })
+  },
+  deleteWallet: (id) => {
+    set((s) => ({ wallets: s.wallets.filter((w) => w.id !== id) }))
+    deleteDocFromCloud(FIRESTORE_COLLECTIONS.WALLETS, id)
+  },
+  adjustWalletBalance: (id, amount) => {
     set((s) => ({
       wallets: s.wallets.map((w) =>
         w.id === id ? { ...w, balance: w.balance + amount, updatedAt: new Date().toISOString() } : w
       ),
-    })),
+    }))
+    const updated = get().wallets.find((w) => w.id === id)
+    if (updated) saveDocToCloud(FIRESTORE_COLLECTIONS.WALLETS, { ...updated, balance: updated.balance + amount })
+  },
 
   isAddModalOpen: false,
-  setAddModalOpen: (open) => set({ isAddModalOpen: open }),
+  defaultModalType: 'expense',
+  setAddModalOpen: (open, type) => set({ isAddModalOpen: open, defaultModalType: type ?? 'expense' }),
 }))
+
+export { getUid }

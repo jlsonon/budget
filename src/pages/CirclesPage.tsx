@@ -9,7 +9,7 @@ import {
   Lock,
   ArrowRight,
 } from 'lucide-react'
-import { useAppStore } from '@/store/appStore'
+import { useAppStore, getUid } from '@/store/appStore'
 import CircleDetailView from '@/components/circles/CircleDetailView'
 import MochiPassport from '@/components/circles/MochiPassport'
 import CircleScrapbook from '@/components/circles/CircleScrapbook'
@@ -86,6 +86,7 @@ export default function CirclesPage() {
 
     const newCircle: MochiCircle = {
       id: crypto.randomUUID(),
+      userId: getUid(),
       name: circleName,
       description: description || 'Cooperative savings circle for our shared goal!',
       targetAmount: amt,
@@ -375,7 +376,7 @@ export default function CirclesPage() {
             </div>
           </div>
 
-          {/* Mascot & Outfit Choice */}
+          {/* Mascot & Outfit Choice (Same row dropdowns) */}
           <div className="border-t border-mochi-border pt-3">
             <label className="block text-xs font-semibold text-mochi-text-secondary mb-2">
               Your Member Mascot & Outfit:
@@ -383,47 +384,39 @@ export default function CirclesPage() {
             <div className="flex items-center gap-4 bg-mochi-surface-alt p-3 rounded-2xl border border-mochi-border">
               <GroupMascotSVG animal={myMascot} outfit={myOutfit} size="md" />
 
-              <div className="flex-1 space-y-2">
+              <div className="flex-1 grid grid-cols-2 gap-3">
                 <div>
-                  <span className="text-[10px] text-mochi-text-muted font-bold block mb-1">Animal Species:</span>
-                  <div className="flex gap-1.5 overflow-x-auto scrollbar-hide">
+                  <label className="text-[10px] text-mochi-text-muted font-bold block mb-1">
+                    Animal Species
+                  </label>
+                  <select
+                    value={myMascot}
+                    onChange={(e) => setMyMascot(e.target.value as MascotAnimal)}
+                    className="mochi-input text-xs w-full font-bold py-1.5 px-2 bg-mochi-surface"
+                  >
                     {mascotAnimals.map((a) => (
-                      <button
-                        key={a.id}
-                        type="button"
-                        onClick={() => setMyMascot(a.id)}
-                        className={cn(
-                          'px-2 py-0.5 rounded-lg text-[10px] font-bold border transition-colors whitespace-nowrap',
-                          myMascot === a.id
-                            ? 'bg-mochi-primary text-white border-mochi-primary'
-                            : 'bg-mochi-surface border-mochi-border text-mochi-text'
-                        )}
-                      >
+                      <option key={a.id} value={a.id}>
                         {a.name}
-                      </button>
+                      </option>
                     ))}
-                  </div>
+                  </select>
                 </div>
 
                 <div>
-                  <span className="text-[10px] text-mochi-text-muted font-bold block mb-1">Outfit:</span>
-                  <div className="flex gap-1.5 overflow-x-auto scrollbar-hide">
+                  <label className="text-[10px] text-mochi-text-muted font-bold block mb-1">
+                    Outfit
+                  </label>
+                  <select
+                    value={myOutfit}
+                    onChange={(e) => setMyOutfit(e.target.value as MascotOutfit)}
+                    className="mochi-input text-xs w-full font-bold py-1.5 px-2 bg-mochi-surface"
+                  >
                     {mascotOutfits.map((o) => (
-                      <button
-                        key={o.id}
-                        type="button"
-                        onClick={() => setMyOutfit(o.id)}
-                        className={cn(
-                          'px-2 py-0.5 rounded-lg text-[10px] font-bold border transition-colors whitespace-nowrap',
-                          myOutfit === o.id
-                            ? 'bg-mochi-primary text-white border-mochi-primary'
-                            : 'bg-mochi-surface border-mochi-border text-mochi-text'
-                        )}
-                      >
+                      <option key={o.id} value={o.id}>
                         {o.name}
-                      </button>
+                      </option>
                     ))}
-                  </div>
+                  </select>
                 </div>
               </div>
             </div>

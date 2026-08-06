@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { motion } from 'framer-motion'
 import {
   TrendingUp,
@@ -23,6 +23,8 @@ import Mascot from '@/components/ui/Mascot'
 import ProgressRing from '@/components/ui/ProgressRing'
 import { formatCurrency, cn } from '@/lib/utils'
 
+import { useAppStore } from '@/store/appStore'
+
 type Period = 'week' | 'month' | 'last-month' | 'year'
 
 const periodLabels: Record<Period, string> = {
@@ -32,45 +34,141 @@ const periodLabels: Record<Period, string> = {
   year: 'This Year',
 }
 
-// Mock data generators based on period
-function getMockData(period: Period) {
-  const multiplier = period === 'year' ? 12 : period === 'week' ? 0.25 : 1
+function useReportsData(period: Period) {
+  const { transactions, savingsGoals, debts, subscriptions } = useAppStore()
 
-  return {
-    income: Math.round(45000 * multiplier),
-    expenses: Math.round(28500 * multiplier),
-    savings: Math.round(8500 * multiplier),
-    debtPaid: Math.round(5000 * multiplier),
-    subscriptionCost: Math.round(2850 * multiplier),
-    healthScore: 72,
-    previousHealthScore: 68,
-    savingsRate: 18.9,
-    previousSavingsRate: 15.2,
-    totalDebt: 125000,
-    debtFreeDate: 'Mar 2027',
-    expenseCategories: [
-      { name: 'Food & Dining', icon: Utensils, amount: Math.round(8500 * multiplier), color: '#F97316', pct: 30 },
-      { name: 'Transportation', icon: Car, amount: Math.round(5700 * multiplier), color: '#3B82F6', pct: 20 },
-      { name: 'Shopping', icon: ShoppingBag, amount: Math.round(4275 * multiplier), color: '#A855F7', pct: 15 },
-      { name: 'Bills & Utilities', icon: Receipt, amount: Math.round(3990 * multiplier), color: '#EF4444', pct: 14 },
-      { name: 'Housing', icon: Home, amount: Math.round(2850 * multiplier), color: '#8B5CF6', pct: 10 },
-      { name: 'Entertainment', icon: Gamepad2, amount: Math.round(1710 * multiplier), color: '#F59E0B', pct: 6 },
-      { name: 'Other', icon: Wallet, amount: Math.round(1425 * multiplier), color: '#6B7280', pct: 5 },
-    ],
-    incomeSources: [
-      { name: 'Salary', amount: Math.round(35000 * multiplier), pct: 78 },
-      { name: 'Freelance', amount: Math.round(7500 * multiplier), pct: 17 },
-      { name: 'Investment', amount: Math.round(2500 * multiplier), pct: 5 },
-    ],
-    topMerchants: [
-      { name: 'Jollibee', count: 12, amount: Math.round(2400 * multiplier) },
-      { name: 'Shell Gas', count: 8, amount: Math.round(3200 * multiplier) },
-      { name: 'SM Supermarket', count: 6, amount: Math.round(4500 * multiplier) },
-      { name: 'Grab', count: 15, amount: Math.round(2800 * multiplier) },
-      { name: 'Mercury Drug', count: 4, amount: Math.round(1200 * multiplier) },
-    ],
-    weeklySpend: [65, 42, 78, 55, 90, 48, 72],
-  }
+  return useMemo(() => {
+    const now = new Date()
+    const filterTxns = transactions.filter((t) => {
+      if (!t.date) return true
+      const d = new Date(t.date)
+      if (period === 'week') {
+        const oneWeekAgo = new Date(now.getTime() - 7 * 86400000)
+        return d >= oneWeekAgo
+      }
+      if (period === 'month') {
+        return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
+      }
+      if (period === 'last-month') {
+        const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+        return d.getMonth() === lastMonth.getMonth() && d.getFullYear() === lastMonth.getFullYear()
+      }
+      if (period === 'year') {
+        return d.getFullYear() === now.getFullYear()
+      }
+      return true
+    })
+
+    const income = filterTxns.filter((t) => t.type === 'income').reduce((acc, t) => acc + t.amount, 0)
+    const expenses = filterTxns.filter((t) => t.type === 'expense').reduce((acc, t) => acc + t.amount, 0)
+    
+    const savings = savingsGoals.reduce((acc, g) => acc + g.currentAmount, 0)
+    const totalDebt = debts.reduce((acc, d) => acc + d.currentBalance, 0)
+    const debtPaid = debts.reduce((acc, d) => {
+      return acc + (d.payments ? d.payments.reduce((pAcc, p) => pAcc + p.amount, 0) : 0)
+    }, 0)
+
+    const subMonthly = subscriptions.filter(s => s.status === 'active').reduce((acc, s) => {
+      switch (s.frequency) {
+        case 'weekly': return acc + s.amount * 4
+        case 'monthly': return acc + s.amount
+        case 'annual': return acc + s.amount / 12
+        default: return acc + s.amount
+      }
+    }, 0)
+
+    const categoryTotals: Record<string, number> = {}
+    filterTxns.filter((t) => t.type === 'expense').forEach((t) => {
+      const key = t.categoryId || 'other'
+      categoryTotals[key] = (categoryTotals[key] || 0) + t.amount
+    })
+
+    const categoryIcons: Record<string, any> = {
+      food: Utensils,
+      transportation: Car,
+      shopping: ShoppingBag,
+      utilities: Receipt,
+      housing: Home,
+      entertainment: Gamepad2,
+      other: Wallet,
+    }
+    const categoryColors: Record<string, string> = {
+      food: '#F97316',
+      transportation: '#3B82F6',
+      shopping: '#A855F7',
+      utilities: '#EF4444',
+      housing: '#8B5CF6',
+      entertainment: '#F59E0B',
+      other: '#6B7280',
+    }
+
+    const expenseCategories = Object.entries(categoryTotals).map(([catId, amt]) => {
+      const pct = expenses > 0 ? Math.round((amt / expenses) * 100) : 0
+      return {
+        name: catId.charAt(0).toUpperCase() + catId.slice(1),
+        icon: categoryIcons[catId] || Wallet,
+        amount: amt,
+        color: categoryColors[catId] || '#3B82F6',
+        pct,
+      }
+    })
+
+    const incomeSourceMap: Record<string, number> = {}
+    filterTxns.filter((t) => t.type === 'income').forEach((t) => {
+      const label = t.merchant || t.notes || 'Income'
+      incomeSourceMap[label] = (incomeSourceMap[label] || 0) + t.amount
+    })
+
+    const incomeSources = Object.entries(incomeSourceMap).map(([name, amt]) => {
+      const pct = income > 0 ? Math.round((amt / income) * 100) : 0
+      return { name, amount: amt, pct }
+    })
+
+    const merchantMap: Record<string, { count: number; amount: number }> = {}
+    filterTxns.filter((t) => t.type === 'expense').forEach((t) => {
+      const name = t.merchant || t.categoryId || 'Expense'
+      if (!merchantMap[name]) merchantMap[name] = { count: 0, amount: 0 }
+      merchantMap[name].count += 1
+      merchantMap[name].amount += t.amount
+    })
+
+    const topMerchants = Object.entries(merchantMap)
+      .map(([name, data]) => ({ name, ...data }))
+      .sort((a, b) => b.amount - a.amount)
+      .slice(0, 5)
+
+    const dailyMap = [0, 0, 0, 0, 0, 0, 0]
+    filterTxns.filter((t) => t.type === 'expense').forEach((t) => {
+      if (t.date) {
+        const dayIdx = new Date(t.date).getDay()
+        const idx = dayIdx === 0 ? 6 : dayIdx - 1
+        dailyMap[idx] += t.amount
+      }
+    })
+    const maxDaily = Math.max(...dailyMap, 1)
+    const weeklySpend = dailyMap.map((amt) => Math.round((amt / maxDaily) * 100))
+
+    const savingsRate = income > 0 ? Math.round(((income - expenses) / income) * 100) : 0
+    const healthScore = Math.max(20, Math.min(100, Math.round(50 + (savingsRate * 0.4) - (totalDebt > 0 ? 10 : 0))))
+
+    return {
+      income,
+      expenses,
+      savings,
+      debtPaid,
+      subscriptionCost: subMonthly,
+      healthScore,
+      previousHealthScore: Math.max(0, healthScore - 4),
+      savingsRate: Math.max(0, savingsRate),
+      previousSavingsRate: Math.max(0, savingsRate - 3),
+      totalDebt,
+      debtFreeDate: totalDebt > 0 ? 'Dec 2026' : 'Debt Free!',
+      expenseCategories,
+      incomeSources,
+      topMerchants,
+      weeklySpend,
+    }
+  }, [transactions, savingsGoals, debts, subscriptions, period])
 }
 
 function SkeletonCard() {
@@ -97,7 +195,7 @@ function StatBadge({ value, positive }: { value: string; positive: boolean }) {
   )
 }
 
-function CashFlowCard({ data }: { data: ReturnType<typeof getMockData> }) {
+function CashFlowCard({ data }: { data: ReturnType<typeof useReportsData> }) {
   const net = data.income - data.expenses
   const maxVal = Math.max(data.income, data.expenses)
 
@@ -175,7 +273,7 @@ function CashFlowCard({ data }: { data: ReturnType<typeof getMockData> }) {
   )
 }
 
-function ExpenseBreakdownCard({ data }: { data: ReturnType<typeof getMockData> }) {
+function ExpenseBreakdownCard({ data }: { data: ReturnType<typeof useReportsData> }) {
   return (
     <div className="mochi-card">
       <h3 className="font-semibold text-mochi-text flex items-center gap-2 mb-4">
@@ -220,7 +318,7 @@ function ExpenseBreakdownCard({ data }: { data: ReturnType<typeof getMockData> }
   )
 }
 
-function IncomeSourcesCard({ data }: { data: ReturnType<typeof getMockData> }) {
+function IncomeSourcesCard({ data }: { data: ReturnType<typeof useReportsData> }) {
   const colors = ['#10B981', '#3B82F6', '#8B5CF6']
 
   return (
@@ -258,7 +356,7 @@ function IncomeSourcesCard({ data }: { data: ReturnType<typeof getMockData> }) {
   )
 }
 
-function SavingsRateCard({ data }: { data: ReturnType<typeof getMockData> }) {
+function SavingsRateCard({ data }: { data: ReturnType<typeof useReportsData> }) {
   const diff = data.savingsRate - data.previousSavingsRate
 
   return (
@@ -286,8 +384,8 @@ function SavingsRateCard({ data }: { data: ReturnType<typeof getMockData> }) {
   )
 }
 
-function DebtProgressCard({ data }: { data: ReturnType<typeof getMockData> }) {
-  const paidPct = Math.min(100, (data.debtPaid / data.totalDebt) * 100)
+function DebtProgressCard({ data }: { data: ReturnType<typeof useReportsData> }) {
+  const paidPct = Math.min(100, (data.debtPaid / (data.totalDebt || 1)) * 100)
 
   return (
     <div className="mochi-card">
@@ -320,7 +418,7 @@ function DebtProgressCard({ data }: { data: ReturnType<typeof getMockData> }) {
   )
 }
 
-function SubscriptionCostCard({ data }: { data: ReturnType<typeof getMockData> }) {
+function SubscriptionCostCard({ data }: { data: ReturnType<typeof useReportsData> }) {
   return (
     <div className="mochi-card">
       <h3 className="font-semibold text-mochi-text flex items-center gap-2 mb-4">
@@ -345,7 +443,7 @@ function SubscriptionCostCard({ data }: { data: ReturnType<typeof getMockData> }
   )
 }
 
-function HealthTrendCard({ data }: { data: ReturnType<typeof getMockData> }) {
+function HealthTrendCard({ data }: { data: ReturnType<typeof useReportsData> }) {
   const diff = data.healthScore - data.previousHealthScore
 
   return (
@@ -381,7 +479,7 @@ function HealthTrendCard({ data }: { data: ReturnType<typeof getMockData> }) {
   )
 }
 
-function TopMerchantsCard({ data }: { data: ReturnType<typeof getMockData> }) {
+function TopMerchantsCard({ data }: { data: ReturnType<typeof useReportsData> }) {
   const sorted = [...data.topMerchants].sort((a, b) => b.amount - a.amount)
   const maxAmount = sorted[0]?.amount || 1
 
@@ -391,34 +489,38 @@ function TopMerchantsCard({ data }: { data: ReturnType<typeof getMockData> }) {
         <ShoppingBag className="w-4 h-4 text-mochi-secondary" />
         Top Merchants
       </h3>
-      <div className="space-y-3">
-        {sorted.map((merchant, index) => (
-          <motion.div
-            key={merchant.name}
-            initial={{ opacity: 0, x: -8 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: index * 0.05 }}
-            className="flex items-center gap-3"
-          >
-            <span className="text-xs font-medium text-mochi-text-muted w-4">{index + 1}</span>
-            <div className="flex-1">
-              <div className="flex justify-between mb-0.5">
-                <span className="text-sm text-mochi-text">{merchant.name}</span>
-                <span className="text-sm font-semibold text-mochi-text">{formatCurrency(merchant.amount)}</span>
+      {sorted.length === 0 ? (
+        <p className="text-xs text-mochi-text-muted text-center py-4">No merchant transactions logged yet.</p>
+      ) : (
+        <div className="space-y-3">
+          {sorted.map((merchant, index) => (
+            <motion.div
+              key={merchant.name}
+              initial={{ opacity: 0, x: -8 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: index * 0.05 }}
+              className="flex items-center gap-3"
+            >
+              <span className="text-xs font-medium text-mochi-text-muted w-4">{index + 1}</span>
+              <div className="flex-1">
+                <div className="flex justify-between mb-0.5">
+                  <span className="text-sm text-mochi-text">{merchant.name}</span>
+                  <span className="text-sm font-semibold text-mochi-text">{formatCurrency(merchant.amount)}</span>
+                </div>
+                <div className="h-1 bg-mochi-border/30 rounded-full overflow-hidden">
+                  <motion.div
+                    className="h-full rounded-full bg-gradient-to-r from-mochi-primary to-mochi-secondary"
+                    initial={{ width: 0 }}
+                    animate={{ width: `${(merchant.amount / maxAmount) * 100}%` }}
+                    transition={{ duration: 0.6, delay: 0.2 + index * 0.05 }}
+                  />
+                </div>
+                <p className="text-[10px] text-mochi-text-muted mt-0.5">{merchant.count} transactions</p>
               </div>
-              <div className="h-1 bg-mochi-border/30 rounded-full overflow-hidden">
-                <motion.div
-                  className="h-full rounded-full bg-gradient-to-r from-mochi-primary to-mochi-secondary"
-                  initial={{ width: 0 }}
-                  animate={{ width: `${(merchant.amount / maxAmount) * 100}%` }}
-                  transition={{ duration: 0.6, delay: 0.2 + index * 0.05 }}
-                />
-              </div>
-              <p className="text-[10px] text-mochi-text-muted mt-0.5">{merchant.count} transactions</p>
-            </div>
-          </motion.div>
-        ))}
-      </div>
+            </motion.div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
@@ -427,12 +529,12 @@ export default function ReportsPage() {
   const [period, setPeriod] = useState<Period>('month')
   const [isLoading, setIsLoading] = useState(true)
 
-  useState(() => {
-    const timer = setTimeout(() => setIsLoading(false), 800)
+  useEffect(() => {
+    const timer = setTimeout(() => setIsLoading(false), 400)
     return () => clearTimeout(timer)
-  })
+  }, [])
 
-  const data = useMemo(() => getMockData(period), [period])
+  const data = useReportsData(period)
 
   if (isLoading) {
     return (

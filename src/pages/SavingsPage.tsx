@@ -11,7 +11,7 @@ import {
 import ProgressRing from '@/components/ui/ProgressRing'
 import MochiIcon from '@/components/ui/MochiIcons'
 import MochiIllustration from '@/components/ui/MochiIllustrations'
-import { useAppStore } from '@/store/appStore'
+import { useAppStore, getUid } from '@/store/appStore'
 import { formatCurrency, cn, calculateProgress } from '@/lib/utils'
 import type { SavingsGoal } from '@/types'
 import Dialog from '@/components/ui/Dialog'
@@ -82,17 +82,17 @@ function GoalCard({ goal }: { goal: SavingsGoal }) {
   )
 }
 
-function EmptySavings() {
+function EmptySavings({ onOpenModal }: { onOpenModal: () => void }) {
   return (
     <div className="flex flex-col items-center justify-center py-16 text-center">
       <MochiIllustration type="empty_savings" size="lg" />
-      <h3 className="text-lg font-semibold text-mochi-text">No savings goals yet</h3>
+      <h3 className="text-lg font-semibold text-mochi-text mt-3">Dream it, save it!</h3>
       <p className="mt-2 text-sm text-mochi-text-muted max-w-xs">
-        Create your first savings goal and start working towards your dreams!
+        Your savings goals are like seeds 🌱 plant one today and watch it grow!
       </p>
-      <button className="mochi-btn-primary mt-4">
+      <button onClick={onOpenModal} className="mochi-btn-primary mt-4 cursor-pointer hover:scale-105 transition-transform flex items-center gap-1.5">
         <Plus className="w-4 h-4" />
-        Create First Goal
+        Plant First Goal
       </button>
     </div>
   )
@@ -127,7 +127,7 @@ export default function SavingsPage() {
 
     const newGoal: SavingsGoal = {
       id: `goal_${Date.now()}`,
-      userId: '1',
+      userId: getUid(),
       name: goalName.trim(),
       targetAmount: target,
       currentAmount: 0,
@@ -243,10 +243,13 @@ export default function SavingsPage() {
       </Dialog>
 
       <div className="flex items-center justify-between mb-4">
-        <h1 className="text-xl font-bold text-mochi-text">Savings Goals</h1>
+        <div>
+          <h1 className="text-xl font-bold text-mochi-text">Savings Goals</h1>
+          <p className="text-xs text-mochi-text-muted mt-0.5">Every little bit counts ✨</p>
+        </div>
         <button onClick={() => setIsModalOpen(true)} className="mochi-btn-primary text-sm flex items-center gap-1.5">
           <Plus className="w-4 h-4" />
-          <span>New Goal</span>
+          <span>New Dream</span>
         </button>
       </div>
 
@@ -317,7 +320,7 @@ export default function SavingsPage() {
       )}
 
       {/* Empty State */}
-      {allGoals.length === 0 && <EmptySavings />}
+      {allGoals.length === 0 && <EmptySavings onOpenModal={() => setIsModalOpen(true)} />}
     </motion.div>
   )
 }

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
   Calendar as CalendarIcon, 
@@ -28,91 +28,11 @@ import {
   parseISO
 } from 'date-fns'
 
+import { useAppStore } from '@/store/appStore'
 import { CalendarEvent, CalendarEventType } from '@/types'
 import { formatCurrency, cn, formatDate } from '@/lib/utils'
 import Mascot from '@/components/ui/Mascot'
 import Dialog from '@/components/ui/Dialog'
-
-const generateMockEvents = (): CalendarEvent[] => {
-  const now = new Date()
-  const currentMonth = format(now, 'yyyy-MM')
-  const nextMonth = format(addMonths(now, 1), 'yyyy-MM')
-
-  return [
-    {
-      id: '1',
-      userId: 'u1',
-      type: 'income',
-      title: 'Salary',
-      date: `${currentMonth}-05`,
-      amount: 45000,
-      color: 'bg-green-500'
-    },
-    {
-      id: '2',
-      userId: 'u1',
-      type: 'bill',
-      title: 'Electricity Bill',
-      date: `${currentMonth}-10`,
-      amount: 3500,
-      color: 'bg-orange-500'
-    },
-    {
-      id: '3',
-      userId: 'u1',
-      type: 'debt',
-      title: 'Credit Card Payment',
-      date: `${currentMonth}-15`,
-      amount: 15000,
-      color: 'bg-red-500'
-    },
-    {
-      id: '4',
-      userId: 'u1',
-      type: 'subscription',
-      title: 'Netflix',
-      date: `${currentMonth}-18`,
-      amount: 549,
-      color: 'bg-purple-500'
-    },
-    {
-      id: '5',
-      userId: 'u1',
-      type: 'income',
-      title: 'Salary',
-      date: `${currentMonth}-20`,
-      amount: 45000,
-      color: 'bg-green-500'
-    },
-    {
-      id: '6',
-      userId: 'u1',
-      type: 'savings',
-      title: 'Emergency Fund',
-      date: `${currentMonth}-22`,
-      amount: 5000,
-      color: 'bg-blue-500'
-    },
-    {
-      id: '7',
-      userId: 'u1',
-      type: 'goal',
-      title: 'Japan Trip Milestone',
-      date: `${currentMonth}-28`,
-      amount: 2000,
-      color: 'bg-pink-500'
-    },
-    {
-      id: '8',
-      userId: 'u1',
-      type: 'bill',
-      title: 'Water Bill',
-      date: `${nextMonth}-02`,
-      amount: 800,
-      color: 'bg-orange-500'
-    }
-  ]
-}
 
 const getEventIcon = (type: CalendarEventType) => {
   switch (type) {
@@ -130,32 +50,84 @@ const getEventIcon = (type: CalendarEventType) => {
 type ViewMode = 'month' | 'week' | 'agenda'
 
 export default function CalendarPage() {
+  const { transactions, subscriptions, debts, savingsGoals } = useAppStore()
   const [viewMode, setViewMode] = useState<ViewMode>('month')
   const [currentDate, setCurrentDate] = useState(new Date())
-  const [events, setEvents] = useState<CalendarEvent[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [error] = useState<string | null>(null)
   
   const [selectedDate, setSelectedDate] = useState<Date>(new Date())
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null)
   const [isEventModalOpen, setIsEventModalOpen] = useState(false)
 
   useEffect(() => {
-    const loadEvents = async () => {
-      setIsLoading(true)
-      setError(null)
-      try {
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 800))
-        setEvents(generateMockEvents())
-      } catch (err) {
-        setError('Failed to load events. Please try again.')
-      } finally {
-        setIsLoading(false)
-      }
-    }
-    loadEvents()
+    const timer = setTimeout(() => setIsLoading(false), 300)
+    return () => clearTimeout(timer)
   }, [])
+
+  const events = useMemo<CalendarEvent[]>(() => {
+    const evts: CalendarEvent[] = []
+
+    // 1. Live Transactions
+    transactions.forEach((t) => {
+      evts.push({
+        id: t.id,
+        userId: t.userId,
+        type: t.type === 'income' ? 'income' : 'bill',
+        title: t.merchant || t.notes || t.categoryId,
+        date: t.date ? t.date.split('T')[0] : new Date().toISOString().split('T')[0],
+        amount: t.amount,
+        color: t.type === 'income' ? 'bg-green-500' : 'bg-red-500',
+      })
+    })
+
+    // 2. Live Subscriptions
+    subscriptions.forEach((sub) => {
+      if (sub.nextBilling) {
+        evts.push({
+          id: sub.id,
+          userId: sub.userId,
+          type: 'subscription',
+          title: `${sub.name} Renewal`,
+          date: sub.nextBilling.split('T')[0],
+          amount: sub.amount,
+          color: 'bg-purple-500',
+        })
+      }
+    })
+
+    // 3. Live Debts
+    debts.forEach((d) => {
+      if (d.dueDate) {
+        evts.push({
+          id: d.id,
+          userId: d.userId,
+          type: 'debt',
+          title: `${d.lender} Payment`,
+          date: d.dueDate.split('T')[0],
+          amount: d.minimumPayment || d.currentBalance,
+          color: 'bg-orange-500',
+        })
+      }
+    })
+
+    // 4. Live Savings Goals
+    savingsGoals.forEach((g) => {
+      if (g.deadline) {
+        evts.push({
+          id: g.id,
+          userId: g.userId,
+          type: 'goal',
+          title: `${g.name} Target`,
+          date: g.deadline.split('T')[0],
+          amount: g.targetAmount,
+          color: 'bg-blue-500',
+        })
+      }
+    })
+
+    return evts
+  }, [transactions, subscriptions, debts, savingsGoals])
 
   const renderSkeleton = () => (
     <div className="space-y-4">
@@ -175,19 +147,17 @@ export default function CalendarPage() {
   )
 
   const renderError = () => (
-    <div className="flex flex-col items-center justify-center p-8 bg-mochi-surface rounded-2xl border border-mochi-border/50 shadow-sm text-center">
+    <div className="flex flex-col items-center justify-center p-8 bg-mochi-surface rounded-3xl border border-mochi-border/50 shadow-sm text-center">
       <Mascot mood="sad" size="lg" className="mb-4 drop-shadow-md" />
-      <h3 className="text-lg font-bold text-mochi-text mb-2">Oops! Something went wrong.</h3>
-      <p className="text-sm text-mochi-text-secondary mb-6">{error}</p>
+      <h3 className="text-lg font-bold text-mochi-text mb-2">We couldn't load that just yet.</h3>
+      <p className="text-sm text-mochi-text-secondary mb-6">We'll keep trying — promise! {error}</p>
       <button 
         className="mochi-btn-primary px-8"
         onClick={() => {
           setIsLoading(true)
-          setError(null)
           setTimeout(() => {
-            setEvents(generateMockEvents())
             setIsLoading(false)
-          }, 800)
+          }, 300)
         }}
       >
         Try Again
@@ -196,10 +166,10 @@ export default function CalendarPage() {
   )
 
   const renderEmptyState = () => (
-    <div className="flex flex-col items-center justify-center p-8 bg-mochi-surface rounded-2xl border border-mochi-border/50 shadow-sm text-center mt-8">
+    <div className="flex flex-col items-center justify-center p-8 bg-mochi-surface rounded-3xl border border-mochi-border/50 shadow-sm text-center mt-8">
       <Mascot mood="neutral" size="lg" className="mb-4 drop-shadow-md" />
-      <h3 className="text-lg font-bold text-mochi-text mb-2">No events found.</h3>
-      <p className="text-sm text-mochi-text-secondary">Your calendar is completely clear!</p>
+      <h3 className="text-lg font-bold text-mochi-text mb-2">All clear! 🌙</h3>
+      <p className="text-sm text-mochi-text-secondary">No events planned for this view. Add a transaction to see it here!</p>
     </div>
   )
 

@@ -23,10 +23,21 @@ export default defineConfig({
         ],
       },
       workbox: {
+        maximumFileSizeToCacheInBytes: 15 * 1024 * 1024,
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
       },
     }),
   ],
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          webllm: ['@mlc-ai/web-llm'],
+          vendor: ['react', 'react-dom', 'react-router-dom', 'framer-motion', 'recharts', 'lucide-react'],
+        },
+      },
+    },
+  },
   resolve: {
     alias: {
       '@': resolve(__dirname, './src'),

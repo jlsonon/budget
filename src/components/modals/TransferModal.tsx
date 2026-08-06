@@ -12,7 +12,7 @@ interface TransferModalProps {
 }
 
 export function TransferModal({ isOpen, onClose }: TransferModalProps) {
-  const { wallets, adjustWalletBalance, addTransaction } = useAppStore()
+  const { wallets, addTransaction } = useAppStore()
 
   const [fromWalletId, setFromWalletId] = useState<string>(wallets[0]?.id || '')
   const [toWalletId, setToWalletId] = useState<string>(wallets[1]?.id || wallets[0]?.id || '')
@@ -32,35 +32,31 @@ export function TransferModal({ isOpen, onClose }: TransferModalProps) {
     const parsedAmount = parseFloat(amount)
     if (isNaN(parsedAmount) || parsedAmount <= 0) {
       setStatus('error')
-      setErrorMessage('Please enter a valid transfer amount greater than 0.')
+      setErrorMessage('Hmm, that doesn\'t look right. Please enter an amount greater than zero.')
       return
     }
 
     if (!fromWallet || !toWallet) {
       setStatus('error')
-      setErrorMessage('Please select valid source and target wallets.')
+      setErrorMessage('Please pick both a source and destination wallet to continue.')
       return
     }
 
     if (fromWallet.id === toWallet.id) {
       setStatus('error')
-      setErrorMessage('Source wallet and target wallet must be different!')
+      setErrorMessage('The source and destination wallets need to be different!')
       return
     }
 
     if (parsedAmount > fromWallet.balance) {
       setStatus('error')
       setErrorMessage(
-        `Insufficient balance in ${fromWallet.name}! Available balance is ${formatCurrency(fromWallet.balance, fromWallet.currency)}, but you are trying to transfer ${formatCurrency(parsedAmount, fromWallet.currency)}.`
+        `${fromWallet.name} only has ${formatCurrency(fromWallet.balance, fromWallet.currency)} available. Try a smaller amount!`
       )
       return
     }
 
-    // 1. Adjust wallet balances
-    adjustWalletBalance(fromWallet.id, -parsedAmount)
-    adjustWalletBalance(toWallet.id, +parsedAmount)
-
-    // 2. Create double-entry ledger items
+    // Create double-entry ledger items — addTransaction handles wallet balance adjustment
     const date = new Date().toISOString().split('T')[0]
     const now = new Date().toISOString()
 
@@ -117,12 +113,12 @@ export function TransferModal({ isOpen, onClose }: TransferModalProps) {
         {/* Modal Header */}
         <div className="flex items-center justify-between pb-3 border-b border-mochi-border">
           <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-2xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center border border-amber-400/30">
+            <div className="w-10 h-10 rounded-2xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center border border-amber-400/20">
               <ArrowRightLeft className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-lg font-bold text-mochi-text">Inter-Wallet Transfer</h3>
-              <p className="text-xs text-mochi-text-secondary">Move funds between your accounts</p>
+              <h3 className="text-lg font-bold text-mochi-text">Move Money</h3>
+              <p className="text-xs text-mochi-text-secondary">Transfer between your wallets</p>
             </div>
           </div>
           <button
@@ -151,14 +147,14 @@ export function TransferModal({ isOpen, onClose }: TransferModalProps) {
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="py-8 text-center space-y-3 bg-mochi-surface rounded-2xl border border-mochi-success/30 p-6"
+            className="py-8 text-center space-y-3 bg-mochi-surface rounded-3xl border border-mochi-success/30 p-6"
           >
             <div className="w-14 h-14 bg-emerald-500/20 text-emerald-500 rounded-full flex items-center justify-center mx-auto border border-emerald-500/40 animate-bounce">
               <CheckCircle2 className="w-8 h-8" />
             </div>
-            <h4 className="text-lg font-black text-mochi-text">Transfer Completed!</h4>
+            <h4 className="text-lg font-black text-mochi-text">All done! 🎉</h4>
             <p className="text-xs text-mochi-text-secondary max-w-xs mx-auto">
-              Transferred {formatCurrency(parseFloat(amount) || 0, fromWallet?.currency || 'PHP')} from {fromWallet?.name} to {toWallet?.name}.
+              {formatCurrency(parseFloat(amount) || 0, fromWallet?.currency || 'PHP')} moved from <strong>{fromWallet?.name}</strong> to <strong>{toWallet?.name}</strong>.
             </p>
           </motion.div>
         ) : (

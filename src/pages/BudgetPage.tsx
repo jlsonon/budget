@@ -9,7 +9,7 @@ import {
   ArrowUpRight,
   ArrowDownLeft,
 } from 'lucide-react'
-import { useAppStore } from '@/store/appStore'
+import { useAppStore, getUid } from '@/store/appStore'
 import { formatCurrency, cn, DEFAULT_EXPENSE_CATEGORIES } from '@/lib/utils'
 import type { Budget } from '@/types'
 import MochiIllustration from '@/components/ui/MochiIllustrations'
@@ -74,13 +74,13 @@ function BudgetCard({ budget, spent }: { budget: Budget; spent: number }) {
         </div>
         {isOver ? (
           <span className="mochi-badge mochi-badge-error flex items-center gap-1">
-            <AlertTriangle className="w-3 h-3" /> Over
+            <AlertTriangle className="w-3 h-3" /> A little over
           </span>
         ) : isNear ? (
-          <span className="mochi-badge mochi-badge-warning">Near Limit</span>
+          <span className="mochi-badge mochi-badge-warning">Almost there!</span>
         ) : (
           <span className="mochi-badge mochi-badge-success flex items-center gap-1">
-            <CheckCircle2 className="w-3 h-3" /> On Track
+            <CheckCircle2 className="w-3 h-3" /> Looking good
           </span>
         )}
       </div>
@@ -104,10 +104,10 @@ function BudgetCard({ budget, spent }: { budget: Budget; spent: number }) {
 
       <div className="flex items-center justify-between">
         <p className={cn(
-          'text-xs',
+          'text-xs font-medium',
           remaining >= 0 ? 'text-mochi-success' : 'text-mochi-error'
         )}>
-          {remaining >= 0 ? `${formatCurrency(remaining)} remaining` : `${formatCurrency(Math.abs(remaining))} over budget`}
+          {remaining >= 0 ? `${formatCurrency(remaining)} still yours` : `${formatCurrency(Math.abs(remaining))} over — tomorrow's a fresh start`}
         </p>
         <div className="flex items-center gap-1 text-xs text-mochi-text-muted">
           <Sparkles className="w-3 h-3" />
@@ -118,28 +118,60 @@ function BudgetCard({ budget, spent }: { budget: Budget; spent: number }) {
   )
 }
 
-function EmptyBudgets() {
+import Dialog from '@/components/ui/Dialog'
+
+function EmptyBudgets({ onOpenModal }: { onOpenModal: () => void }) {
   return (
     <div className="flex flex-col items-center justify-center py-16 text-center">
       <MochiIllustration type="empty_budget" size="lg" />
-      <h3 className="text-lg font-semibold text-mochi-text">No budgets set</h3>
-      <p className="mt-2 text-sm text-mochi-text-muted max-w-xs">
-        Create budgets to track your spending by category and stay on top of your finances.
+      <h3 className="text-lg font-semibold text-mochi-text mt-3">No plans yet</h3>
+      <p className="mt-2 text-sm text-mochi-text-muted max-w-xs mb-4">
+        Setting a budget plan helps you feel calm and in control. Start small — any plan beats no plan!
       </p>
+      <button onClick={onOpenModal} className="mochi-btn-primary text-xs flex items-center gap-1.5 py-2.5 px-4 cursor-pointer hover:scale-105 transition-transform">
+        <Plus className="w-4 h-4" />
+        <span>Create First Plan</span>
+      </button>
     </div>
   )
 }
 
 export default function BudgetPage() {
-  const { budgets } = useAppStore()
+  const { budgets, addBudget, transactions } = useAppStore()
   const [isLoading, setIsLoading] = useState(true)
+  const [isModalOpen, setIsModalOpen] = useState(false)
 
-  const { transactions } = useAppStore()
+  const [selectedCategory, setSelectedCategory] = useState(DEFAULT_EXPENSE_CATEGORIES[0]?.id || 'food')
+  const [limitAmount, setLimitAmount] = useState('')
+  const [period, setPeriod] = useState<'monthly' | 'weekly' | 'custom'>('monthly')
 
   useEffect(() => {
-    const timer = setTimeout(() => setIsLoading(false), 1000)
+    const timer = setTimeout(() => setIsLoading(false), 500)
     return () => clearTimeout(timer)
   }, [])
+
+  const handleCreateBudgetSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    const limit = parseFloat(limitAmount)
+    if (isNaN(limit) || limit <= 0) return
+
+    const newBudget: Budget = {
+      id: `budget_${Date.now()}`,
+      userId: getUid(),
+      categoryId: selectedCategory,
+      limit,
+      period,
+      startDate: new Date().toISOString().split('T')[0],
+      recurring: true,
+      notifications: true,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    }
+
+    addBudget(newBudget)
+    setIsModalOpen(false)
+    setLimitAmount('')
+  }
 
   const categorySpentMap = useMemo(() => {
     const map: Record<string, number> = {}
@@ -175,11 +207,73 @@ export default function BudgetPage() {
       role="main"
       aria-label="Budget Management"
     >
+      {/* Create Budget Dialog */}
+      <Dialog isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Create Spending Plan">
+        <form onSubmit={handleCreateBudgetSubmit} className="space-y-4 pt-2">
+          <div>
+            <label className="block text-xs font-bold text-mochi-text-secondary mb-1">Category *</label>
+            <select
+              value={selectedCategory}
+              onChange={(e) => setSelectedCategory(e.target.value)}
+              className="mochi-input text-xs w-full font-bold"
+            >
+              {DEFAULT_EXPENSE_CATEGORIES.map((cat) => (
+                <option key={cat.id} value={cat.id}>
+                  {cat.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-mochi-text-secondary mb-1">Limit Amount (PHP) *</label>
+            <input
+              type="number"
+              required
+              min="1"
+              placeholder="e.g. 5000"
+              value={limitAmount}
+              onChange={(e) => setLimitAmount(e.target.value)}
+              className="mochi-input text-xs w-full font-bold"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-mochi-text-secondary mb-1">Budget Period</label>
+            <select
+              value={period}
+              onChange={(e) => setPeriod(e.target.value as any)}
+              className="mochi-input text-xs w-full font-semibold"
+            >
+              <option value="monthly">Monthly</option>
+              <option value="weekly">Weekly</option>
+              <option value="annual">Annual</option>
+            </select>
+          </div>
+
+          <div className="pt-2 flex gap-3">
+            <button
+              type="button"
+              onClick={() => setIsModalOpen(false)}
+              className="mochi-btn-secondary text-xs flex-1 py-2.5"
+            >
+              Cancel
+            </button>
+            <button type="submit" className="mochi-btn-primary text-xs flex-1 py-2.5">
+              Create Plan
+            </button>
+          </div>
+        </form>
+      </Dialog>
+
       <div className="flex items-center justify-between mb-4">
-        <h1 className="text-xl font-bold text-mochi-text">Budgets</h1>
-        <button className="mochi-btn-primary text-sm">
+        <div>
+          <h1 className="text-xl font-bold text-mochi-text">Your Plans</h1>
+          <p className="text-xs text-mochi-text-muted mt-0.5">Stay cozy with your spending</p>
+        </div>
+        <button onClick={() => setIsModalOpen(true)} className="mochi-btn-primary text-sm flex items-center gap-1.5 cursor-pointer">
           <Plus className="w-4 h-4" />
-          <span className="hidden sm:inline">Create Budget</span>
+          <span className="hidden sm:inline">New Plan</span>
         </button>
       </div>
 
@@ -240,7 +334,7 @@ export default function BudgetPage() {
       <section aria-label="Budget Categories">
         <h2 className="text-sm font-semibold text-mochi-text-secondary mb-2 uppercase tracking-wide">By Category</h2>
         {allBudgets.length === 0 ? (
-          <EmptyBudgets />
+          <EmptyBudgets onOpenModal={() => setIsModalOpen(true)} />
         ) : (
           <div className="grid gap-3">
             {allBudgets.map((budget) => (

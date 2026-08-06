@@ -61,17 +61,18 @@ function HealthScoreRing({ score }: { score: number }) {
 
 function EmptyTransactions() {
   return (
-    <div className="mochi-card flex flex-col items-center justify-center py-8 text-center">
+    <div className="mochi-card flex flex-col items-center justify-center py-10 text-center">
       <Mascot mood="neutral" size="lg" />
-      <h3 className="mt-4 font-semibold text-mochi-text">No transactions yet</h3>
-      <p className="mt-1 text-sm text-mochi-text-muted">Start tracking your spending to see your financial health improve!</p>
-      <Link to="/transactions/new" className="mochi-btn-primary mt-4">
+      <h3 className="mt-4 font-semibold text-mochi-text">Your story starts here!</h3>
+      <p className="mt-1 text-sm text-mochi-text-muted max-w-xs">Every great financial journey begins with a single entry. Add your first one!</p>
+      <Link to="/transactions/new" className="mochi-btn-primary mt-5">
         <Plus className="w-4 h-4" />
-        Add First Transaction
+        Record First Transaction
       </Link>
     </div>
   )
 }
+
 
 export default function DashboardPage() {
   const { user } = useAuthStore()
@@ -323,8 +324,8 @@ export default function DashboardPage() {
         <h2 className="text-sm font-semibold text-mochi-text-secondary mb-2 uppercase tracking-wide">Quick Actions</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {[
-            { icon: Plus, label: 'Add Expense', action: () => setAddModalOpen(true), color: 'bg-rose-500/10 text-rose-500' },
-            { icon: TrendingUp, label: 'Add Income', action: () => setAddModalOpen(true), color: 'bg-emerald-500/10 text-emerald-500' },
+            { icon: Plus, label: 'Add Expense', action: () => setAddModalOpen(true, 'expense'), color: 'bg-rose-500/10 text-rose-500' },
+            { icon: TrendingUp, label: 'Add Income', action: () => setAddModalOpen(true, 'income'), color: 'bg-emerald-500/10 text-emerald-500' },
             { icon: PiggyBank, label: 'Savings Goals', path: '/savings', color: 'bg-purple-500/10 text-purple-500' },
             { icon: CreditCard, label: 'Debts & Bills', path: '/debts', color: 'bg-amber-500/10 text-amber-500' },
           ].map((item) => {

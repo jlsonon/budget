@@ -298,43 +298,39 @@ export default function ProfilePage() {
             <GroupMascotSVG animal={selectedMascot} outfit={selectedOutfit} size="md" />
           </div>
 
-          <div className="flex-1 space-y-3 w-full">
+          <div className="flex-1 grid grid-cols-2 gap-3 w-full">
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-wider text-mochi-text-muted mb-1.5">Mascot Animal</p>
-              <div className="flex gap-2 flex-wrap">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-mochi-text-muted mb-1 flex items-center gap-1">
+                Animal Species
+              </p>
+              <select
+                value={selectedMascot}
+                onChange={(e) => setSelectedMascot(e.target.value as any)}
+                className="mochi-input text-xs font-bold w-full capitalize py-2 px-3 bg-mochi-surface"
+              >
                 {(['cat', 'rabbit', 'fox', 'bear', 'shiba', 'panda'] as const).map((m) => (
-                  <button
-                    key={m}
-                    onClick={() => setSelectedMascot(m)}
-                    className={`px-3 py-1 rounded-xl text-xs font-extrabold capitalize transition-all ${
-                      selectedMascot === m
-                        ? 'bg-mochi-primary text-white shadow-xs scale-105'
-                        : 'bg-mochi-surface-alt text-mochi-text-muted hover:text-mochi-text border border-mochi-border'
-                    }`}
-                  >
-                    {m}
-                  </button>
+                  <option key={m} value={m}>
+                    {m.charAt(0).toUpperCase() + m.slice(1)}
+                  </option>
                 ))}
-              </div>
+              </select>
             </div>
 
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-wider text-mochi-text-muted mb-1.5">Outfit & Outfit Theme</p>
-              <div className="flex gap-2">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-mochi-text-muted mb-1 flex items-center gap-1">
+                Outfit & Theme
+              </p>
+              <select
+                value={selectedOutfit}
+                onChange={(e) => setSelectedOutfit(e.target.value as any)}
+                className="mochi-input text-xs font-bold w-full capitalize py-2 px-3 bg-mochi-surface"
+              >
                 {(['casual', 'beach', 'winter'] as const).map((o) => (
-                  <button
-                    key={o}
-                    onClick={() => setSelectedOutfit(o)}
-                    className={`px-3.5 py-1 rounded-xl text-xs font-bold capitalize transition-all ${
-                      selectedOutfit === o
-                        ? 'bg-mochi-secondary text-white shadow-xs'
-                        : 'bg-mochi-surface-alt text-mochi-text-muted hover:text-mochi-text border border-mochi-border'
-                    }`}
-                  >
-                    {o}
-                  </button>
+                  <option key={o} value={o}>
+                    {o.charAt(0).toUpperCase() + o.slice(1)}
+                  </option>
                 ))}
-              </div>
+              </select>
             </div>
           </div>
         </div>

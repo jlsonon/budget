@@ -26,6 +26,23 @@ export function startRealtimeSync(userId: string): () => void {
     if (!snapshot.empty) {
       const items = snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as Wallet))
       useAppStore.getState().setWallets(items)
+    } else {
+      // Auto-provision default cash wallet for user
+      const defaultWallet: Wallet = {
+        id: `w_cash_${userId}`,
+        userId,
+        name: 'Cash Wallet',
+        type: 'cash',
+        balance: 0,
+        currency: 'PHP',
+        color: '#F59E0B',
+        isDefault: true,
+        includeInTotal: true,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      }
+      saveDocToCloud(FIRESTORE_COLLECTIONS.WALLETS, defaultWallet)
+      useAppStore.getState().setWallets([defaultWallet])
     }
   }, (err) => console.warn('Realtime wallets sync notice:', err.message))
 
