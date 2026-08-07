@@ -305,7 +305,7 @@ export default function ReceiptScannerModal({ isOpen, onClose }: ReceiptScannerM
                     )}
                     <div>
                       <span className="text-[10px] font-bold uppercase tracking-wider text-mochi-primary">
-                        Scan Complete ✨
+                        Scan Complete
                       </span>
                       <p className="text-xs text-mochi-text-muted">
                         Review the extracted details below before logging.

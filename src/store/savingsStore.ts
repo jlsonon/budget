@@ -22,7 +22,7 @@ export const useSavingsStore = create<SavingsState>()(
         set((s: SavingsState) => ({ savingsGoals: [...s.savingsGoals, goal] }))
         try {
           await saveDocToCloud(FIRESTORE_COLLECTIONS.SAVINGS, goal)
-          useToastStore.getState().success('Savings goal created! 🎯', 'Saved')
+          useToastStore.getState().success('Savings goal created!', 'Saved')
         } catch (err: any) {
           useToastStore.getState().error('Failed to create goal', 'Error')
         }
@@ -42,7 +42,7 @@ export const useSavingsStore = create<SavingsState>()(
         }))
         try {
           await atomicSavingsContribution(goalId, amount, contrib)
-          useToastStore.getState().success(`Contributed ₱${amount.toLocaleString()}! 🎉`, 'Progress')
+          useToastStore.getState().success(`Contributed ₱${amount.toLocaleString()}!`, 'Progress')
         } catch (err: any) {
           useToastStore.getState().error('Failed to save contribution', 'Error')
         }

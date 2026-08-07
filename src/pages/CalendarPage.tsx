@@ -410,7 +410,7 @@ export default function CalendarPage() {
                             }}
                             className="mt-1.5 text-[10px] font-extrabold text-mochi-primary hover:underline flex items-center gap-1 bg-mochi-primary/10 px-2.5 py-1 rounded-full w-fit"
                           >
-                            👁️ View All {dayEvents.length} Events
+                            View All {dayEvents.length} Events
                           </button>
                         )}
                       </>

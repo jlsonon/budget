@@ -42,7 +42,7 @@ export const useTransactionStore = create<TransactionState>()(
           const detailsMsg = `Logged ${typeLabel} of ${amountStr}${merchantStr}${walletStr}`
 
           // 1. Trigger prominent Toast message
-          useToastStore.getState().success(detailsMsg, 'Transaction Success! 🍡')
+          useToastStore.getState().success(detailsMsg, 'Transaction Success!')
 
           // 2. Log in App Notifications
           useNotificationStore.getState().addNotification({

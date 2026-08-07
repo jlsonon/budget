@@ -101,7 +101,7 @@ function TransactionDetailSheet({
   const handleDelete = () => {
     if (confirmDelete) {
       onDelete(transaction.id)
-      useToastStore.getState().info('Transaction deleted! 🗑️', 'Deleted')
+      useToastStore.getState().info('Transaction deleted!', 'Deleted')
       onClose()
     } else {
       setConfirmDelete(true)
@@ -127,7 +127,7 @@ function TransactionDetailSheet({
       updatedAt: new Date().toISOString(),
     })
 
-    useToastStore.getState().success('Transaction updated! ✏️', 'Saved')
+    useToastStore.getState().success('Transaction updated!', 'Saved')
     setIsEditing(false)
     onClose()
   }

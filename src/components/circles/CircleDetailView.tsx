@@ -142,7 +142,7 @@ export function CircleDetailView({
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h4 className="text-base font-black text-mochi-text flex items-center gap-2">
-                  ⚖️ Splitwise Group Bill Splitter
+                  Splitwise Group Bill Splitter
                 </h4>
                 <p className="text-xs text-mochi-text-secondary mt-0.5">
                   Log shared group expenses (dinners, hotels, gas) and calculate who owes whom automatically!

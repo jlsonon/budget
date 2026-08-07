@@ -152,7 +152,7 @@ export function TransferModal({ isOpen, onClose }: TransferModalProps) {
             <div className="w-14 h-14 bg-emerald-500/20 text-emerald-500 rounded-full flex items-center justify-center mx-auto border border-emerald-500/40 animate-bounce">
               <CheckCircle2 className="w-8 h-8" />
             </div>
-            <h4 className="text-lg font-black text-mochi-text">All done! 🎉</h4>
+            <h4 className="text-lg font-black text-mochi-text">All done!</h4>
             <p className="text-xs text-mochi-text-secondary max-w-xs mx-auto">
               {formatCurrency(parseFloat(amount) || 0, fromWallet?.currency || 'PHP')} moved from <strong>{fromWallet?.name}</strong> to <strong>{toWallet?.name}</strong>.
             </p>

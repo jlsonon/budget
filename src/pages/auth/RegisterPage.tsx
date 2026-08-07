@@ -239,7 +239,7 @@ export default function RegisterPage() {
             disabled={isLoading || !email || !password || pin !== pinConfirm}
             className="flex-1 mochi-btn-primary py-3"
           >
-            {isLoading ? 'Creating account...' : 'Start using Mochi Money 🍡'}
+            {isLoading ? 'Creating account...' : 'Start using Mochi Money'}
           </button>
         )}
       </div>
