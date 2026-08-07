@@ -111,15 +111,27 @@ export function startRealtimeSync(userId: string): () => void {
   }
 }
 
+function cleanUndefined<T extends Record<string, any>>(obj: T): Record<string, any> {
+  const clean: Record<string, any> = {}
+  Object.keys(obj).forEach((key) => {
+    if (obj[key] !== undefined) {
+      clean[key] = obj[key]
+    }
+  })
+  return clean
+}
+
 /**
  * Cloud Sync Helpers for CRUD operations
  */
 export async function saveDocToCloud<T extends { id: string; userId: string }>(collectionName: string, item: T): Promise<void> {
   try {
     const ref = doc(db, collectionName, item.id)
-    await setDoc(ref, item, { merge: true })
-  } catch (err) {
-    console.warn(`[CloudSync] Offline queue active for ${collectionName}/${item.id}:`, err)
+    const cleaned = cleanUndefined(item)
+    await setDoc(ref, cleaned, { merge: true })
+    console.log(`[CloudSync] Successfully saved ${collectionName}/${item.id} to Cloud Firestore`)
+  } catch (err: any) {
+    console.warn(`[CloudSync] Error saving ${collectionName}/${item.id}:`, err?.message || err)
   }
 }
 
