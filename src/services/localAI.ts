@@ -88,17 +88,18 @@ function fallbackRuleBasedAI(
 ): { text: string; action?: ParsedAIAction } {
   const query = userQuery.toLowerCase().trim()
 
-  // 1. Match expense logging (e.g. "spent 180 on lunch", "log 500 coffee", "paid 250 for gas")
+  // 1. Match expense logging (e.g. "spent 250 on Starbucks coffee using GCash", "paid 1500 for electricity")
   const expenseMatch =
-    query.match(/(?:spent|log|pay|paid|buy|bought|cost|expense)\s+(?:₱|php)?\s*(\d+(?:\.\d+)?)\s+(?:on|for)?\s*([a-z0-9\s]+)/i) ||
+    query.match(/(?:spent|log|pay|paid|buy|bought|cost|expense)\s+(?:₱|php)?\s*(\d+(?:\.\d+)?)\s+(?:on|for)?\s*([a-z0-9\s]+?)(?:\s+(?:using|via|in|with)\s+([a-z0-9\s]+))?$/i) ||
     query.match(/(\d+(?:\.\d+)?)\s+(?:on|for)\s+([a-z0-9\s]+)/i)
 
   if (expenseMatch) {
-    const rawNum = parseFloat(expenseMatch[1] || expenseMatch[2])
-    const merchantStr = (expenseMatch[2] || expenseMatch[1] || 'Expense').trim()
+    const rawNum = parseFloat(expenseMatch[1])
+    const merchantStr = (expenseMatch[2] || 'Expense').trim()
+    const walletHint = (expenseMatch[3] || '').trim()
     if (!isNaN(rawNum) && rawNum > 0) {
       return {
-        text: `Recorded an expense of ₱${rawNum.toLocaleString()} for "${merchantStr}". Your balances and reports have been updated.`,
+        text: `Recorded an expense of ₱${rawNum.toLocaleString()} for "${merchantStr}"${walletHint ? ` using ${walletHint}` : ''}. Your wallet balance and budget totals have been updated.`,
         action: {
           action: 'add_transaction',
           payload: { type: 'expense', amount: rawNum, merchant: merchantStr, category: 'food' },
@@ -107,16 +108,17 @@ function fallbackRuleBasedAI(
     }
   }
 
-  // 2. Match income logging (e.g. "received 5000 salary", "got paid 12000", "income 20000")
-  const incomeMatch = query.match(/(?:received|income|salary|earn|earned|got paid|deposit)\s+(?:₱|php)?\s*(\d+(?:\.\d+)?)/i)
+  // 2. Match income logging (e.g. "received 35000 salary deposit", "got paid 20000 in BPI")
+  const incomeMatch = query.match(/(?:received|income|salary|earn|earned|got paid|deposit)\s+(?:₱|php)?\s*(\d+(?:\.\d+)?)\s*(?:in|from|to)?\s*([a-z0-9\s]+)?/i)
   if (incomeMatch) {
     const rawNum = parseFloat(incomeMatch[1])
+    const sourceStr = (incomeMatch[2] || 'Income Deposit').trim()
     if (!isNaN(rawNum) && rawNum > 0) {
       return {
-        text: `Recorded income deposit of ₱${rawNum.toLocaleString()}. Your wallet balance has been increased.`,
+        text: `Recorded income deposit of ₱${rawNum.toLocaleString()} (${sourceStr}). Your wallet balance has been updated.`,
         action: {
           action: 'add_transaction',
-          payload: { type: 'income', amount: rawNum, merchant: 'Income Deposit', category: 'salary' },
+          payload: { type: 'income', amount: rawNum, merchant: sourceStr, category: 'salary' },
         },
       }
     }

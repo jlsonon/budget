@@ -530,9 +530,15 @@ function TopMerchantsCard({ data }: { data: ReturnType<typeof useReportsData> })
   )
 }
 
+import PaywallModal from '@/components/modals/PaywallModal'
+import { isProUser } from '@/lib/paywall'
+import { useAuthStore } from '@/store/authStore'
+
 export default function ReportsPage() {
+  const { user } = useAuthStore()
   const [period, setPeriod] = useState<Period>('month')
   const [isLoading, setIsLoading] = useState(true)
+  const [showPaywall, setShowPaywall] = useState(false)
 
   useEffect(() => {
     const timer = setTimeout(() => setIsLoading(false), 400)
@@ -569,11 +575,22 @@ export default function ReportsPage() {
       role="main"
       aria-label="Reports"
     >
+      <PaywallModal
+        isOpen={showPaywall}
+        onClose={() => setShowPaywall(false)}
+        featureTitle="Unlock Data Export & CSV Reports"
+        featureDescription="Exporting financial ledger data is a Pro feature. Upgrade to Pro ₱199.00 for full data exports!"
+      />
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-bold text-mochi-text">Reports</h1>
         <button
           onClick={() => {
+            if (!isProUser(user)) {
+              setShowPaywall(true)
+              return
+            }
             const csvRows = ['Date,Type,Amount,Category,Merchant,Notes']
             transactions.forEach((t) => {
               csvRows.push(`"${t.date}","${t.type}",${t.amount},"${t.categoryId || ''}","${t.merchant || ''}","${t.notes || ''}"`)

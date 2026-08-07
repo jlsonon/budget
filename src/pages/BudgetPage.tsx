@@ -136,14 +136,33 @@ function EmptyBudgets({ onOpenModal }: { onOpenModal: () => void }) {
   )
 }
 
+import PaywallModal from '@/components/modals/PaywallModal'
+import { checkCanAddBudget } from '@/lib/paywall'
+import { useAuthStore } from '@/store/authStore'
+
 export default function BudgetPage() {
-  const { budgets, addBudget, transactions } = useAppStore()
+  const { user } = useAuthStore()
+  const { budgets, transactions, addBudget } = useAppStore()
   const [isLoading, setIsLoading] = useState(true)
   const [isModalOpen, setIsModalOpen] = useState(false)
-
+  const [showPaywall, setShowPaywall] = useState(false)
+  
   const [selectedCategory, setSelectedCategory] = useState(DEFAULT_EXPENSE_CATEGORIES[0]?.id || 'food')
   const [limitAmount, setLimitAmount] = useState('')
   const [period, setPeriod] = useState<'monthly' | 'weekly' | 'custom'>('monthly')
+
+  const [monthlyIncomeInput] = useState('30000')
+
+  const handleApply503020 = () => {
+    const income = parseFloat(monthlyIncomeInput) || 30000
+    const needs = income * 0.5
+    const wants = income * 0.3
+    const today = new Date().toISOString().split('T')[0]
+
+    addBudget({ id: `budget_${Date.now()}_1`, userId: getUid(), categoryId: 'housing', limit: Math.round(needs * 0.5), period: 'monthly', startDate: today, recurring: true, notifications: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() })
+    addBudget({ id: `budget_${Date.now()}_2`, userId: getUid(), categoryId: 'food', limit: Math.round(needs * 0.5), period: 'monthly', startDate: today, recurring: true, notifications: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() })
+    addBudget({ id: `budget_${Date.now()}_3`, userId: getUid(), categoryId: 'entertainment', limit: Math.round(wants), period: 'monthly', startDate: today, recurring: true, notifications: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() })
+  }
 
   useEffect(() => {
     const timer = setTimeout(() => setIsLoading(false), 500)
@@ -266,15 +285,41 @@ export default function BudgetPage() {
         </form>
       </Dialog>
 
+      <PaywallModal
+        isOpen={showPaywall}
+        onClose={() => setShowPaywall(false)}
+        featureTitle="Unlock Unlimited Budgets"
+        featureDescription="Free tier is limited to 3 active budget categories. Upgrade to Pro ₱199.00 for unlimited budget plans!"
+      />
+
       <div className="flex items-center justify-between mb-4">
         <div>
           <h1 className="text-xl font-bold text-mochi-text">Your Plans</h1>
           <p className="text-xs text-mochi-text-muted mt-0.5">Stay cozy with your spending</p>
         </div>
-        <button onClick={() => setIsModalOpen(true)} className="mochi-btn-primary text-sm flex items-center gap-1.5 cursor-pointer">
-          <Plus className="w-4 h-4" />
-          <span className="hidden sm:inline">New Plan</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleApply503020}
+            className="mochi-btn-secondary text-xs py-2 px-3 flex items-center gap-1.5 shadow-xs"
+            title="Auto-calculate 50/30/20 budget"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+            <span>50/30/20 Auto</span>
+          </button>
+          <button
+            onClick={() => {
+              if (!checkCanAddBudget(user, budgets.length)) {
+                setShowPaywall(true)
+              } else {
+                setIsModalOpen(true)
+              }
+            }}
+            className="mochi-btn-primary text-sm flex items-center gap-1.5 cursor-pointer"
+          >
+            <Plus className="w-4 h-4" />
+            <span className="hidden sm:inline">New Plan</span>
+          </button>
+        </div>
       </div>
 
       {/* Summary Card */}

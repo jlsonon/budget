@@ -8,6 +8,7 @@ import {
   DollarSign,
   RefreshCw,
   Lock,
+  Clock,
 } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
 import { formatCurrency, formatDate } from '@/lib/utils'
@@ -17,11 +18,25 @@ import { db } from '@/lib/firebase'
 
 const SUPERADMIN_EMAILS = ['jlsonon12@gmail.com', 'superadmin@mochimoney.app', 'owner@mochimoney.app']
 
+interface PaymentRequest {
+  id: string
+  userId: string
+  userName: string
+  userEmail: string
+  paymentMethod: string
+  amount: number
+  refNumber: string
+  senderContact: string
+  status: 'pending' | 'approved' | 'rejected'
+  createdAt: string
+}
+
 export default function SuperadminDashboardPage() {
   const { user } = useAuthStore()
   const [usersList, setUsersList] = useState<UserProfile[]>(() => (user ? [user] : []))
+  const [paymentRequests, setPaymentRequests] = useState<PaymentRequest[]>([])
   const [searchQuery, setSearchQuery] = useState('')
-  const [tierFilter, setTierFilter] = useState<'all' | 'free' | 'pro'>('all')
+  const [tierFilter, setTierFilter] = useState<'all' | 'free' | 'pro' | 'pending'>('all')
   const [isRefreshing, setIsRefreshing] = useState(false)
 
   // Verify superadmin privilege
@@ -50,6 +65,23 @@ export default function SuperadminDashboardPage() {
     }
   }, [isSuperadmin, user])
 
+  // Realtime Firestore sync for payment requests
+  useEffect(() => {
+    if (!isSuperadmin) return
+    try {
+      const unsub = onSnapshot(collection(db, 'payment_requests'), (snapshot) => {
+        const liveRequests: PaymentRequest[] = snapshot.docs.map((d) => ({
+          id: d.id,
+          ...(d.data() as any),
+        }))
+        setPaymentRequests(liveRequests)
+      })
+      return () => unsub()
+    } catch (e) {
+      console.warn('Payment requests sync error:', e)
+    }
+  }, [isSuperadmin])
+
   const filteredUsers = useMemo(() => {
     return usersList.filter((u) => {
       const matchesSearch =
@@ -68,6 +100,7 @@ export default function SuperadminDashboardPage() {
   const totalUsersCount = usersList.length
   const proUsersCount = usersList.filter((u) => u.subscriptionTier === 'pro' || u.paidAmount === 199).length
   const freeUsersCount = totalUsersCount - proUsersCount
+  const pendingRequestsCount = paymentRequests.filter((r) => r.status === 'pending').length
   const totalRevenue = proUsersCount * 199
   const conversionRate = totalUsersCount > 0 ? ((proUsersCount / totalUsersCount) * 100).toFixed(1) : '0.0'
 
@@ -106,6 +139,37 @@ export default function SuperadminDashboardPage() {
     }
   }
 
+  const handleApprovePayment = async (req: PaymentRequest) => {
+    try {
+      // Find matching user or update by userEmail
+      const targetUser = usersList.find((u) => u.id === req.userId || u.email === req.userEmail)
+      if (targetUser) {
+        await handleToggleTier({ ...targetUser, subscriptionTier: 'free' })
+      } else {
+        const userRef = doc(db, 'users', req.userId)
+        await updateDoc(userRef, {
+          subscriptionTier: 'pro',
+          subscriptionStatus: 'active',
+          paidAmount: 199,
+          paidAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        })
+      }
+
+      await updateDoc(doc(db, 'payment_requests', req.id), { status: 'approved' })
+    } catch (err) {
+      console.warn('Error approving payment:', err)
+    }
+  }
+
+  const handleRejectPayment = async (reqId: string) => {
+    try {
+      await updateDoc(doc(db, 'payment_requests', reqId), { status: 'rejected' })
+    } catch (err) {
+      console.warn('Error rejecting payment:', err)
+    }
+  }
+
   if (!isSuperadmin) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center space-y-4">
@@ -141,10 +205,10 @@ export default function SuperadminDashboardPage() {
             </span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-black text-mochi-text mt-1">
-            User Management & ₱199 Subscriptions
+            User Management & Manual ₱199 Payments
           </h1>
           <p className="text-xs sm:text-sm text-mochi-text-secondary mt-0.5">
-            Monitor registered users, track ₱199 one-time lifetime payment subscriptions, and manage access privileges.
+            Approve GCash/Maya reference payments (~1-2 hrs SLA) and manage registered user accounts.
           </p>
         </div>
 
@@ -168,30 +232,30 @@ export default function SuperadminDashboardPage() {
             <Users className="w-5 h-5" />
           </div>
           <div>
-            <p className="text-[10px] font-bold text-mochi-text-muted uppercase tracking-wider">Total Users</p>
+            <p className="text-[10px] font-bold text-mochi-text-muted uppercase tracking-wider">Total Registered</p>
             <p className="text-xl font-black text-mochi-text">{totalUsersCount}</p>
           </div>
         </div>
 
-        {/* Free Users */}
-        <div className="mochi-card p-4 flex items-center gap-3.5 bg-gradient-to-br from-mochi-surface to-mochi-surface-alt border-l-4 border-l-slate-400">
-          <div className="w-11 h-11 rounded-2xl bg-slate-500/10 text-slate-600 dark:text-slate-400 flex items-center justify-center shrink-0">
-            <Users className="w-5 h-5" />
+        {/* Pending Manual Payments */}
+        <div className="mochi-card p-4 flex items-center gap-3.5 bg-gradient-to-br from-mochi-surface to-mochi-surface-alt border-l-4 border-l-amber-500">
+          <div className="w-11 h-11 rounded-2xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+            <Clock className="w-5 h-5" />
           </div>
           <div>
-            <p className="text-[10px] font-bold text-mochi-text-muted uppercase tracking-wider">Free Tier Users</p>
-            <p className="text-xl font-black text-mochi-text">{freeUsersCount}</p>
+            <p className="text-[10px] font-bold text-mochi-text-muted uppercase tracking-wider">Pending Payments</p>
+            <p className="text-xl font-black text-amber-600 dark:text-amber-400">{pendingRequestsCount}</p>
           </div>
         </div>
 
         {/* Pro Lifetime ₱199 */}
-        <div className="mochi-card p-4 flex items-center gap-3.5 bg-gradient-to-br from-mochi-surface to-mochi-surface-alt border-l-4 border-l-amber-500">
-          <div className="w-11 h-11 rounded-2xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+        <div className="mochi-card p-4 flex items-center gap-3.5 bg-gradient-to-br from-mochi-surface to-mochi-surface-alt border-l-4 border-l-purple-500">
+          <div className="w-11 h-11 rounded-2xl bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0">
             <Crown className="w-5 h-5" />
           </div>
           <div>
-            <p className="text-[10px] font-bold text-mochi-text-muted uppercase tracking-wider">Pro ₱199 Paid</p>
-            <p className="text-xl font-black text-amber-600 dark:text-amber-400">{proUsersCount}</p>
+            <p className="text-[10px] font-bold text-mochi-text-muted uppercase tracking-wider">Pro ₱199 Users</p>
+            <p className="text-xl font-black text-purple-600 dark:text-purple-400">{proUsersCount}</p>
           </div>
         </div>
 
@@ -248,14 +312,107 @@ export default function SuperadminDashboardPage() {
             onClick={() => setTierFilter('pro')}
             className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
               tierFilter === 'pro'
-                ? 'bg-amber-500 text-white shadow-xs'
+                ? 'bg-purple-600 text-white shadow-xs'
                 : 'text-mochi-text-secondary hover:text-mochi-text'
             }`}
           >
             Pro ₱199 ({proUsersCount})
           </button>
+          <button
+            onClick={() => setTierFilter('pending')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+              tierFilter === 'pending'
+                ? 'bg-amber-500 text-white shadow-xs'
+                : 'text-mochi-text-secondary hover:text-mochi-text'
+            }`}
+          >
+            Pending Payments ({pendingRequestsCount})
+          </button>
         </div>
       </div>
+
+      {/* Pending Payment Requests Table */}
+      {tierFilter === 'pending' || pendingRequestsCount > 0 ? (
+        <div className="mochi-card p-4 space-y-3 border-2 border-amber-500/30">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-black text-mochi-text flex items-center gap-2">
+              <Clock className="w-4 h-4 text-amber-500" /> Pending GCash / Maya ₱199 Payment Approvals (~1-2 hrs)
+            </h3>
+            <span className="text-xs font-bold text-amber-600 dark:text-amber-400">
+              {pendingRequestsCount} Pending Review
+            </span>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-mochi-surface-alt border-b border-mochi-border text-[11px] font-bold text-mochi-text-secondary uppercase tracking-wider">
+                  <th className="py-2.5 px-3">User</th>
+                  <th className="py-2.5 px-3">Method</th>
+                  <th className="py-2.5 px-3">Ref Number</th>
+                  <th className="py-2.5 px-3">Submitted</th>
+                  <th className="py-2.5 px-3">Status</th>
+                  <th className="py-2.5 px-3 text-right">Action</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-mochi-border/60 text-xs">
+                {paymentRequests.map((req) => (
+                  <tr key={req.id} className="hover:bg-mochi-surface-alt/50">
+                    <td className="py-2.5 px-3">
+                      <p className="font-bold text-mochi-text">{req.userName}</p>
+                      <p className="text-[11px] text-mochi-text-muted">{req.userEmail}</p>
+                    </td>
+                    <td className="py-2.5 px-3 font-bold uppercase text-mochi-text">{req.paymentMethod}</td>
+                    <td className="py-2.5 px-3 font-mono font-black text-mochi-primary">{req.refNumber}</td>
+                    <td className="py-2.5 px-3 text-mochi-text-muted text-[11px]">{formatDate(req.createdAt)}</td>
+                    <td className="py-2.5 px-3">
+                      {req.status === 'pending' ? (
+                        <span className="mochi-badge bg-amber-500/15 text-amber-600 font-extrabold text-[10px]">
+                          Pending Review
+                        </span>
+                      ) : req.status === 'approved' ? (
+                        <span className="mochi-badge bg-emerald-500/15 text-emerald-600 font-extrabold text-[10px]">
+                          Approved
+                        </span>
+                      ) : (
+                        <span className="mochi-badge bg-rose-500/15 text-rose-600 font-extrabold text-[10px]">
+                          Rejected
+                        </span>
+                      )}
+                    </td>
+                    <td className="py-2.5 px-3 text-right space-x-2">
+                      {req.status === 'pending' && (
+                        <>
+                          <button
+                            onClick={() => handleApprovePayment(req)}
+                            className="px-2.5 py-1 rounded-lg bg-emerald-500 text-white font-bold text-[11px] shadow-xs hover:bg-emerald-600"
+                          >
+                            Approve ₱199 Pro
+                          </button>
+                          <button
+                            onClick={() => handleRejectPayment(req.id)}
+                            className="px-2.5 py-1 rounded-lg bg-rose-500/10 text-rose-500 font-bold text-[11px] hover:bg-rose-500/20"
+                          >
+                            Reject
+                          </button>
+                        </>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+
+                {paymentRequests.length === 0 && (
+                  <tr>
+                    <td colSpan={6} className="py-6 text-center text-xs text-mochi-text-muted">
+                      No pending payment requests right now.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      ) : null}
 
       {/* Registered Users Table */}
       <div className="mochi-card p-0 overflow-hidden border border-mochi-border">

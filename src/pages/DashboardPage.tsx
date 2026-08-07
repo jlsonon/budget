@@ -172,6 +172,80 @@ export default function DashboardPage() {
         </button>
       </header>
 
+      {/* 1-Tap Quick Log Shortcut Widget */}
+      <div className="p-3 bg-mochi-surface-alt border border-mochi-border rounded-2xl flex flex-wrap items-center justify-between gap-2 text-xs">
+        <span className="font-extrabold text-mochi-text text-[11px] flex items-center gap-1.5">
+          <Zap className="w-3.5 h-3.5 text-amber-500 fill-amber-400" /> Quick Log:
+        </span>
+        <div className="flex flex-wrap gap-1.5">
+          <button
+            onClick={() => {
+              useAppStore.getState().addTransaction({
+                id: `txn_${Date.now()}`,
+                userId: 'anon',
+                type: 'expense',
+                amount: 120,
+                currency: 'PHP',
+                categoryId: 'food',
+                merchant: 'Starbucks / Coffee',
+                paymentMethod: 'cash',
+                isFavorite: false,
+                date: new Date().toISOString().split('T')[0],
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+              })
+            }}
+            className="px-2.5 py-1 rounded-xl bg-mochi-surface hover:bg-mochi-border border border-mochi-border font-bold text-mochi-text active:scale-95 transition-all"
+          >
+            ☕ Coffee ₱120
+          </button>
+
+          <button
+            onClick={() => {
+              useAppStore.getState().addTransaction({
+                id: `txn_${Date.now()}`,
+                userId: 'anon',
+                type: 'expense',
+                amount: 150,
+                currency: 'PHP',
+                categoryId: 'transportation',
+                merchant: 'Grab / Commute',
+                paymentMethod: 'cash',
+                isFavorite: false,
+                date: new Date().toISOString().split('T')[0],
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+              })
+            }}
+            className="px-2.5 py-1 rounded-xl bg-mochi-surface hover:bg-mochi-border border border-mochi-border font-bold text-mochi-text active:scale-95 transition-all"
+          >
+            🚗 Grab/Ride ₱150
+          </button>
+
+          <button
+            onClick={() => {
+              useAppStore.getState().addTransaction({
+                id: `txn_${Date.now()}`,
+                userId: 'anon',
+                type: 'expense',
+                amount: 180,
+                currency: 'PHP',
+                categoryId: 'food',
+                merchant: 'Lunch Meal',
+                paymentMethod: 'cash',
+                isFavorite: false,
+                date: new Date().toISOString().split('T')[0],
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+              })
+            }}
+            className="px-2.5 py-1 rounded-xl bg-mochi-surface hover:bg-mochi-border border border-mochi-border font-bold text-mochi-text active:scale-95 transition-all"
+          >
+            🍱 Lunch ₱180
+          </button>
+        </div>
+      </div>
+
       {/* Financial Pulse Card */}
       <section aria-label="Financial Pulse">
         <div className="bg-gradient-to-r from-amber-500/10 via-sky-500/10 to-emerald-500/10 border border-mochi-border/80 rounded-3xl p-4 sm:p-5 flex items-center gap-4 relative overflow-hidden shadow-xs">

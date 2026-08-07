@@ -44,11 +44,17 @@ const PRESET_SERVICES: PresetService[] = [
   { name: 'Xbox Game Pass', category: 'Gaming', amount: 490, color: '#107C41', frequency: 'monthly' },
 ]
 
-export default function SubscriptionsPage() {
-  const { subscriptions, addSubscription, updateSubscription, deleteSubscription } = useAppStore()
+import PaywallModal from '@/components/modals/PaywallModal'
+import { checkCanAddSubscription } from '@/lib/paywall'
+import { useAuthStore } from '@/store/authStore'
 
+export default function SubscriptionsPage() {
+  const { user } = useAuthStore()
+  const { subscriptions, addSubscription, updateSubscription, deleteSubscription } = useAppStore()
+  
   const [isLoading, setIsLoading] = useState(true)
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
+  const [showPaywall, setShowPaywall] = useState(false)
   
   // Form State
   const [formData, setFormData] = useState<Partial<Subscription>>({
@@ -197,6 +203,13 @@ export default function SubscriptionsPage() {
       animate={{ opacity: 1, y: 0 }}
       className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-8 pb-28"
     >
+      <PaywallModal
+        isOpen={showPaywall}
+        onClose={() => setShowPaywall(false)}
+        featureTitle="Unlock Unlimited Subscriptions"
+        featureDescription="Free tier is limited to 2 active subscriptions. Upgrade to Pro ₱199.00 for unlimited recurring services & brand alerts!"
+      />
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
@@ -208,7 +221,13 @@ export default function SubscriptionsPage() {
           </p>
         </div>
         <button 
-          onClick={() => setIsAddModalOpen(true)}
+          onClick={() => {
+            if (!checkCanAddSubscription(user, subscriptions.length)) {
+              setShowPaywall(true)
+            } else {
+              setIsAddModalOpen(true)
+            }
+          }}
           className="mochi-btn-primary whitespace-nowrap hidden sm:inline-flex items-center gap-2"
         >
           <Plus className="w-4 h-4" />

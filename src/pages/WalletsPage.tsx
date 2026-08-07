@@ -784,10 +784,15 @@ function WalletDetailSheet({
 }
 
 /* ─── Main WalletsPage ────────────────────────────────────────────────── */
+import PaywallModal from '@/components/modals/PaywallModal'
+import { checkCanAddWallet } from '@/lib/paywall'
+
 export default function WalletsPage() {
-  const { wallets, deleteWallet, setAddModalOpen } = useAppStore()
+  const { user } = useAuthStore()
+  const { wallets, deleteWallet } = useAppStore()
   const [showAddSheet, setShowAddSheet] = useState(false)
   const [showTransferSheet, setShowTransferSheet] = useState(false)
+  const [showPaywall, setShowPaywall] = useState(false)
   const [transferSourceId, setTransferSourceId] = useState<string | undefined>()
   const [selectedWallet, setSelectedWallet] = useState<Wallet | null>(null)
 
@@ -812,6 +817,12 @@ export default function WalletsPage() {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
     >
+      <PaywallModal
+        isOpen={showPaywall}
+        onClose={() => setShowPaywall(false)}
+        featureTitle="Unlock Unlimited Wallets"
+        featureDescription="Free tier is limited to 1 active wallet. Upgrade to Pro ₱199.00 for unlimited wallets and e-accounts!"
+      />
       <AddWalletSheet isOpen={showAddSheet} onClose={() => setShowAddSheet(false)} />
       <TransferFundsSheet
         isOpen={showTransferSheet}
@@ -851,7 +862,13 @@ export default function WalletsPage() {
             <span>Transfer</span>
           </button>
           <button
-            onClick={() => setShowAddSheet(true)}
+            onClick={() => {
+              if (!checkCanAddWallet(user, wallets.length)) {
+                setShowPaywall(true)
+              } else {
+                setShowAddSheet(true)
+              }
+            }}
             className="mochi-btn-primary text-xs py-2 px-3 flex items-center gap-1.5 shadow-md active:scale-95 transition-all"
           >
             <Plus className="w-4 h-4" /> Add Wallet
@@ -919,13 +936,13 @@ export default function WalletsPage() {
             icon: ArrowUpRight,
             label: 'Expense',
             color: 'bg-rose-100 text-rose-600 dark:bg-rose-900/20 dark:text-rose-400',
-            onClick: () => setAddModalOpen(true, 'expense'),
+            onClick: () => useAppStore.getState().setAddModalOpen(true, 'expense'),
           },
           {
             icon: ArrowDownLeft,
             label: 'Income',
             color: 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400',
-            onClick: () => setAddModalOpen(true, 'income'),
+            onClick: () => useAppStore.getState().setAddModalOpen(true, 'income'),
           },
           {
             icon: RefreshCw,

@@ -52,7 +52,12 @@ const mascotOutfits: { id: MascotOutfit; name: string }[] = [
   { id: 'raincoat', name: 'Raincoat' },
 ]
 
+import PaywallModal from '@/components/modals/PaywallModal'
+import { isProUser } from '@/lib/paywall'
+import { useAuthStore } from '@/store/authStore'
+
 export default function CirclesPage() {
+  const { user } = useAuthStore()
   const {
     circles,
     passportStamps,
@@ -66,6 +71,7 @@ export default function CirclesPage() {
 
   const [selectedCircleId, setSelectedCircleId] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<'circles' | 'passport' | 'scrapbook'>('circles')
+  const [showPaywall, setShowPaywall] = useState(false)
 
   // New Circle Modal State
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
@@ -149,6 +155,13 @@ export default function CirclesPage() {
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 pb-24 space-y-6">
+      <PaywallModal
+        isOpen={showPaywall}
+        onClose={() => setShowPaywall(false)}
+        featureTitle="Unlock Mochi Circles™ & Travel Passport"
+        featureDescription="Cooperative group savings and travel passport mode is a Pro feature. Upgrade to Pro ₱199.00 to save & travel with friends!"
+      />
+
       {/* Header Banner */}
       <header className="flex flex-wrap items-center justify-between gap-4">
         <div>
@@ -167,7 +180,13 @@ export default function CirclesPage() {
         </div>
 
         <button
-          onClick={() => setIsCreateModalOpen(true)}
+          onClick={() => {
+            if (!isProUser(user)) {
+              setShowPaywall(true)
+            } else {
+              setIsCreateModalOpen(true)
+            }
+          }}
           className="mochi-btn-primary px-4 py-2.5 shadow-lg flex items-center gap-2 text-xs sm:text-sm"
         >
           <Plus className="w-4 h-4" />

@@ -98,10 +98,16 @@ function EmptySavings({ onOpenModal }: { onOpenModal: () => void }) {
   )
 }
 
+import PaywallModal from '@/components/modals/PaywallModal'
+import { checkCanAddSavingsGoal } from '@/lib/paywall'
+import { useAuthStore } from '@/store/authStore'
+
 export default function SavingsPage() {
+  const { user } = useAuthStore()
   const { savingsGoals, addSavingsGoal } = useAppStore()
   const [isLoading, setIsLoading] = useState(true)
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [showPaywall, setShowPaywall] = useState(false)
 
   const [goalName, setGoalName] = useState('')
   const [targetAmount, setTargetAmount] = useState('')
@@ -242,12 +248,28 @@ export default function SavingsPage() {
         )}
       </Dialog>
 
+      <PaywallModal
+        isOpen={showPaywall}
+        onClose={() => setShowPaywall(false)}
+        featureTitle="Unlock Unlimited Savings Goals"
+        featureDescription="Free tier is limited to 2 active savings goals. Upgrade to Pro ₱199.00 for unlimited savings targets & milestones!"
+      />
+
       <div className="flex items-center justify-between mb-4">
         <div>
           <h1 className="text-xl font-bold text-mochi-text">Savings Goals</h1>
           <p className="text-xs text-mochi-text-muted mt-0.5">Every little bit counts toward your dreams</p>
         </div>
-        <button onClick={() => setIsModalOpen(true)} className="mochi-btn-primary text-sm flex items-center gap-1.5">
+        <button
+          onClick={() => {
+            if (!checkCanAddSavingsGoal(user, savingsGoals.length)) {
+              setShowPaywall(true)
+            } else {
+              setIsModalOpen(true)
+            }
+          }}
+          className="mochi-btn-primary text-sm flex items-center gap-1.5"
+        >
           <Plus className="w-4 h-4" />
           <span>New Dream</span>
         </button>
