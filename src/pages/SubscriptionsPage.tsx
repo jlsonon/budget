@@ -48,14 +48,17 @@ const PRESET_SERVICES: PresetService[] = [
 import PaywallModal from '@/components/modals/PaywallModal'
 import { checkCanAddSubscription } from '@/lib/paywall'
 import { useAuthStore } from '@/store/authStore'
+import { useToastStore } from '@/store/toastStore'
 
 export default function SubscriptionsPage() {
   const { user } = useAuthStore()
-  const { subscriptions, addSubscription, updateSubscription, deleteSubscription } = useAppStore()
+  const { subscriptions, wallets, addSubscription, updateSubscription, deleteSubscription } = useAppStore()
   
   const [isLoading, setIsLoading] = useState(true)
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
   const [showPaywall, setShowPaywall] = useState(false)
+  const [payingSub, setPayingSub] = useState<Subscription | null>(null)
+  const [payWalletId, setPayWalletId] = useState<string>('')
   
   // Form State
   const [formData, setFormData] = useState<Partial<Subscription>>({
@@ -117,33 +120,61 @@ export default function SubscriptionsPage() {
     return [...activeSubscriptions].sort((a, b) => getMonthlyAmount(b) - getMonthlyAmount(a))[0]
   }, [activeSubscriptions])
 
-  const handleLogPayment = (sub: Subscription) => {
+  const handleOpenLogPayModal = (sub: Subscription) => {
+    setPayingSub(sub)
+    const initialWallet = sub.walletId && wallets.some(w => w.id === sub.walletId)
+      ? sub.walletId
+      : wallets[0]?.id || ''
+    setPayWalletId(initialWallet)
+  }
+
+  const handleConfirmLogPayment = () => {
+    if (!payingSub) return
+
+    const selectedWallet = wallets.find(w => w.id === payWalletId) || wallets[0]
     const todayStr = new Date().toISOString().split('T')[0]
-    
-    // 1. Log transaction
+
+    // 1. Log expense transaction against chosen wallet
     useAppStore.getState().addTransaction({
       id: `txn_sub_${Date.now()}`,
-      userId: sub.userId || getUid(),
+      userId: payingSub.userId || getUid(),
       type: 'expense',
-      amount: sub.amount,
+      amount: payingSub.amount,
       currency: 'PHP',
       categoryId: 'subscriptions',
-      merchant: sub.name,
-      paymentMethod: 'cash',
+      walletId: selectedWallet?.id,
+      merchant: payingSub.name,
+      paymentMethod: selectedWallet?.type === 'credit_card' ? 'credit_card' : 'other',
       date: todayStr,
-      notes: `Recurring subscription billing for ${sub.name}`,
+      notes: `Subscription payment for ${payingSub.name}`,
       isFavorite: false,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     })
 
-    // 2. Advance next billing date by 1 month
-    const nextDate = new Date(sub.nextBilling || Date.now())
-    nextDate.setMonth(nextDate.getMonth() + 1)
-    updateSubscription(sub.id, {
+    // 2. Advance next billing date by 1 cycle
+    const nextDate = new Date(payingSub.nextBilling || Date.now())
+    if (payingSub.frequency === 'annual') {
+      nextDate.setFullYear(nextDate.getFullYear() + 1)
+    } else if (payingSub.frequency === 'quarterly') {
+      nextDate.setMonth(nextDate.getMonth() + 3)
+    } else if (payingSub.frequency === 'weekly') {
+      nextDate.setDate(nextDate.getDate() + 7)
+    } else {
+      nextDate.setMonth(nextDate.getMonth() + 1)
+    }
+
+    updateSubscription(payingSub.id, {
       nextBilling: nextDate.toISOString().split('T')[0],
       updatedAt: new Date().toISOString(),
     })
+
+    useToastStore.getState().success(
+      `Deducted ${formatCurrency(payingSub.amount)} from ${selectedWallet?.name || 'Wallet'} for ${payingSub.name}`,
+      'Payment Logged!'
+    )
+
+    setPayingSub(null)
   }
 
   const handleAddSubmit = (e: React.FormEvent) => {
@@ -157,6 +188,7 @@ export default function SubscriptionsPage() {
       amount: Number(formData.amount),
       frequency: (formData.frequency as SubscriptionFrequency) || 'monthly',
       category: formData.category || 'Other',
+      walletId: formData.walletId,
       nextBilling: new Date(formData.nextBilling || Date.now()).toISOString(),
       status: (formData.status as any) || 'active',
       usageRating: formData.usageRating || 3,
@@ -406,8 +438,8 @@ export default function SubscriptionsPage() {
                   {/* Action Bar */}
                   <div className="border-t border-mochi-border/40 p-2 bg-mochi-surface-alt flex items-center justify-around gap-1">
                     <button 
-                      onClick={() => handleLogPayment(sub)}
-                      className="px-2.5 py-1 text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 rounded-xl transition-colors flex items-center gap-1 text-xs font-black"
+                      onClick={() => handleOpenLogPayModal(sub)}
+                      className="px-2.5 py-1 text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 rounded-xl transition-colors flex items-center gap-1 text-xs font-black shadow-2xs hover:scale-105 transition-transform"
                       title="Log Renewal Payment"
                     >
                       <CreditCard className="w-3.5 h-3.5" />
@@ -551,6 +583,22 @@ export default function SubscriptionsPage() {
           </div>
 
           <div>
+            <label className="block text-xs font-bold text-mochi-text-secondary mb-1">Default Payment Wallet</label>
+            <select
+              className="mochi-input text-xs w-full font-bold"
+              value={formData.walletId || ''}
+              onChange={(e) => setFormData({ ...formData, walletId: e.target.value })}
+            >
+              <option value="">Select Wallet (Optional)</option>
+              {wallets.map((w) => (
+                <option key={w.id} value={w.id}>
+                  {w.name} — Balance: {formatCurrency(w.balance)}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
             <label className="block text-xs font-bold text-mochi-text-secondary mb-1">Value & Priority Rating</label>
             <div className="flex items-center space-x-2 bg-mochi-surface-alt p-2.5 rounded-2xl border border-mochi-border">
               {[1, 2, 3, 4, 5].map((star) => (
@@ -592,6 +640,104 @@ export default function SubscriptionsPage() {
             </button>
           </div>
         </form>
+      </Dialog>
+
+      {/* Log Subscription Payment Window with Before & After Wallet Balance Breakdown */}
+      <Dialog
+        isOpen={payingSub !== null}
+        onClose={() => setPayingSub(null)}
+        title="Log Subscription Payment"
+        size="md"
+      >
+        {payingSub && (
+          <div className="space-y-4 pt-1">
+            <div className="flex items-center gap-3 p-3.5 rounded-2xl bg-gradient-to-r from-mochi-primary/10 to-sky-500/10 border border-mochi-primary/20">
+              <Mascot mood="excited" size="md" className="shrink-0 drop-shadow-md" />
+              <div>
+                <h4 className="font-black text-sm text-mochi-text">{payingSub.name}</h4>
+                <div className="text-xs font-bold text-mochi-primary">
+                  {formatCurrency(payingSub.amount)} / {payingSub.frequency}
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-mochi-text-secondary mb-1">Select Payment Wallet</label>
+              <select
+                className="mochi-input text-xs w-full font-bold"
+                value={payWalletId}
+                onChange={(e) => setPayWalletId(e.target.value)}
+              >
+                {wallets.length === 0 ? (
+                  <option value="">No Wallets Available</option>
+                ) : (
+                  wallets.map((w) => (
+                    <option key={w.id} value={w.id}>
+                      {w.name} — Current: {formatCurrency(w.balance)}
+                    </option>
+                  ))
+                )}
+              </select>
+            </div>
+
+            {/* Before & After Balance Breakdown Card */}
+            {(() => {
+              const targetWallet = wallets.find((w) => w.id === payWalletId) || wallets[0]
+              const currentBal = targetWallet?.balance || 0
+              const newBal = currentBal - payingSub.amount
+
+              return (
+                <div className="p-4 rounded-2xl bg-mochi-surface-alt border border-mochi-border/80 space-y-2.5">
+                  <div className="text-xs font-bold text-mochi-text-secondary flex items-center justify-between border-b border-mochi-border/50 pb-2">
+                    <span>Selected Wallet:</span>
+                    <span className="font-black text-mochi-text text-sm">{targetWallet?.name || 'Default Wallet'}</span>
+                  </div>
+
+                  <div className="flex items-center justify-between text-xs font-bold">
+                    <span className="text-mochi-text-muted">Current Balance:</span>
+                    <span className="text-mochi-text">{formatCurrency(currentBal)}</span>
+                  </div>
+
+                  <div className="flex items-center justify-between text-xs font-bold text-rose-500">
+                    <span>Subscription Deducted:</span>
+                    <span>- {formatCurrency(payingSub.amount)}</span>
+                  </div>
+
+                  <div className="pt-2 border-t border-mochi-border/60 flex items-center justify-between text-sm font-black">
+                    <span className="text-mochi-text">New Balance After Payment:</span>
+                    <span className={cn(newBal >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400')}>
+                      {formatCurrency(newBal)}
+                    </span>
+                  </div>
+
+                  {newBal < 0 && (
+                    <p className="text-[11px] font-bold text-amber-600 dark:text-amber-400 bg-amber-500/10 p-2 rounded-xl text-center">
+                      Warning: Wallet balance will go below ₱0.00 after payment!
+                    </p>
+                  )}
+                </div>
+              )
+            })()}
+
+            <div className="pt-2 flex gap-3">
+              <button
+                type="button"
+                onClick={() => setPayingSub(null)}
+                className="mochi-btn-secondary text-xs flex-1 py-2.5"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmLogPayment}
+                className="mochi-btn-primary text-xs flex-1 py-2.5 flex items-center justify-center gap-1.5"
+              >
+                <CreditCard className="w-4 h-4" />
+                Confirm & Log Payment
+              </button>
+            </div>
+          </div>
+        )}
       </Dialog>
     </motion.div>
   )
