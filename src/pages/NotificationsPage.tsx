@@ -6,6 +6,7 @@ import {
   Trash2,
   CheckCheck,
   ExternalLink,
+  CreditCard,
 } from 'lucide-react'
 import Mascot from '@/components/ui/Mascot'
 import MochiCategoryVectorSVG from '@/components/ui/MochiCategoryVectorSVG'
@@ -207,6 +208,22 @@ export default function NotificationsPage() {
                         <p className="text-xs text-mochi-text-muted mt-1 leading-relaxed">
                           {notif.message}
                         </p>
+
+                        {notif.actionLabel && (
+                          <div className="mt-2.5">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                markAsRead(notif.id)
+                                if (notif.deepLink) navigate(notif.deepLink)
+                              }}
+                              className="text-xs font-black px-3 py-1.5 rounded-xl bg-mochi-primary text-white shadow-xs hover:scale-105 active:scale-95 transition-all flex items-center gap-1.5"
+                            >
+                              <CreditCard className="w-3.5 h-3.5" />
+                              {notif.actionLabel}
+                            </button>
+                          </div>
+                        )}
                       </div>
 
                       {/* Item Quick Actions */}

@@ -231,6 +231,9 @@ export interface AppNotification {
   read: boolean
   date: string
   deepLink?: string
+  actionLabel?: string
+  relatedId?: string
+  amount?: number
 }
 
 // User Profile

@@ -9,6 +9,7 @@ import {
   Bell,
   BellOff,
   Sparkles,
+  CreditCard,
 } from 'lucide-react'
 import { useAppStore, getUid } from '@/store/appStore'
 import { Subscription, SubscriptionFrequency } from '@/types'
@@ -110,6 +111,40 @@ export default function SubscriptionsPage() {
   const nextRenewalDate = activeSubscriptions
     .map(s => new Date(s.nextBilling))
     .sort((a, b) => a.getTime() - b.getTime())[0]
+
+  const topSubscription = useMemo(() => {
+    if (activeSubscriptions.length === 0) return null
+    return [...activeSubscriptions].sort((a, b) => getMonthlyAmount(b) - getMonthlyAmount(a))[0]
+  }, [activeSubscriptions])
+
+  const handleLogPayment = (sub: Subscription) => {
+    const todayStr = new Date().toISOString().split('T')[0]
+    
+    // 1. Log transaction
+    useAppStore.getState().addTransaction({
+      id: `txn_sub_${Date.now()}`,
+      userId: sub.userId || getUid(),
+      type: 'expense',
+      amount: sub.amount,
+      currency: 'PHP',
+      categoryId: 'subscriptions',
+      merchant: sub.name,
+      paymentMethod: 'cash',
+      date: todayStr,
+      notes: `Recurring subscription billing for ${sub.name}`,
+      isFavorite: false,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    })
+
+    // 2. Advance next billing date by 1 month
+    const nextDate = new Date(sub.nextBilling || Date.now())
+    nextDate.setMonth(nextDate.getMonth() + 1)
+    updateSubscription(sub.id, {
+      nextBilling: nextDate.toISOString().split('T')[0],
+      updatedAt: new Date().toISOString(),
+    })
+  }
 
   const handleAddSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -236,31 +271,41 @@ export default function SubscriptionsPage() {
       </div>
 
       {/* Summary Cards */}
-      <section aria-label="Subscription Summary" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="mochi-card p-5 bg-gradient-to-br from-mochi-surface to-mochi-surface/80 border-t-4 border-t-sky-500">
-          <div className="text-xs font-bold text-mochi-text-secondary uppercase tracking-wider mb-1">Monthly Spend</div>
-          <div className="text-2xl font-black text-sky-600 dark:text-sky-400">{formatCurrency(monthlyCost)}</div>
+      <section aria-label="Subscription Summary" className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
+        <div className="mochi-card p-4 bg-gradient-to-br from-mochi-surface to-mochi-surface/80 border-t-4 border-t-sky-500 shadow-xs">
+          <div className="text-[10px] font-extrabold text-mochi-text-secondary uppercase tracking-wider mb-1">Monthly Spend</div>
+          <div className="text-xl sm:text-2xl font-black text-sky-600 dark:text-sky-400">{formatCurrency(monthlyCost)}</div>
         </div>
-        <div className="mochi-card p-5 bg-gradient-to-br from-mochi-surface to-mochi-surface/80 border-t-4 border-t-purple-500">
-          <div className="text-xs font-bold text-mochi-text-secondary uppercase tracking-wider mb-1">Annual Forecast</div>
-          <div className="text-2xl font-black text-purple-600 dark:text-purple-400">{formatCurrency(annualCost)}</div>
+
+        <div className="mochi-card p-4 bg-gradient-to-br from-mochi-surface to-mochi-surface/80 border-t-4 border-t-purple-500 shadow-xs">
+          <div className="text-[10px] font-extrabold text-mochi-text-secondary uppercase tracking-wider mb-1">Annual Forecast</div>
+          <div className="text-xl sm:text-2xl font-black text-purple-600 dark:text-purple-400">{formatCurrency(annualCost)}</div>
         </div>
-        <div className="mochi-card p-5 bg-gradient-to-br from-mochi-surface to-mochi-surface/80 border-t-4 border-t-amber-500">
-          <div className="text-xs font-bold text-mochi-text-secondary uppercase tracking-wider mb-1">Next Renewal</div>
-          <div className="text-xl font-black text-amber-600 dark:text-amber-400 mt-1">
+
+        <div className="mochi-card p-4 bg-gradient-to-br from-mochi-surface to-mochi-surface/80 border-t-4 border-t-amber-500 shadow-xs">
+          <div className="text-[10px] font-extrabold text-mochi-text-secondary uppercase tracking-wider mb-1">Next Renewal</div>
+          <div className="text-lg sm:text-xl font-black text-amber-600 dark:text-amber-400 mt-0.5">
             {nextRenewalDate ? formatDate(nextRenewalDate) : 'None'}
           </div>
         </div>
-        <div className="mochi-card p-5 bg-gradient-to-br from-mochi-surface to-mochi-surface/80 border-t-4 border-t-emerald-500">
-          <div className="text-xs font-bold text-mochi-text-secondary uppercase tracking-wider mb-1">Active Services</div>
-          <div className="text-2xl font-black text-emerald-600 dark:text-emerald-400">{activeSubscriptions.length}</div>
+
+        <div className="mochi-card p-4 bg-gradient-to-br from-mochi-surface to-mochi-surface/80 border-t-4 border-t-rose-500 shadow-xs">
+          <div className="text-[10px] font-extrabold text-mochi-text-secondary uppercase tracking-wider mb-1">Top Recurring Bill</div>
+          <div className="text-sm font-black text-rose-600 dark:text-rose-400 truncate mt-1">
+            {topSubscription ? `${topSubscription.name} (${formatCurrency(topSubscription.amount)})` : 'None'}
+          </div>
+        </div>
+
+        <div className="mochi-card p-4 bg-gradient-to-br from-mochi-surface to-mochi-surface/80 border-t-4 border-t-emerald-500 shadow-xs col-span-2 sm:col-span-1">
+          <div className="text-[10px] font-extrabold text-mochi-text-secondary uppercase tracking-wider mb-1">Active Services</div>
+          <div className="text-xl sm:text-2xl font-black text-emerald-600 dark:text-emerald-400">{activeSubscriptions.length}</div>
         </div>
       </section>
 
       {/* Main Content */}
       <section aria-label="Your Subscriptions">
         {subscriptions.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 text-center">
+          <div className="flex flex-col items-center justify-center py-16 text-center">
             <Mascot mood="excited" size="lg" className="mb-4 drop-shadow-xl" />
             <h3 className="text-xl font-black text-mochi-text mb-2">No Subscriptions Tracked Yet</h3>
             <p className="text-mochi-text-secondary mb-6 max-w-md text-xs sm:text-sm">
@@ -299,24 +344,25 @@ export default function SubscriptionsPage() {
                             <span className={cn("text-[10px] font-bold px-2 py-0.5 rounded-full capitalize", getStatusColor(sub.status))}>
                               {sub.status}
                             </span>
-                            <span className="text-[10px] font-semibold text-mochi-text-muted capitalize">• {sub.category}</span>
+                            <span className="text-xs text-mochi-text-muted capitalize">{sub.category}</span>
                           </div>
                         </div>
                       </div>
+                      
+                      <div className="text-right">
+                        <div className="font-black text-lg text-mochi-text">{formatCurrency(sub.amount)}</div>
+                        <div className="text-[10px] font-bold text-mochi-text-muted uppercase">/{sub.frequency}</div>
+                      </div>
                     </div>
-
-                    <div className="flex justify-between items-end mb-4">
+                    
+                    <div className="grid grid-cols-2 gap-2 my-3 p-2.5 rounded-2xl bg-mochi-surface-alt border border-mochi-border/60 text-xs">
                       <div>
-                        <div className="text-2xl font-black text-mochi-text">
-                          {formatCurrency(sub.amount)}
-                        </div>
-                        <div className="text-xs text-mochi-text-muted font-bold capitalize">
-                          per {sub.frequency.replace('ly', '')}
-                        </div>
+                        <div className="text-[10px] font-bold text-mochi-text-muted uppercase">Monthly Cost</div>
+                        <div className="font-bold text-mochi-text">{formatCurrency(getMonthlyAmount(sub))}</div>
                       </div>
                       <div className="text-right">
-                        <div className="text-xs font-bold text-mochi-text-secondary">Next Renewal</div>
-                        <div className="text-xs font-extrabold text-mochi-primary">
+                        <div className="text-[10px] font-bold text-mochi-text-muted uppercase">Next Renewal</div>
+                        <div className="font-bold text-mochi-primary">
                           {formatDate(sub.nextBilling)}
                         </div>
                       </div>
@@ -358,7 +404,16 @@ export default function SubscriptionsPage() {
                   </div>
                   
                   {/* Action Bar */}
-                  <div className="border-t border-mochi-border/40 p-2 bg-mochi-surface-alt flex justify-around">
+                  <div className="border-t border-mochi-border/40 p-2 bg-mochi-surface-alt flex items-center justify-around gap-1">
+                    <button 
+                      onClick={() => handleLogPayment(sub)}
+                      className="px-2.5 py-1 text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 rounded-xl transition-colors flex items-center gap-1 text-xs font-black"
+                      title="Log Renewal Payment"
+                    >
+                      <CreditCard className="w-3.5 h-3.5" />
+                      <span>Pay / Log</span>
+                    </button>
+
                     <button 
                       onClick={() => toggleStatus(sub.id, sub.status)}
                       className="p-1.5 text-mochi-text-secondary hover:text-mochi-primary rounded-xl hover:bg-mochi-surface transition-colors flex items-center gap-1 text-xs font-bold"

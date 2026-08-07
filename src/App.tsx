@@ -242,6 +242,8 @@ function AnimatedRoutes() {
   )
 }
 
+import { checkUpcomingDueDates } from './services/dueDateNotifier'
+
 export default function App() {
   const { user } = useAuthStore()
   const { processDueRecurring } = useAppStore()
@@ -250,6 +252,7 @@ export default function App() {
     useThemeStore.getState().initialize()
     initOfflineQueueListener()
     processDueRecurring()
+    checkUpcomingDueDates()
   }, [processDueRecurring])
 
   useEffect(() => {
