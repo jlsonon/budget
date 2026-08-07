@@ -54,6 +54,8 @@ export async function signInWithGoogle() {
       throw new Error('Google sign-in popup was closed.')
     } else if (err?.code === 'auth/operation-not-allowed') {
       throw new Error('Google Sign-In is disabled in your Firebase Console.')
+    } else if (err?.code === 'auth/unauthorized-domain') {
+      throw new Error('This domain (mochimoney.online) is not authorized in your Firebase Auth Console. Please add "mochimoney.online" in Firebase Console > Authentication > Settings > Authorized Domains.')
     }
     throw new Error(err?.message || 'Could not sign in with Google.')
   }
@@ -70,6 +72,8 @@ export async function signInWithEmail(email: string, password: string) {
       throw new Error('Incorrect email or password. Please check your credentials.')
     } else if (err?.code === 'auth/invalid-email') {
       throw new Error('Please enter a valid email address.')
+    } else if (err?.code === 'auth/unauthorized-domain') {
+      throw new Error('This domain (mochimoney.online) is not authorized in your Firebase Auth Console. Please add "mochimoney.online" in Firebase Console > Authentication > Settings > Authorized Domains.')
     }
     throw new Error(err?.message || 'Could not sign in.')
   }
@@ -90,6 +94,8 @@ export async function registerWithEmail(email: string, password: string) {
       throw new Error('Please enter a valid email address.')
     } else if (err?.code === 'auth/operation-not-allowed') {
       throw new Error('Email/Password authentication is disabled in your Firebase Console. Enable it in Authentication > Sign-in method.')
+    } else if (err?.code === 'auth/unauthorized-domain') {
+      throw new Error('This domain (mochimoney.online) is not authorized in your Firebase Auth Console. Please add "mochimoney.online" in Firebase Console > Authentication > Settings > Authorized Domains.')
     }
     throw new Error(err?.message || 'Could not create account.')
   }
