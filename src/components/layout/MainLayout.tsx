@@ -1,5 +1,5 @@
 import { Outlet, useNavigate, useLocation } from 'react-router-dom'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Home,
@@ -27,6 +27,10 @@ import {
   Download,
   ChevronRight,
   Shield,
+  ArrowUpRight,
+  ArrowDownLeft,
+  ArrowLeftRight,
+  Camera,
 } from 'lucide-react'
 import { useAuthStore } from '../../store/authStore'
 import { useAppStore } from '../../store/appStore'
@@ -35,6 +39,7 @@ import { useNotificationStore } from '../../store/notificationStore'
 import { getGreeting } from '../../lib/utils'
 import Mascot from '../ui/Mascot'
 import AddTransactionModal from '../modals/AddTransactionModal'
+import { TransferModal } from '../modals/TransferModal'
 
 import { Receipt } from 'lucide-react'
 import MascotAIChatModal from '../ai/MascotAIChatModal'
@@ -74,6 +79,32 @@ export default function MainLayout() {
   const [backupSuccess, setBackupSuccess] = useState(false)
   const [showAIChat, setShowAIChat] = useState(false)
   const [showScanner, setShowScanner] = useState(false)
+  const [showTransferModal, setShowTransferModal] = useState(false)
+  const [showRadialMenu, setShowRadialMenu] = useState(false)
+
+  const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const isLongPressRef = useRef(false)
+
+  const handlePressStart = () => {
+    isLongPressRef.current = false
+    longPressTimerRef.current = setTimeout(() => {
+      isLongPressRef.current = true
+      setShowRadialMenu(true)
+      if (typeof window !== 'undefined' && 'vibrate' in navigator) {
+        navigator.vibrate(40)
+      }
+    }, 400)
+  }
+
+  const handlePressEnd = () => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current)
+      longPressTimerRef.current = null
+    }
+    if (!isLongPressRef.current && !showRadialMenu) {
+      setAddModalOpen(true)
+    }
+  }
 
   // Pre-warm local AI engine silently in the background on app load
   useEffect(() => {
@@ -109,18 +140,20 @@ export default function MainLayout() {
   return (
     <div className="min-h-screen bg-mochi-bg pb-20 md:pb-0 md:pl-20">
       <AddTransactionModal />
+      <TransferModal isOpen={showTransferModal} onClose={() => setShowTransferModal(false)} />
       <MascotAIChatModal isOpen={showAIChat} onClose={() => setShowAIChat(false)} />
       <ReceiptScannerModal isOpen={showScanner} onClose={() => setShowScanner(false)} />
 
       {/* Modern Top Header */}
       <header className="sticky top-0 z-40 bg-mochi-surface/85 backdrop-blur-xl border-b border-mochi-border px-4 py-3 safe-top">
         <div className="flex items-center justify-between max-w-7xl mx-auto relative">
-          {/* Left: Mascot & User Greeting */}
+          {/* Left: Mascot & User Greeting (Click mascot navigates to Home /) */}
           <div className="flex items-center gap-3">
             <button
-              onClick={() => setShowProfileMenu((prev) => !prev)}
+              onClick={() => navigate('/')}
               className="relative p-0.5 rounded-2xl bg-gradient-mochi shadow-xs hover:scale-105 transition-transform"
-              aria-label="Toggle Account Menu"
+              aria-label="Go to Home"
+              title="Go to Home"
             >
               <div className="bg-mochi-surface rounded-[14px] p-1 flex items-center justify-center">
                 <Mascot size="sm" mood="happy" animate={true} />
@@ -372,13 +405,20 @@ export default function MainLayout() {
             )
           })}
 
-          {/* Quick Add Button */}
+          {/* Quick Add Button with Long-Press Radial Semicircle Quick-Menu */}
           <button
-            onClick={() => setAddModalOpen(true)}
-            className="w-11 h-11 rounded-2xl bg-gradient-mochi text-white flex items-center justify-center shadow-lg hover:scale-105 active:scale-95 transition-transform -mt-4 border-2 border-mochi-surface"
-            aria-label="Add Transaction"
+            onMouseDown={handlePressStart}
+            onMouseUp={handlePressEnd}
+            onMouseLeave={() => {
+              if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current)
+            }}
+            onTouchStart={handlePressStart}
+            onTouchEnd={handlePressEnd}
+            className="w-12 h-12 rounded-2xl bg-gradient-mochi text-white flex items-center justify-center shadow-lg hover:scale-105 active:scale-95 transition-transform -mt-5 border-2 border-mochi-surface select-none touch-none"
+            aria-label="Add Transaction (Hold for Quick Menu)"
+            title="Tap to add transaction • Hold for quick menu"
           >
-            <Plus className="w-6 h-6 stroke-[3px]" />
+            <Plus className={`w-6 h-6 stroke-[3px] transition-transform duration-300 ${showRadialMenu ? 'rotate-45' : ''}`} />
           </button>
 
           {/* More Trigger */}
@@ -495,6 +535,120 @@ export default function MainLayout() {
               </div>
             </motion.div>
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Semicircle Radial Quick-Menu Overlay (Long-Press + Button) */}
+      <AnimatePresence>
+        {showRadialMenu && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs md:hidden"
+              onClick={() => setShowRadialMenu(false)}
+            />
+
+            {/* Semicircle Radial Options Menu Arc */}
+            <div className="fixed bottom-14 left-1/2 -translate-x-1/2 z-50 pointer-events-none md:hidden">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.5, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.5, y: 20 }}
+                transition={{ type: 'spring', damping: 22, stiffness: 320 }}
+                className="relative w-80 h-40 flex items-end justify-center pointer-events-auto"
+              >
+                {[
+                  {
+                    id: 'expense',
+                    label: 'Expense',
+                    icon: ArrowUpRight,
+                    color: 'from-rose-500 to-pink-500 text-white',
+                    angle: -72,
+                    onClick: () => {
+                      setShowRadialMenu(false)
+                      setAddModalOpen(true)
+                    },
+                  },
+                  {
+                    id: 'income',
+                    label: 'Income',
+                    icon: ArrowDownLeft,
+                    color: 'from-emerald-500 to-teal-500 text-white',
+                    angle: -36,
+                    onClick: () => {
+                      setShowRadialMenu(false)
+                      setAddModalOpen(true)
+                    },
+                  },
+                  {
+                    id: 'transfer',
+                    label: 'Transfer',
+                    icon: ArrowLeftRight,
+                    color: 'from-purple-500 to-indigo-500 text-white',
+                    angle: 0,
+                    onClick: () => {
+                      setShowRadialMenu(false)
+                      setShowTransferModal(true)
+                    },
+                  },
+                  {
+                    id: 'scan',
+                    label: 'Scan',
+                    icon: Camera,
+                    color: 'from-blue-500 to-cyan-500 text-white',
+                    angle: 36,
+                    onClick: () => {
+                      setShowRadialMenu(false)
+                      setShowScanner(true)
+                    },
+                  },
+                  {
+                    id: 'ai',
+                    label: 'Mochi AI',
+                    icon: Sparkles,
+                    color: 'from-amber-500 to-orange-500 text-white',
+                    angle: 72,
+                    onClick: () => {
+                      setShowRadialMenu(false)
+                      setShowAIChat(true)
+                    },
+                  },
+                ].map((item) => {
+                  const Icon = item.icon
+                  const rad = (item.angle - 90) * (Math.PI / 180)
+                  const radius = 115
+                  const x = radius * Math.cos(rad)
+                  const y = radius * Math.sin(rad)
+
+                  return (
+                    <motion.button
+                      key={item.id}
+                      initial={{ opacity: 0, scale: 0 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: 0.05 }}
+                      onClick={item.onClick}
+                      style={{
+                        transform: `translate(${x}px, ${y}px)`,
+                      }}
+                      className="absolute flex flex-col items-center gap-1 p-1 hover:scale-110 active:scale-95 transition-transform group"
+                    >
+                      <div
+                        className={`w-11 h-11 rounded-full bg-gradient-to-tr ${item.color} flex items-center justify-center shadow-lg border-2 border-white dark:border-mochi-surface`}
+                      >
+                        <Icon className="w-5 h-5 stroke-[2.5px]" />
+                      </div>
+                      <span className="text-[10px] font-extrabold text-white bg-black/70 px-2 py-0.5 rounded-full backdrop-blur-xs whitespace-nowrap shadow-xs">
+                        {item.label}
+                      </span>
+                    </motion.button>
+                  )
+                })}
+              </motion.div>
+            </div>
+          </>
         )}
       </AnimatePresence>
     </div>
