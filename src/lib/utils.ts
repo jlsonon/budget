@@ -50,10 +50,26 @@ export function formatTime(timeInput?: string | Date): string {
 
 export function getGreeting(): string {
   const hour = new Date().getHours()
-  if (hour < 12) return 'Good Morning'
-  if (hour < 17) return 'Good Afternoon'
-  return 'Good Evening'
+  if (hour >= 5 && hour < 12) return 'Good Morning'
+  if (hour >= 12 && hour < 17) return 'Good Afternoon'
+  if (hour >= 17 && hour < 22) return 'Good Evening'
+  return 'Good Night'
 }
+
+export function getGreetingInfo(): { greeting: string; subtitle: string } {
+  const hour = new Date().getHours()
+  if (hour >= 5 && hour < 12) {
+    return { greeting: 'Good Morning', subtitle: 'Start your day with smart money habits!' }
+  }
+  if (hour >= 12 && hour < 17) {
+    return { greeting: 'Good Afternoon', subtitle: 'Hope your day is productive & bright!' }
+  }
+  if (hour >= 17 && hour < 22) {
+    return { greeting: 'Good Evening', subtitle: 'Review your daily spending & savings!' }
+  }
+  return { greeting: 'Good Night', subtitle: 'Rest well! Mochi is keeping your budget safe.' }
+}
+
 
 export function calculateProgress(current: number, target: number): number {
   if (target === 0) return 0

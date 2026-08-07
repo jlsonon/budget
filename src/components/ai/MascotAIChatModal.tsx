@@ -322,7 +322,7 @@ Active Budget Categories: ${budgets.length}`
       setMessages((prev) =>
         prev.map((msg) =>
           msg.id === mochiMsgId
-            ? { ...msg, text: result.text || 'Done.', actionSuccessNotice: notice }
+            ? { ...msg, text: result.text || notice || 'Action executed successfully.', actionSuccessNotice: notice }
             : msg
         )
       )

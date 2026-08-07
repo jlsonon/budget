@@ -285,28 +285,38 @@ ${financialSummaryText}`
   }
 }
 
+function cleanAndParseJSON(jsonCandidate: string): any {
+  try {
+    return JSON.parse(jsonCandidate)
+  } catch (e1) {
+    try {
+      // Clean up common small LLM formatting quirks (e.g. unescaped newlines inside strings or trailing commas)
+      const sanitized = jsonCandidate
+        .replace(/,\s*([\}\]])/g, '$1')
+        .replace(/[\u0000-\u001F]+/g, ' ')
+      return JSON.parse(sanitized)
+    } catch (e2) {
+      return null
+    }
+  }
+}
+
 function processFinalText(rawText: string): { text: string; action?: ParsedAIAction } {
   let action: ParsedAIAction | undefined = undefined
 
   // 1. Try explicit ACTION_JSON prefix match
   const matchExplicit = rawText.match(/ACTION_JSON:\s*(\{[\s\S]*?\})/s)
   if (matchExplicit && matchExplicit[1]) {
-    try {
-      action = JSON.parse(matchExplicit[1])
-    } catch (e) {
-      console.warn('Failed to parse explicit ACTION_JSON', e)
-    }
+    const parsed = cleanAndParseJSON(matchExplicit[1])
+    if (parsed) action = parsed
   }
 
   // 2. Fallback regex to capture any JSON block with action key
   if (!action) {
     const matchGeneric = rawText.match(/(\{[\s\S]*?"action"\s*:\s*"[^"]+"[\s\S]*?\})/s)
     if (matchGeneric && matchGeneric[1]) {
-      try {
-        action = JSON.parse(matchGeneric[1])
-      } catch (e) {
-        console.warn('Failed to parse generic action JSON', e)
-      }
+      const parsed = cleanAndParseJSON(matchGeneric[1])
+      if (parsed) action = parsed
     }
   }
 
