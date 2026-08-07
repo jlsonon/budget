@@ -12,7 +12,7 @@ import ProgressRing from '@/components/ui/ProgressRing'
 import MochiIcon from '@/components/ui/MochiIcons'
 import MochiIllustration from '@/components/ui/MochiIllustrations'
 import { useAppStore, getUid } from '@/store/appStore'
-import { formatCurrency, cn, calculateProgress } from '@/lib/utils'
+import { formatCurrency, cn, calculateProgress, formatDate } from '@/lib/utils'
 import type { SavingsGoal } from '@/types'
 import Dialog from '@/components/ui/Dialog'
 
@@ -68,7 +68,7 @@ function GoalCard({ goal }: { goal: SavingsGoal }) {
         {goal.deadline && (
           <span className="flex items-center gap-1">
             <Calendar className="w-3 h-3" />
-            {new Date(goal.deadline).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+            {formatDate(goal.deadline)}
           </span>
         )}
       </div>

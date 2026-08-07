@@ -27,7 +27,7 @@ import MochiIcon from '@/components/ui/MochiIcons'
 import GroupMascotSVG from '@/components/ui/GroupMascotSVG'
 import { useAppStore } from '@/store/appStore'
 import { useAuthStore } from '@/store/authStore'
-import { formatCurrency, getGreeting, getHealthScoreColor, cn } from '@/lib/utils'
+import { formatCurrency, getGreeting, getHealthScoreColor, cn, formatDate } from '@/lib/utils'
 import type { Achievement, DailyMission, CalendarEvent as CalendarEventType } from '@/types'
 
 // Clean initial states
@@ -615,7 +615,7 @@ export default function DashboardPage() {
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-mochi-text truncate">{event.title}</p>
                 <p className="text-xs text-mochi-text-muted">
-                  {new Date(event.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                  {formatDate(event.date)}
                 </p>
               </div>
               {event.amount && (

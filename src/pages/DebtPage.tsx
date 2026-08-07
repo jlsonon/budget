@@ -16,7 +16,7 @@ import {
 } from 'lucide-react'
 import { useAppStore } from '@/store/appStore'
 import { useAuthStore } from '@/store/authStore'
-import { formatCurrency, calculateProgress } from '@/lib/utils'
+import { formatCurrency, calculateProgress, formatDate } from '@/lib/utils'
 import type { Debt } from '@/types'
 import MochiIllustration from '@/components/ui/MochiIllustrations'
 import Dialog from '@/components/ui/Dialog'
@@ -83,7 +83,7 @@ function DebtCard({ debt, onPay }: { debt: Debt; onPay: (debt: Debt) => void }) 
           ) : (
             <span className="mochi-badge mochi-badge-warning flex items-center gap-1 text-[10px]">
               <CalendarDays className="w-3 h-3" />
-              {new Date(debt.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+              {formatDate(debt.dueDate)}
             </span>
           )}
         </div>

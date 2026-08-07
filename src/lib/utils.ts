@@ -13,6 +13,8 @@ export function formatCurrency(amount: number, currency = 'PHP'): string {
 
 export function formatDate(date: string | Date, format: 'short' | 'long' | 'relative' = 'short'): string {
   const d = typeof date === 'string' ? new Date(date) : date
+  if (isNaN(d.getTime())) return 'MM-DD-YYYY'
+  
   if (format === 'relative') {
     const now = new Date()
     const diff = now.getTime() - d.getTime()
@@ -23,10 +25,11 @@ export function formatDate(date: string | Date, format: 'short' | 'long' | 'rela
     if (days < 30) return `${Math.floor(days / 7)} weeks ago`
     return `${Math.floor(days / 30)} months ago`
   }
-  if (format === 'long') {
-    return d.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
-  }
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+
+  const mm = String(d.getMonth() + 1).padStart(2, '0')
+  const dd = String(d.getDate()).padStart(2, '0')
+  const yyyy = d.getFullYear()
+  return `${mm}-${dd}-${yyyy}`
 }
 
 export function getGreeting(): string {

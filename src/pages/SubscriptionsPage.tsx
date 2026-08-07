@@ -15,7 +15,7 @@ import { Subscription, SubscriptionFrequency } from '@/types'
 import Mascot from '@/components/ui/Mascot'
 import Dialog from '@/components/ui/Dialog'
 import { SubscriptionBrandLogo } from '@/components/ui/SubscriptionBrandLogo'
-import { formatCurrency, cn } from '@/lib/utils'
+import { formatCurrency, cn, formatDate } from '@/lib/utils'
 
 export interface PresetService {
   name: string
@@ -248,7 +248,7 @@ export default function SubscriptionsPage() {
         <div className="mochi-card p-5 bg-gradient-to-br from-mochi-surface to-mochi-surface/80 border-t-4 border-t-amber-500">
           <div className="text-xs font-bold text-mochi-text-secondary uppercase tracking-wider mb-1">Next Renewal</div>
           <div className="text-xl font-black text-amber-600 dark:text-amber-400 mt-1">
-            {nextRenewalDate ? nextRenewalDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : 'None'}
+            {nextRenewalDate ? formatDate(nextRenewalDate) : 'None'}
           </div>
         </div>
         <div className="mochi-card p-5 bg-gradient-to-br from-mochi-surface to-mochi-surface/80 border-t-4 border-t-emerald-500">
@@ -317,7 +317,7 @@ export default function SubscriptionsPage() {
                       <div className="text-right">
                         <div className="text-xs font-bold text-mochi-text-secondary">Next Renewal</div>
                         <div className="text-xs font-extrabold text-mochi-primary">
-                          {new Date(sub.nextBilling).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                          {formatDate(sub.nextBilling)}
                         </div>
                       </div>
                     </div>
