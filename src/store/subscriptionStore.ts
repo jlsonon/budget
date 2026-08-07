@@ -7,6 +7,7 @@ import { atomicAddTransaction } from '../services/atomicOps'
 import { useWalletStore } from './walletStore'
 import { useAuthStore } from './authStore'
 import { useToastStore } from './toastStore'
+import { useAppStore } from './appStore'
 
 export interface SubscriptionState {
   subscriptions: Subscription[]
@@ -21,12 +22,18 @@ export const useSubscriptionStore = create<SubscriptionState>()(
   persist(
     (set, get) => ({
       subscriptions: [],
-      setSubscriptions: (subs: Subscription[]) => set({ subscriptions: subs }),
+      setSubscriptions: (subs: Subscription[]) => {
+        set({ subscriptions: subs })
+        useAppStore.setState({ subscriptions: subs })
+      },
       addSubscription: async (sub: Subscription) => {
         const currentUserId = useAuthStore.getState().user?.id || sub.userId || 'anon'
         const subWithUser = { ...sub, userId: currentUserId }
-        
-        set((s: SubscriptionState) => ({ subscriptions: [...s.subscriptions, subWithUser] }))
+        const newSubs = [...get().subscriptions, subWithUser]
+
+        set({ subscriptions: newSubs })
+        useAppStore.setState({ subscriptions: newSubs })
+
         try {
           await saveDocToCloud(FIRESTORE_COLLECTIONS.SUBSCRIPTIONS, subWithUser)
           useToastStore.getState().success(`Subscription "${subWithUser.name}" saved!`, 'Saved')
@@ -36,18 +43,23 @@ export const useSubscriptionStore = create<SubscriptionState>()(
       },
       updateSubscription: async (id: string, updates: Partial<Subscription>) => {
         const currentUserId = useAuthStore.getState().user?.id || 'anon'
-        set((s: SubscriptionState) => ({
-          subscriptions: s.subscriptions.map((sub: Subscription) =>
-            sub.id === id ? { ...sub, ...updates, userId: currentUserId, updatedAt: new Date().toISOString() } : sub
-          ),
-        }))
-        const updated = get().subscriptions.find((s: Subscription) => s.id === id)
+        const updatedSubs = get().subscriptions.map((sub: Subscription) =>
+          sub.id === id ? { ...sub, ...updates, userId: currentUserId, updatedAt: new Date().toISOString() } : sub
+        )
+
+        set({ subscriptions: updatedSubs })
+        useAppStore.setState({ subscriptions: updatedSubs })
+
+        const updated = updatedSubs.find((s: Subscription) => s.id === id)
         if (updated) {
           await saveDocToCloud(FIRESTORE_COLLECTIONS.SUBSCRIPTIONS, updated)
         }
       },
       deleteSubscription: async (id: string) => {
-        set((s: SubscriptionState) => ({ subscriptions: s.subscriptions.filter((sub: Subscription) => sub.id !== id) }))
+        const updatedSubs = get().subscriptions.filter((sub: Subscription) => sub.id !== id)
+        set({ subscriptions: updatedSubs })
+        useAppStore.setState({ subscriptions: updatedSubs })
+
         try {
           await deleteDocFromCloud(FIRESTORE_COLLECTIONS.SUBSCRIPTIONS, id)
           useToastStore.getState().info('Subscription deleted', 'Removed')

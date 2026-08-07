@@ -243,6 +243,7 @@ function AnimatedRoutes() {
 }
 
 import { checkUpcomingDueDates } from './services/dueDateNotifier'
+import { useSubscriptionStore } from './store/subscriptionStore'
 
 export default function App() {
   const { user } = useAuthStore()
@@ -251,6 +252,13 @@ export default function App() {
   useEffect(() => {
     useThemeStore.getState().initialize()
     initOfflineQueueListener()
+    
+    // Hydrate useAppStore subscriptions from persistent useSubscriptionStore
+    const localSubs = useSubscriptionStore.getState().subscriptions
+    if (localSubs.length > 0) {
+      useAppStore.setState({ subscriptions: localSubs })
+    }
+
     processDueRecurring()
     checkUpcomingDueDates()
   }, [processDueRecurring])
