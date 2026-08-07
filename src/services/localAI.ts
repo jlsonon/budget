@@ -92,10 +92,17 @@ export function fallbackRuleBasedAI(
     const isIncome = /(?:income|earned|salary|deposit|received|bonus|cash\s*in)/i.test(query)
     const type = isIncome ? 'income' : 'expense'
     
-    let merchant = query
-      .replace(/(?:log|add|spent|spend|bought|buy|pay|paid|cost|expense|income|earned|salary|deposit|received|for|at|on|₱|php|\$|\d+(?:\.\d{1,2})?)/gi, '')
+    let rawMerchant = query
+      .replace(/(?:log|add|spent|spend|bought|buy|pay|paid|cost|expense|income|earned|salary|deposit|received|for|at|on|using|via|with|payment\s+to|₱|php|\$|\d+(?:\.\d{1,2})?)/gi, '')
+      .replace(/(?:gcash|maya|cash|bank|bdo|bpi|paypal|wallet)/gi, '')
+      .replace(/[,;.]/g, '')
       .trim()
-    if (!merchant || merchant.length < 2) {
+
+    let merchant = rawMerchant
+    if (/llaamove|lalamove/i.test(query)) merchant = 'Lalamove'
+    else if (/grab/i.test(query)) merchant = 'Grab'
+    else if (/angkas/i.test(query)) merchant = 'Angkas'
+    else if (!merchant || merchant.length < 2) {
       merchant = isIncome ? 'Income Deposit' : 'Expense Item'
     }
     merchant = merchant.charAt(0).toUpperCase() + merchant.slice(1)
@@ -103,13 +110,18 @@ export function fallbackRuleBasedAI(
     let category = 'other'
     if (/(?:lunch|dinner|breakfast|food|coffee|jollibee|mcdo|mcdonald|starbucks|restaurant|eat|samgyup)/i.test(query)) category = 'food'
     else if (/(?:groceries|grocery|supermarket|mart|savemore|puregold)/i.test(query)) category = 'groceries'
-    else if (/(?:gas|fuel|ride|grab|angkas|jeepney|bus|transport|commute)/i.test(query)) category = 'transportation'
+    else if (/(?:gas|fuel|ride|grab|angkas|moveit|jeepney|bus|transport|commute|llaamove|lalamove|courier|delivery)/i.test(query)) category = 'transportation'
     else if (/(?:shopee|lazada|mall|clothes|shopping|bought|store)/i.test(query)) category = 'shopping'
     else if (/(?:meralco|electric|water|internet|pldt|globe|bill|utility)/i.test(query)) category = 'utilities'
     else if (/(?:salary|freelance|paycheck|bonus)/i.test(query)) category = 'salary'
 
+    let detectedWallet = 'cash'
+    if (query.includes('gcash')) detectedWallet = 'gcash'
+    else if (query.includes('maya')) detectedWallet = 'maya'
+    else if (query.includes('bank') || query.includes('bdo') || query.includes('bpi')) detectedWallet = 'bank'
+
     return {
-      text: `Logging ${type} of ₱${amt.toLocaleString('en-US', { minimumFractionDigits: 2 })} (${merchant} • Category: ${category.toUpperCase()})...`,
+      text: `Logged ${type} of ₱${amt.toLocaleString('en-US', { minimumFractionDigits: 2 })} for ${merchant} (${category.toUpperCase()} • Wallet: ${detectedWallet.toUpperCase()}).`,
       action: {
         action: 'add_transaction',
         payload: {
@@ -117,6 +129,7 @@ export function fallbackRuleBasedAI(
           amount: amt,
           merchant,
           category,
+          wallet: detectedWallet,
         },
       },
     }
@@ -128,7 +141,7 @@ export function fallbackRuleBasedAI(
     const goalName = goalMatch[1].trim()
     const targetAmt = parseFloat(goalMatch[2])
     return {
-      text: `Setting up savings goal "${goalName}" with target ₱${targetAmt.toLocaleString()}...`,
+      text: `Created savings goal "${goalName}" with target ₱${targetAmt.toLocaleString()}.`,
       action: {
         action: 'add_savings_goal',
         payload: {
@@ -139,14 +152,14 @@ export function fallbackRuleBasedAI(
     }
   }
 
-  // 3. Balance & Assets queries
-  if (/(?:balance|assets|total\s*money|wallets|how\s*much\s*money)/i.test(query)) {
+  // 3. Balance & Assets queries ("how much is my money")
+  if (/(?:balance|assets|total\s*money|wallets|how\s*much\s*(?:is|do\s*i\s*have)?\s*my\s*money)/i.test(query)) {
     const assetMatch = financialSummaryText.match(/Total Assets:\s*(₱[\d,.]+)/i)
     const walletMatch = financialSummaryText.match(/Wallets:\s*([^\n]+)/i)
     const total = assetMatch ? assetMatch[1] : 'your accounts'
     const list = walletMatch ? walletMatch[1] : 'Cash Wallet'
     return {
-      text: `Your current total balance is ${total} across ${list}.`,
+      text: `Your current total balance is ${total} across your accounts (${list}).`,
       action: { action: 'none' },
     }
   }
@@ -156,7 +169,7 @@ export function fallbackRuleBasedAI(
     const expMatch = financialSummaryText.match(/Monthly Expenses Tracked:\s*(₱[\d,.]+)/i)
     const spentText = expMatch ? expMatch[1] : '₱0.00'
     return {
-      text: `You have tracked ${spentText} in total expenses this month. Check out your Reports tab for a category breakdown.`,
+      text: `You have tracked ${spentText} in total expenses this month. Check out your Reports tab for category breakdowns.`,
       action: { action: 'none' },
     }
   }
@@ -174,7 +187,7 @@ export function fallbackRuleBasedAI(
   // 6. Financial Advice & Tips
   if (/(?:advice|tip|tips|recommend|recommendation|how\s*to\s*save|budget\s*help)/i.test(query)) {
     return {
-      text: `Here are 3 core financial recommendations:\n1. Aim to save at least 20% of your net income each month.\n2. Review subscription renewals to catch any unused recurring services.\n3. Build a 3-month emergency buffer in your savings goals.`,
+      text: `3 key financial recommendations:\n1. Save at least 20% of net income each month.\n2. Review subscription renewals to catch unused services.\n3. Keep a 3-month emergency buffer in your savings vault.`,
       action: { action: 'none' },
     }
   }
@@ -182,14 +195,14 @@ export function fallbackRuleBasedAI(
   // 7. Help & Commands
   if (/(?:help|command|commands|what\s*can\s*you\s*do|features)/i.test(query)) {
     return {
-      text: `Here is what I can do for you:\n• Log expenses: e.g. "spent 250 on lunch"\n• Record income: e.g. "received 15000 salary"\n• Create savings goals: e.g. "create goal Travel 50000"\n• Answer inquiries about your balances, spending, and budgets.`,
+      text: `Here is what I can do:\n• Log expenses: e.g. "log 250 gcash payment to lalamove"\n• Record income: e.g. "received 15000 salary"\n• Create savings goals: e.g. "create goal Travel 50000"\n• Diagnostic answers for your total balances and spending.`,
       action: { action: 'none' },
     }
   }
 
   // 8. Default friendly response
   return {
-    text: `I am here to help manage your finances. You can ask me to log an expense (e.g. "spent 200 on coffee"), check your balance, or give you financial insights.`,
+    text: `I am your personal AI assistant. You can ask me to log an expense (e.g. "log 250 gcash payment to lalamove"), check your balance, or give you financial insights.`,
     action: { action: 'none' },
   }
 }
@@ -202,25 +215,17 @@ export async function askMochiAI(
   try {
     const engine = await getOrInitLocalAI()
 
-    const systemPrompt = `You are Mochi, the personal CFO and AI financial advisor built inside Mochi Money.
-Your purpose is to deliver clear financial insights, precise mathematical analysis, and instant command execution.
+    const systemPrompt = `You are Mochi, the AI financial assistant for Mochi Money.
 
-INTELLIGENCE & ANALYSIS PROTOCOL:
-- Evaluate the user's exact Net Cash Surplus, Savings Rate, Debt Balance, and Active Budgets from their live context.
-- Give concrete numerical recommendations (e.g. "Your net cash surplus is ₱8,685.00 this month.").
-- Keep responses direct, professional, hyper-practical, and clear.
-- Do NOT use emojis.
-- Do NOT use generic robotic filler phrases like "Certainly!", "As an AI assistant", or "Great question!".
+STRICT RESPONSE RULES:
+1. Keep answers concise, clear, and direct (1 to 3 sentences maximum).
+2. NEVER output math formula derivations, algebraic steps, or step-by-step arithmetic (do NOT write "Net Cash Surplus = Assets - Expenses" or "Expenses = X + Y").
+3. Use exact numbers directly from the context.
+4. Do NOT use emojis.
+5. If the user asks to log an expense/income or set a goal, respond with 1 concise sentence and append ACTION_JSON at the end:
+ACTION_JSON: {"action": "add_transaction", "payload": {"type": "expense", "amount": 250, "merchant": "Lalamove", "category": "transportation", "wallet": "GCash"}}
 
-ACTION EXECUTION MANDATE:
-When the user mentions spending money, receiving income, logging an expense, setting a savings goal, or deleting a subscription (e.g. "spent 250 on lunch", "log 500 coffee", "add goal Emergency Fund 50000"), you MUST append an ACTION_JSON block at the bottom:
-
-Examples:
-ACTION_JSON: {"action": "add_transaction", "payload": {"type": "expense", "amount": 250, "merchant": "Starbucks Coffee", "category": "food"}}
-ACTION_JSON: {"action": "add_transaction", "payload": {"type": "income", "amount": 25000, "merchant": "Salary Deposit", "category": "salary"}}
-ACTION_JSON: {"action": "add_savings_goal", "payload": {"name": "Emergency Fund", "targetAmount": 50000}}
-
-USER LIVE FINANCIAL CONTEXT:
+LIVE USER FINANCIAL DATA:
 ${financialSummaryText}`
 
     const messages = [

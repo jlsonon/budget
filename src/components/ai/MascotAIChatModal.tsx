@@ -173,6 +173,15 @@ Active Budget Categories: ${budgets.length}`
         const type = payload.type === 'income' ? 'income' : 'expense'
         const merchant = payload.merchant || payload.notes || (type === 'income' ? 'Income Deposit' : 'Expense Item')
 
+        // Target wallet matching (e.g. GCash, Maya, Bank)
+        let chosenWallet = defaultWallet
+        const walletQuery = (payload.wallet || userPrompt || '').toLowerCase()
+        const matchedWallet = activeWallets.find((w) => {
+          const wName = w.name.toLowerCase()
+          return walletQuery.includes(wName) || (wName.includes('gcash') && walletQuery.includes('gcash')) || (wName.includes('maya') && walletQuery.includes('maya'))
+        })
+        if (matchedWallet) chosenWallet = matchedWallet
+
         if (amount > 0) {
           store.addTransaction({
             id: `txn_ai_${Date.now()}`,
@@ -183,7 +192,7 @@ Active Budget Categories: ${budgets.length}`
             categoryId: payload.category || 'other',
             merchant,
             paymentMethod: 'cash',
-            walletId: defaultWallet.id,
+            walletId: chosenWallet.id,
             date: today,
             notes: `Added via Mochi AI`,
             isFavorite: false,
@@ -191,7 +200,7 @@ Active Budget Categories: ${budgets.length}`
             updatedAt: now,
           })
 
-          return `Action executed: Logged ${type} of ₱${amount.toLocaleString()} for ${merchant}.`
+          return `Logged ${type} of ₱${amount.toLocaleString('en-US', { minimumFractionDigits: 2 })} for ${merchant} using ${chosenWallet.name}.`
         }
       }
 
