@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
@@ -37,6 +37,8 @@ import { useAuthStore } from '@/store/authStore'
 import Dialog from '@/components/ui/Dialog'
 import { useToastStore } from '@/store/toastStore'
 import { formatCurrency, getGreetingInfo, getHealthScoreColor, cn, formatDate, DEFAULT_EXPENSE_CATEGORIES } from '@/lib/utils'
+import { saveDocToCloud } from '@/services/cloudSync'
+import { FIRESTORE_COLLECTIONS } from '@/services/firestoreCollections'
 import type { Achievement, DailyMission, CalendarEvent as CalendarEventType } from '@/types'
 
 // Default Interactive Missions
@@ -79,8 +81,8 @@ const defaultMissions: DailyMission[] = [
   },
 ]
 
-// Default Interactive Achievements
-const defaultAchievements: Achievement[] = [
+// Official Achievements Template
+const officialAchievements: Achievement[] = [
   {
     id: 'a1',
     name: 'First Step',
@@ -88,9 +90,8 @@ const defaultAchievements: Achievement[] = [
     icon: 'sparkle',
     category: 'Getting Started',
     requirement: 1,
-    progress: 1,
-    unlocked: true,
-    unlockedAt: '2026-08-01',
+    progress: 0,
+    unlocked: false,
   },
   {
     id: 'a2',
@@ -99,29 +100,27 @@ const defaultAchievements: Achievement[] = [
     icon: 'piggy',
     category: 'Savings',
     requirement: 1000,
-    progress: 1000,
-    unlocked: true,
-    unlockedAt: '2026-08-05',
+    progress: 0,
+    unlocked: false,
   },
   {
     id: 'a3',
-    name: 'Streak Warrior',
-    description: 'Maintain a 3-day continuous logging streak',
+    name: 'Debt Slayer',
+    description: 'Make a debt repayment or track your debt payoff',
     icon: 'flame',
-    category: 'Consistency',
-    requirement: 3,
-    progress: 3,
-    unlocked: true,
-    unlockedAt: '2026-08-07',
+    category: 'Debt Payoff',
+    requirement: 1,
+    progress: 0,
+    unlocked: false,
   },
   {
     id: 'a4',
-    name: 'Mochi Companion',
-    description: 'Ask Mochi AI assistant for spending diagnostic insights',
-    icon: 'bot',
-    category: 'AI Diagnostics',
+    name: 'Budget Master',
+    description: 'Keep total monthly expenses within your budget plan',
+    icon: 'target',
+    category: 'Budgeting',
     requirement: 1,
-    progress: 1,
+    progress: 0,
     unlocked: false,
   },
   {
@@ -131,49 +130,18 @@ const defaultAchievements: Achievement[] = [
     icon: 'group',
     category: 'Social',
     requirement: 1,
-    progress: 1,
+    progress: 0,
     unlocked: false,
   },
   {
     id: 'a6',
-    name: 'Budget Master',
-    description: 'Keep total monthly expenses within your budget plan',
-    icon: 'target',
-    category: 'Budgeting',
-    requirement: 100,
-    progress: 85,
+    name: 'Multi-Wallet Pro',
+    description: 'Setup 2 or more active accounts (Cash, GCash, Bank, etc.)',
+    icon: 'bot',
+    category: 'Organization',
+    requirement: 2,
+    progress: 0,
     unlocked: false,
-  },
-]
-
-// Default Interactive Upcoming Events
-const defaultCalendarEvents: CalendarEventType[] = [
-  {
-    id: 'evt_1',
-    userId: 'user_1',
-    title: 'Electricity & Utility Bill',
-    date: new Date(Date.now() + 86400000 * 2).toISOString().split('T')[0],
-    type: 'bill',
-    amount: 1850,
-    color: '#F87171',
-  },
-  {
-    id: 'evt_2',
-    userId: 'user_1',
-    title: 'Fiber Internet Subscription',
-    date: new Date(Date.now() + 86400000 * 5).toISOString().split('T')[0],
-    type: 'subscription',
-    amount: 1499,
-    color: '#60A5FA',
-  },
-  {
-    id: 'evt_3',
-    userId: 'user_1',
-    title: 'Monthly Salary Payday',
-    date: new Date(Date.now() + 86400000 * 7).toISOString().split('T')[0],
-    type: 'income',
-    amount: 25000,
-    color: '#34D399',
   },
 ]
 
@@ -228,10 +196,126 @@ export default function DashboardPage() {
   const [showGreetingModal, setShowGreetingModal] = useState(false)
   const [selectedBudgetPlan, setSelectedBudgetPlan] = useState<any | null>(null)
   const [missionsList, setMissionsList] = useState<DailyMission[]>(defaultMissions)
-  const [achievementsList, setAchievementsList] = useState<Achievement[]>(defaultAchievements)
-  const [calendarEventsList, setCalendarEventsList] = useState<CalendarEventType[]>(defaultCalendarEvents)
+  const [achievementsList, setAchievementsList] = useState<Achievement[]>(officialAchievements)
   const [selectedAchievement, setSelectedAchievement] = useState<Achievement | null>(null)
   const [selectedEvent, setSelectedEvent] = useState<CalendarEventType | null>(null)
+
+  // Dynamic 100% Real Upcoming Events from Subscriptions, Debts, and People Debts
+  const calendarEventsList = useMemo<CalendarEventType[]>(() => {
+    const events: CalendarEventType[] = []
+
+    // 1. Subscriptions
+    subscriptions
+      .filter((s) => s.status === 'active' && s.nextBilling)
+      .forEach((s) => {
+        events.push({
+          id: `sub_evt_${s.id}`,
+          userId: user?.id || 'anon',
+          title: `Subscription: ${s.name}`,
+          date: s.nextBilling!,
+          type: 'subscription',
+          amount: s.amount,
+          color: '#60A5FA',
+        })
+      })
+
+    // 2. Debts Minimum Payment
+    debts
+      .filter((d) => d.currentBalance > 0)
+      .forEach((d) => {
+        const dueDateStr = d.dueDate ? d.dueDate.split('T')[0] : new Date(Date.now() + 14 * 86400000).toISOString().split('T')[0]
+        events.push({
+          id: `debt_evt_${d.id}`,
+          userId: user?.id || 'anon',
+          title: `Debt Minimum: ${d.lender}`,
+          date: dueDateStr,
+          type: 'bill',
+          amount: d.minimumPayment,
+          color: '#F87171',
+        })
+      })
+
+    // 3. People Debts (Owed to Me)
+    try {
+      const saved = localStorage.getItem('mochi_people_debts')
+      if (saved) {
+        const peopleDebts = JSON.parse(saved)
+        peopleDebts
+          .filter((pd: any) => pd.status !== 'settled' && pd.dueDate)
+          .forEach((pd: any) => {
+            const remaining = pd.totalAmount - pd.collectedAmount
+            if (remaining > 0) {
+              events.push({
+                id: `pd_evt_${pd.id}`,
+                userId: user?.id || 'anon',
+                title: `Collection: ${pd.borrowerName}`,
+                date: pd.dueDate,
+                type: 'income',
+                amount: remaining,
+                color: '#34D399',
+              })
+            }
+          })
+      }
+    } catch {}
+
+    // Sort chronologically by date
+    return events.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+  }, [subscriptions, debts, user?.id])
+
+  // Dynamic 100% Real Achievements Evaluation & Cloud Firestore Sync
+  useEffect(() => {
+    const totalSaved = savingsGoals.reduce((sum, g) => sum + g.currentAmount, 0)
+    const hasDebtPayment = debts.some((d) => (d.payments && d.payments.length > 0) || d.currentBalance < d.originalBalance)
+    const currentMonthStr = new Date().toISOString().slice(0, 7)
+    const monthExpenses = transactions
+      .filter((t) => t.type === 'expense' && t.date && t.date.startsWith(currentMonthStr))
+      .reduce((sum, t) => sum + t.amount, 0)
+    const totalBudgetLimit = budgets.reduce((sum, b) => sum + b.limit, 0)
+
+    const evaluated = officialAchievements.map((ach) => {
+      let isUnlocked = false
+      let currentProgress = 0
+
+      if (ach.id === 'a1') {
+        currentProgress = transactions.length
+        isUnlocked = transactions.length >= 1
+      } else if (ach.id === 'a2') {
+        currentProgress = totalSaved
+        isUnlocked = totalSaved >= 1000
+      } else if (ach.id === 'a3') {
+        currentProgress = hasDebtPayment ? 1 : 0
+        isUnlocked = hasDebtPayment
+      } else if (ach.id === 'a4') {
+        currentProgress = (budgets.length >= 1 && monthExpenses <= totalBudgetLimit) ? 1 : 0
+        isUnlocked = budgets.length >= 1 && monthExpenses <= totalBudgetLimit && totalBudgetLimit > 0
+      } else if (ach.id === 'a5') {
+        currentProgress = circles.length
+        isUnlocked = circles.length >= 1
+      } else if (ach.id === 'a6') {
+        currentProgress = wallets.length
+        isUnlocked = wallets.length >= 2
+      }
+
+      const item = {
+        ...ach,
+        progress: Math.min(ach.requirement, currentProgress),
+        unlocked: isUnlocked,
+        unlockedAt: isUnlocked ? (ach.unlockedAt || new Date().toISOString().split('T')[0]) : undefined,
+      }
+
+      if (isUnlocked) {
+        saveDocToCloud(FIRESTORE_COLLECTIONS.ACHIEVEMENTS, {
+          ...item,
+          userId: user?.id || 'anon',
+        }).catch((err) => console.warn('Achievement firestore sync notice:', err))
+      }
+
+      return item
+    })
+
+    setAchievementsList(evaluated)
+  }, [transactions.length, savingsGoals, debts, budgets, circles.length, wallets.length, user?.id])
 
   useEffect(() => {
     const timer = setTimeout(() => setIsLoading(false), 1000)
@@ -349,7 +433,6 @@ export default function DashboardPage() {
         updatedAt: new Date().toISOString(),
       })
     }
-    setCalendarEventsList((prev) => prev.filter((e) => e.id !== evt.id))
     setSelectedEvent(null)
     useToastStore.getState().success(`Marked "${evt.title}" as paid & logged transaction!`, 'Event Settled')
   }
