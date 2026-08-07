@@ -30,9 +30,18 @@ service cloud.firestore {
       allow create: if isAuth() && request.resource.data.userId == request.auth.uid;
     }
 
+    match /savings/{docId} {
+      allow read, update, delete: if isAuth() && resource.data.userId == request.auth.uid;
+      allow create: if isAuth() && request.resource.data.userId == request.auth.uid;
+    }
+
     match /savingsGoals/{docId} {
       allow read, update, delete: if isAuth() && resource.data.userId == request.auth.uid;
       allow create: if isAuth() && request.resource.data.userId == request.auth.uid;
+    }
+
+    match /payment_requests/{docId} {
+      allow read, create, update: if isAuth();
     }
 
     match /debts/{docId} {
