@@ -14,15 +14,26 @@ export async function atomicAddTransaction(txn: Transaction): Promise<void> {
 
   const batch = writeBatch(db)
 
+  function cleanUndefined<T extends Record<string, any>>(obj: T): Record<string, any> {
+    const clean: Record<string, any> = {}
+    Object.keys(obj).forEach((key) => {
+      if (obj[key] !== undefined) {
+        clean[key] = obj[key]
+      }
+    })
+    return clean
+  }
+
   // 1. Write transaction document
   const txnRef = doc(db, FIRESTORE_COLLECTIONS.TRANSACTIONS, txn.id)
-  batch.set(txnRef, {
+  const payload = cleanUndefined({
     ...txn,
     schemaVersion: 1,
     isDeleted: false,
     createdAt: txn.createdAt || new Date().toISOString(),
     updatedAt: new Date().toISOString(),
-  }, { merge: true })
+  })
+  batch.set(txnRef, payload, { merge: true })
 
   // 2. Atomically update wallet balance using increment
   if (txn.walletId) {
