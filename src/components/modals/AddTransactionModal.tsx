@@ -450,6 +450,9 @@ export function AddTransactionModal() {
       return
     }
 
+    const now = new Date()
+    const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }).toLowerCase()
+
     const newTxn: Transaction = {
       id: `txn_${Date.now()}`,
       userId: user?.id || 'anon',
@@ -458,24 +461,23 @@ export function AddTransactionModal() {
       currency: 'PHP',
       categoryId: category,
       merchant: title.trim(),
-      paymentMethod: 'gcash',
+      paymentMethod: selectedWallet?.type === 'credit_card' ? 'credit_card' : 'gcash',
       walletId: walletId || selectedWallet?.id,
       date,
+      time: timeStr,
       isFavorite: false,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     }
 
+    // Immediately close modal before toast message appears
+    setAmount('')
+    setTitle('')
+    setStatus('idle')
+    setAddModalOpen(false)
+
+    // Log transaction and fire success toast
     addTransaction(newTxn)
-
-    setStatus('success')
-
-    setTimeout(() => {
-      setStatus('idle')
-      setAmount('')
-      setTitle('')
-      setAddModalOpen(false)
-    }, 1200)
   }
 
   return (

@@ -13,6 +13,8 @@ export interface CircleState {
   voteCirclePoll: (circleId: string, pollId: string, optionId: string) => Promise<void>
   addCircleWishlistItem: (circleId: string, title: string, cost?: number) => Promise<void>
   addCirclePoll: (circleId: string, question: string, options: string[]) => Promise<void>
+  addCircleBillSplit: (circleId: string, split: any) => Promise<void>
+  settleCircleBillSplit: (circleId: string, splitId: string, memberId: string) => Promise<void>
 }
 
 export const useCircleStore = create<CircleState>()((set, get) => ({
@@ -124,6 +126,38 @@ export const useCircleStore = create<CircleState>()((set, get) => ({
             },
           ],
         }
+      }),
+    }))
+    const updated = get().circles.find((c: MochiCircle) => c.id === circleId)
+    if (updated) await saveDocToCloud(FIRESTORE_COLLECTIONS.CIRCLES, { ...updated, userId: updated.userId || 'anon' })
+  },
+  addCircleBillSplit: async (circleId: string, split: any) => {
+    set((s: CircleState) => ({
+      circles: s.circles.map((c: MochiCircle) => {
+        if (c.id !== circleId) return c
+        const existingSplits = c.splits || []
+        return {
+          ...c,
+          splits: [split, ...existingSplits],
+          updatedAt: new Date().toISOString(),
+        }
+      }),
+    }))
+    const updated = get().circles.find((c: MochiCircle) => c.id === circleId)
+    if (updated) await saveDocToCloud(FIRESTORE_COLLECTIONS.CIRCLES, { ...updated, userId: updated.userId || 'anon' })
+  },
+  settleCircleBillSplit: async (circleId: string, splitId: string, memberId: string) => {
+    set((s: CircleState) => ({
+      circles: s.circles.map((c: MochiCircle) => {
+        if (c.id !== circleId) return c
+        const existingSplits = c.splits || []
+        const updatedSplits = existingSplits.map((sp: any) => {
+          if (sp.id !== splitId) return sp
+          const settled = sp.settledMemberIds || []
+          if (settled.includes(memberId)) return sp
+          return { ...sp, settledMemberIds: [...settled, memberId] }
+        })
+        return { ...c, splits: updatedSplits, updatedAt: new Date().toISOString() }
       }),
     }))
     const updated = get().circles.find((c: MochiCircle) => c.id === circleId)

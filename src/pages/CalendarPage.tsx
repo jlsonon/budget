@@ -359,33 +359,61 @@ export default function CalendarPage() {
                   
                   <div className="flex-1 min-w-0 space-y-2 border-l border-mochi-border/30 pl-4 py-1">
                     {dayEvents.length > 0 ? (
-                      dayEvents.map((event, j) => (
-                        <div 
-                          key={j} 
-                          className="flex items-center gap-3 cursor-pointer group"
-                          onClick={() => {
-                            setSelectedEvent(event)
-                            setIsEventModalOpen(true)
-                          }}
-                        >
-                          <div className={cn("w-2 h-2 rounded-full shrink-0", event.color)} />
-                          <div className="flex-1 min-w-0 flex justify-between items-center">
-                            <p className="text-sm font-medium text-mochi-text truncate group-hover:text-mochi-primary transition-colors">
-                              {event.title}
-                            </p>
-                            {event.amount !== undefined && (
-                              <span className={cn(
-                                "text-xs font-bold shrink-0 ml-2",
-                                event.type === 'income' ? 'text-green-500' :
-                                event.type === 'bill' || event.type === 'debt' ? 'text-red-500' :
-                                'text-mochi-text'
-                              )}>
-                                {formatCurrency(event.amount)}
-                              </span>
+                      <>
+                        {/* Compact Daily Summary Badge */}
+                        <div className="flex items-center justify-between pb-1 border-b border-mochi-border/40">
+                          <span className="text-[10px] font-black uppercase text-mochi-text-muted">
+                            {dayEvents.length} {dayEvents.length === 1 ? 'event' : 'events'}
+                          </span>
+                          <span className="text-[10px] font-bold text-mochi-primary">
+                            Net: {formatCurrency(
+                              dayEvents.reduce((acc, ev) => ev.type === 'income' ? acc + (ev.amount || 0) : acc - (ev.amount || 0), 0)
                             )}
-                          </div>
+                          </span>
                         </div>
-                      ))
+
+                        {/* Top 2 Items Preview */}
+                        {dayEvents.slice(0, 2).map((event, j) => (
+                          <div 
+                            key={j} 
+                            className="flex items-center gap-3 cursor-pointer group"
+                            onClick={() => {
+                              setSelectedEvent(event)
+                              setIsEventModalOpen(true)
+                            }}
+                          >
+                            <div className={cn("w-2 h-2 rounded-full shrink-0", event.color)} />
+                            <div className="flex-1 min-w-0 flex justify-between items-center">
+                              <p className="text-xs font-semibold text-mochi-text truncate group-hover:text-mochi-primary transition-colors">
+                                {event.title}
+                              </p>
+                              {event.amount !== undefined && (
+                                <span className={cn(
+                                  "text-xs font-bold shrink-0 ml-2",
+                                  event.type === 'income' ? 'text-green-500' :
+                                  event.type === 'bill' || event.type === 'debt' ? 'text-red-500' :
+                                  'text-mochi-text'
+                                )}>
+                                  {formatCurrency(event.amount)}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+
+                        {/* View All Button when > 2 events */}
+                        {dayEvents.length > 2 && (
+                          <button
+                            onClick={() => {
+                              setSelectedDate(day)
+                              setViewMode('month')
+                            }}
+                            className="mt-1.5 text-[10px] font-extrabold text-mochi-primary hover:underline flex items-center gap-1 bg-mochi-primary/10 px-2.5 py-1 rounded-full w-fit"
+                          >
+                            👁️ View All {dayEvents.length} Events
+                          </button>
+                        )}
+                      </>
                     ) : (
                       <p className="text-xs text-mochi-text-secondary py-1 italic">No events</p>
                     )}

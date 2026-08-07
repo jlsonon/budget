@@ -32,6 +32,22 @@ export function formatDate(date: string | Date, format: 'short' | 'long' | 'rela
   return `${mm}-${dd}-${yyyy}`
 }
 
+export function formatTime(timeInput?: string | Date): string {
+  if (!timeInput) {
+    const now = new Date()
+    return now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }).toLowerCase()
+  }
+  if (typeof timeInput === 'string' && (timeInput.includes('am') || timeInput.includes('pm'))) {
+    return timeInput.toLowerCase()
+  }
+  const d = typeof timeInput === 'string' ? new Date(timeInput) : timeInput
+  if (isNaN(d.getTime())) {
+    const now = new Date()
+    return now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }).toLowerCase()
+  }
+  return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }).toLowerCase()
+}
+
 export function getGreeting(): string {
   const hour = new Date().getHours()
   if (hour < 12) return 'Good Morning'

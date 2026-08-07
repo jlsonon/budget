@@ -100,6 +100,8 @@ export const useAppStore = create<AppState>()((set) => ({
   voteCirclePoll: async (cid: string, pid: string, opt: string) => { await useCircleStore.getState().voteCirclePoll(cid, pid, opt); set({ circles: useCircleStore.getState().circles }) },
   addCircleWishlistItem: async (id: string, t: string, c?: number) => { await useCircleStore.getState().addCircleWishlistItem(id, t, c); set({ circles: useCircleStore.getState().circles }) },
   addCirclePoll: async (id: string, q: string, o: string[]) => { await useCircleStore.getState().addCirclePoll(id, q, o); set({ circles: useCircleStore.getState().circles }) },
+  addCircleBillSplit: async (id: string, split: any) => { await useCircleStore.getState().addCircleBillSplit(id, split); set({ circles: useCircleStore.getState().circles }) },
+  settleCircleBillSplit: async (id: string, sid: string, mid: string) => { await useCircleStore.getState().settleCircleBillSplit(id, sid, mid); set({ circles: useCircleStore.getState().circles }) },
 
   setAddModalOpen: (open: boolean, type?: 'expense' | 'income') => { useUIStore.getState().setAddModalOpen(open, type); set({ isAddModalOpen: open, defaultModalType: type ?? 'expense' }) },
   setReceiptModalOpen: (open: boolean) => { useUIStore.getState().setReceiptModalOpen(open); set({ isReceiptModalOpen: open }) },

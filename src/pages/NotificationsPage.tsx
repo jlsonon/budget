@@ -226,18 +226,18 @@ export default function NotificationsPage() {
                         )}
                       </div>
 
-                      {/* Item Quick Actions */}
-                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                      {/* Rightmost Item Actions */}
+                      <div className="flex items-center gap-1.5 shrink-0 self-center ml-2">
                         {!notif.read && (
                           <button
                             onClick={(e) => {
                               e.stopPropagation()
                               markAsRead(notif.id)
                             }}
-                            className="p-1.5 rounded-xl hover:bg-mochi-surface-alt text-mochi-primary transition-colors"
+                            className="p-2 rounded-2xl hover:bg-mochi-surface-alt text-mochi-primary transition-colors border border-mochi-border/60"
                             title="Mark as read"
                           >
-                            <Check className="w-3.5 h-3.5" />
+                            <Check className="w-4 h-4" />
                           </button>
                         )}
                         <button
@@ -245,10 +245,10 @@ export default function NotificationsPage() {
                             e.stopPropagation()
                             deleteNotification(notif.id)
                           }}
-                          className="p-1.5 rounded-xl hover:bg-rose-500/10 text-rose-500 transition-colors"
-                          title="Delete"
+                          className="p-2.5 rounded-2xl bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-500/20 transition-all border border-rose-500/20 shadow-2xs hover:scale-105 active:scale-95"
+                          title="Delete notification"
                         >
-                          <Trash2 className="w-3.5 h-3.5" />
+                          <Trash2 className="w-5 h-5" />
                         </button>
                       </div>
                     </motion.div>

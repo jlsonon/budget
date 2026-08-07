@@ -27,6 +27,7 @@ import GroupMascotSVG from '@/components/ui/GroupMascotSVG'
 import Dialog from '@/components/ui/Dialog'
 import Confetti from '@/components/ui/Confetti'
 import { formatCurrency, formatDate, cn } from '@/lib/utils'
+import { useAppStore } from '@/store/appStore'
 
 interface CircleDetailViewProps {
   circle: MochiCircle
@@ -96,8 +97,189 @@ export function CircleDetailView({
     setPollOpt2('')
   }
 
+  // Splitwise state
+  const [isAddSplitModalOpen, setIsAddSplitModalOpen] = useState(false)
+  const [splitTitle, setSplitTitle] = useState('')
+  const [splitAmount, setSplitAmount] = useState('')
+  const [splitPaidBy, setSplitPaidBy] = useState('m1')
+
+  const handleAddSplitSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    const amt = parseFloat(splitAmount)
+    if (!splitTitle.trim() || isNaN(amt) || amt <= 0) return
+
+    const paidMember = circle.members.find((m) => m.id === splitPaidBy) || circle.members[0]
+    const amountPerMember = amt / (circle.members.length || 1)
+
+    const newSplit = {
+      id: crypto.randomUUID(),
+      title: splitTitle.trim(),
+      totalAmount: amt,
+      paidByMemberId: paidMember.id,
+      paidByMemberName: paidMember.name,
+      splitMemberIds: circle.members.map((m) => m.id),
+      amountPerMember,
+      settledMemberIds: [paidMember.id],
+      date: new Date().toISOString(),
+    }
+
+    await useAppStore.getState().addCircleBillSplit(circle.id, newSplit)
+    setIsAddSplitModalOpen(false)
+    setSplitTitle('')
+    setSplitAmount('')
+  }
+
+  const handleSettleSplit = async (splitId: string) => {
+    await useAppStore.getState().settleCircleBillSplit(circle.id, splitId, 'm1')
+  }
+
   return (
     <div className="space-y-6">
+      {/* 2. Splitwise Tab */}
+      {activeTab === ('splitwise' as any) && (
+        <div className="space-y-4">
+          <div className="mochi-card p-5 border border-mochi-border">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h4 className="text-base font-black text-mochi-text flex items-center gap-2">
+                  ⚖️ Splitwise Group Bill Splitter
+                </h4>
+                <p className="text-xs text-mochi-text-secondary mt-0.5">
+                  Log shared group expenses (dinners, hotels, gas) and calculate who owes whom automatically!
+                </p>
+              </div>
+              <button
+                onClick={() => setIsAddSplitModalOpen(true)}
+                className="mochi-btn-primary text-xs px-3.5 py-2 flex items-center gap-1.5 shadow-sm"
+              >
+                <Plus className="w-4 h-4" /> Add Bill Split
+              </button>
+            </div>
+
+            {/* Bill Splits List */}
+            {(!circle.splits || circle.splits.length === 0) ? (
+              <div className="text-center py-8 bg-mochi-surface-alt rounded-2xl border border-dashed border-mochi-border/60">
+                <Coins className="w-8 h-8 text-mochi-primary mx-auto mb-2 opacity-60" />
+                <p className="text-xs font-bold text-mochi-text">No bill splits recorded yet!</p>
+                <p className="text-[10px] text-mochi-text-muted mt-1">Tap "+ Add Bill Split" above to split a dinner, ride, or hotel stay.</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {circle.splits.map((sp) => {
+                  const isSettledByYou = sp.settledMemberIds?.includes('m1') || sp.paidByMemberId === 'm1'
+                  return (
+                    <div key={sp.id} className="mochi-card p-4 bg-mochi-surface border border-mochi-border flex flex-col gap-3">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <h5 className="text-sm font-black text-mochi-text">{sp.title}</h5>
+                          <p className="text-xs text-mochi-text-muted mt-0.5">
+                            Paid by <span className="font-bold text-mochi-primary">{sp.paidByMemberName}</span> • {formatDate(sp.date, 'short')}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-base font-black text-mochi-text">
+                            {formatCurrency(sp.totalAmount, circle.currency)}
+                          </span>
+                          <p className="text-[10px] text-mochi-text-muted font-semibold">
+                            {formatCurrency(sp.amountPerMember, circle.currency)} / person
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between pt-2 border-t border-mochi-border/50 text-xs">
+                        <span className="text-mochi-text-secondary font-medium">
+                          Split among {sp.splitMemberIds?.length || circle.members.length} members
+                        </span>
+
+                        {sp.paidByMemberId === 'm1' ? (
+                          <span className="px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-bold text-[10px]">
+                            You paid this bill
+                          </span>
+                        ) : isSettledByYou ? (
+                          <span className="px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-bold text-[10px] flex items-center gap-1">
+                            ✓ Settled ({formatCurrency(sp.amountPerMember)})
+                          </span>
+                        ) : (
+                          <button
+                            onClick={() => handleSettleSplit(sp.id)}
+                            className="px-3 py-1.5 rounded-xl bg-mochi-primary text-white font-bold text-xs hover:scale-105 active:scale-95 transition-all shadow-xs"
+                          >
+                            Settle {formatCurrency(sp.amountPerMember)}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Add Bill Split Dialog */}
+      <Dialog
+        isOpen={isAddSplitModalOpen}
+        onClose={() => setIsAddSplitModalOpen(false)}
+        title="Add Splitwise Bill Split"
+      >
+        <form onSubmit={handleAddSplitSubmit} className="space-y-4 pt-2">
+          <div>
+            <label className="block text-xs font-semibold text-mochi-text-secondary mb-1">
+              Bill Title / Description
+            </label>
+            <input
+              type="text"
+              required
+              placeholder="e.g. Samgyupsal Dinner, Hotel Booking"
+              value={splitTitle}
+              onChange={(e) => setSplitTitle(e.target.value)}
+              className="mochi-input text-xs w-full font-bold"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-mochi-text-secondary mb-1">
+              Total Amount ({circle.currency})
+            </label>
+            <input
+              type="number"
+              required
+              step="any"
+              min="1"
+              placeholder="0.00"
+              value={splitAmount}
+              onChange={(e) => setSplitAmount(e.target.value)}
+              className="mochi-input text-lg font-black text-mochi-primary w-full"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-mochi-text-secondary mb-1">
+              Who Paid?
+            </label>
+            <select
+              value={splitPaidBy}
+              onChange={(e) => setSplitPaidBy(e.target.value)}
+              className="mochi-input text-xs w-full font-bold"
+            >
+              {circle.members.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.name} {m.id === 'm1' ? '(You)' : ''}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <p className="text-[10px] text-mochi-text-muted italic bg-mochi-surface-alt p-2.5 rounded-xl border border-mochi-border">
+            This bill will be split equally among all {circle.members.length} members ({formatCurrency((parseFloat(splitAmount) || 0) / (circle.members.length || 1))} / person).
+          </p>
+
+          <button type="submit" className="mochi-btn-primary w-full text-sm py-3 mt-2 flex items-center justify-center gap-2">
+            <Coins className="w-4 h-4" /> Save & Split Bill
+          </button>
+        </form>
+      </Dialog>
       <Confetti isActive={showConfetti} />
 
       {/* Circle Header Banner */}
@@ -156,17 +338,18 @@ export function CircleDetailView({
         </div>
       </div>
 
-      {/* Tabs Navigation — compact pill grid, no horizontal scrolling */}
-      <div className="grid grid-cols-5 gap-1 p-1 bg-mochi-surface-alt rounded-2xl border border-mochi-border">
+      {/* Tabs Navigation — compact pill grid */}
+      <div className="grid grid-cols-6 gap-1 p-1 bg-mochi-surface-alt rounded-2xl border border-mochi-border">
         {[
-          { id: 'journey',  label: 'Journey',  icon: Sparkles   },
-          { id: 'wishlist', label: 'Wishlist', icon: CheckSquare },
-          { id: 'polls',    label: 'Polls',    icon: Vote       },
-          { id: 'files',    label: 'Files',    icon: FileText   },
-          { id: 'members',  label: 'Members',  icon: Users      },
+          { id: 'journey',   label: 'Journey',   icon: Sparkles   },
+          { id: 'splitwise', label: 'Splitwise', icon: Coins      },
+          { id: 'wishlist',  label: 'Wishlist',  icon: CheckSquare },
+          { id: 'polls',     label: 'Polls',     icon: Vote       },
+          { id: 'files',     label: 'Files',     icon: FileText   },
+          { id: 'members',   label: 'Members',   icon: Users      },
         ].map((tab) => {
           const Icon = tab.icon
-          const isActive = activeTab === tab.id
+          const isActive = activeTab === (tab.id as any)
           return (
             <button
               key={tab.id}

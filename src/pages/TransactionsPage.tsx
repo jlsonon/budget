@@ -12,9 +12,12 @@ import {
   Trash2,
   AlertTriangle,
   CreditCard,
+  Check,
+  Pencil,
 } from 'lucide-react'
 import { useAppStore } from '@/store/appStore'
-import { formatCurrency, formatDate, cn } from '@/lib/utils'
+import { useToastStore } from '@/store/toastStore'
+import { formatCurrency, formatDate, formatTime, cn } from '@/lib/utils'
 import type { Transaction, PaymentMethod, Category } from '@/types'
 import { DEFAULT_EXPENSE_CATEGORIES, DEFAULT_INCOME_CATEGORIES } from '@/lib/utils'
 import MochiCategoryVectorSVG from '@/components/ui/MochiCategoryVectorSVG'
@@ -70,23 +73,63 @@ function TransactionDetailSheet({
   onClose: () => void
   onDelete: (id: string) => void
 }) {
-  const { wallets } = useAppStore()
+  const { wallets, updateTransaction } = useAppStore()
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [isEditing, setIsEditing] = useState(false)
+
+  // Edit Form Fields
+  const [editMerchant, setEditMerchant] = useState(transaction?.merchant || '')
+  const [editAmount, setEditAmount] = useState(transaction?.amount ? String(transaction.amount) : '')
+  const [editWalletId, setEditWalletId] = useState(transaction?.walletId || '')
+
+  useEffect(() => {
+    if (transaction) {
+      setEditMerchant(transaction.merchant || '')
+      setEditAmount(transaction.amount ? String(transaction.amount) : '')
+      setEditWalletId(transaction.walletId || '')
+      setIsEditing(false)
+      setConfirmDelete(false)
+    }
+  }, [transaction])
 
   if (!transaction) return null
 
   const category = categoryMap[transaction.categoryId]
-  const linkedWallet = wallets.find((w) => w.id === transaction.walletId)
+  const linkedWallet = wallets.find((w) => w.id === (isEditing ? editWalletId : transaction.walletId))
   const isIncome = transaction.type === 'income'
 
   const handleDelete = () => {
     if (confirmDelete) {
       onDelete(transaction.id)
+      useToastStore.getState().info('Transaction deleted! 🗑️', 'Deleted')
       onClose()
     } else {
       setConfirmDelete(true)
       setTimeout(() => setConfirmDelete(false), 3000)
     }
+  }
+
+  const handleSaveEdit = async () => {
+    const parsedAmount = parseFloat(editAmount)
+    if (isNaN(parsedAmount) || parsedAmount <= 0) {
+      useToastStore.getState().error('Please enter a valid amount greater than 0', 'Error')
+      return
+    }
+    if (!editMerchant.trim()) {
+      useToastStore.getState().error('Please enter a valid merchant description', 'Error')
+      return
+    }
+
+    await updateTransaction(transaction.id, {
+      merchant: editMerchant.trim(),
+      amount: parsedAmount,
+      walletId: editWalletId || linkedWallet?.id,
+      updatedAt: new Date().toISOString(),
+    })
+
+    useToastStore.getState().success('Transaction updated! ✏️', 'Saved')
+    setIsEditing(false)
+    onClose()
   }
 
   return (
@@ -110,7 +153,7 @@ function TransactionDetailSheet({
           {/* Top Bar */}
           <div className="flex items-center justify-between px-6 pt-5 pb-2 shrink-0">
             <span className="text-[10px] font-black uppercase tracking-widest text-mochi-text-muted">
-              Transaction Details
+              {isEditing ? 'Edit Transaction' : 'Transaction Details'}
             </span>
             <button
               onClick={onClose}
@@ -121,92 +164,164 @@ function TransactionDetailSheet({
           </div>
 
           <div className="p-6 pt-2 overflow-y-auto space-y-5">
-            {/* Header / Hero */}
-            <div className="flex flex-col items-center text-center pb-4 border-b border-mochi-border/60">
-              <div className={cn(
-                'w-16 h-16 rounded-3xl flex items-center justify-center shadow-md mb-3',
-                isIncome ? 'bg-emerald-500/15 border border-emerald-500/30' : 'bg-rose-500/15 border border-rose-500/30'
-              )}>
-                <MochiCategoryVectorSVG id={getMerchantVectorId(transaction.merchant, transaction.paymentMethod, category?.icon)} size="lg" />
-              </div>
-              <h2 className="text-xl font-black text-mochi-text">{transaction.merchant}</h2>
-              <p className="text-xs text-mochi-text-muted font-bold mt-0.5">{category?.name || transaction.categoryId}</p>
+            {isEditing ? (
+              /* Edit Mode Form */
+              <div className="space-y-4">
+                <div>
+                  <label className="text-xs font-bold text-mochi-text-muted mb-1 block">Description / Merchant</label>
+                  <input
+                    type="text"
+                    value={editMerchant}
+                    onChange={(e) => setEditMerchant(e.target.value)}
+                    className="mochi-input text-sm font-bold w-full"
+                    placeholder="Merchant name..."
+                  />
+                </div>
 
-              <div className="mt-3">
-                <span className={cn(
-                  'text-3xl font-black',
-                  isIncome ? 'text-emerald-500' : 'text-rose-500'
-                )}>
-                  {isIncome ? '+' : '-'}{formatCurrency(transaction.amount, transaction.currency)}
-                </span>
-              </div>
-            </div>
+                <div>
+                  <label className="text-xs font-bold text-mochi-text-muted mb-1 block">Amount (₱)</label>
+                  <input
+                    type="number"
+                    step="any"
+                    value={editAmount}
+                    onChange={(e) => setEditAmount(e.target.value)}
+                    className="mochi-input text-lg font-black text-mochi-primary w-full"
+                    placeholder="0.00"
+                  />
+                </div>
 
-            {/* Linked Wallet Info */}
-            <div className="bg-mochi-surface-alt rounded-2xl p-4 border border-mochi-border/50">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-mochi-text-muted mb-2">Linked Wallet</p>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div
-                    className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-extrabold shadow-xs"
-                    style={{ background: linkedWallet?.color || '#6366F1' }}
+                <div>
+                  <label className="text-xs font-bold text-mochi-text-muted mb-1 block">Wallet</label>
+                  <select
+                    value={editWalletId}
+                    onChange={(e) => setEditWalletId(e.target.value)}
+                    className="mochi-input text-xs font-bold w-full"
                   >
-                    {linkedWallet ? linkedWallet.name.charAt(0).toUpperCase() : 'W'}
+                    {wallets.map((w) => (
+                      <option key={w.id} value={w.id}>
+                        {w.name} (₱{w.balance.toLocaleString('en-US', { minimumFractionDigits: 2 })})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="flex items-center gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsEditing(false)}
+                    className="flex-1 py-3 rounded-2xl text-xs font-bold border border-mochi-border bg-mochi-surface-alt hover:bg-mochi-surface transition-all"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSaveEdit}
+                    className="flex-1 py-3 rounded-2xl text-xs font-black bg-mochi-primary text-white shadow-md hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-1.5"
+                  >
+                    <Check className="w-4 h-4" /> Save Changes
+                  </button>
+                </div>
+              </div>
+            ) : (
+              /* View Mode Details */
+              <>
+                {/* Header / Hero */}
+                <div className="flex flex-col items-center text-center pb-4 border-b border-mochi-border/60">
+                  <div className={cn(
+                    'w-16 h-16 rounded-3xl flex items-center justify-center shadow-md mb-3',
+                    isIncome ? 'bg-emerald-500/15 border border-emerald-500/30' : 'bg-rose-500/15 border border-rose-500/30'
+                  )}>
+                    <MochiCategoryVectorSVG id={getMerchantVectorId(transaction.merchant, transaction.paymentMethod, category?.icon)} size="lg" />
                   </div>
-                  <div>
-                    <p className="text-xs font-bold text-mochi-text">{linkedWallet?.name || 'Default Wallet'}</p>
-                    <p className="text-[10px] text-mochi-text-muted">
-                      {isIncome ? 'Credited to balance' : 'Deducted from balance'}
+                  <h2 className="text-xl font-black text-mochi-text">{transaction.merchant}</h2>
+                  <p className="text-xs text-mochi-text-muted font-bold mt-0.5">{category?.name || transaction.categoryId}</p>
+
+                  <div className="mt-3">
+                    <span className={cn(
+                      'text-3xl font-black',
+                      isIncome ? 'text-emerald-500' : 'text-rose-500'
+                    )}>
+                      {isIncome ? '+' : '-'}{formatCurrency(transaction.amount, transaction.currency)}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Linked Wallet Info */}
+                <div className="bg-mochi-surface-alt rounded-2xl p-4 border border-mochi-border/50">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-mochi-text-muted mb-2">Linked Wallet</p>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div
+                        className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-extrabold shadow-xs"
+                        style={{ background: linkedWallet?.color || '#6366F1' }}
+                      >
+                        {linkedWallet ? linkedWallet.name.charAt(0).toUpperCase() : 'W'}
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold text-mochi-text">{linkedWallet?.name || 'Default Wallet'}</p>
+                        <p className="text-[10px] text-mochi-text-muted">
+                          {isIncome ? 'Credited to balance' : 'Deducted from balance'}
+                        </p>
+                      </div>
+                    </div>
+                    {linkedWallet && (
+                      <span className="text-xs font-black text-mochi-text">
+                        ₱{linkedWallet.balance.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Metadata Grid */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="bg-mochi-surface-alt rounded-2xl p-3 border border-mochi-border/50">
+                    <div className="flex items-center gap-1.5 text-mochi-text-muted mb-1">
+                      <Calendar className="w-3.5 h-3.5 text-mochi-primary" />
+                      <span className="text-[10px] font-bold uppercase tracking-wider">Date & Time</span>
+                    </div>
+                    <p className="text-xs font-bold text-mochi-text">{formatDate(transaction.date, 'long')}</p>
+                    <p className="text-[10px] text-mochi-text-muted font-bold mt-0.5">
+                      {formatTime(transaction.time || transaction.createdAt || transaction.date)}
+                    </p>
+                  </div>
+
+                  <div className="bg-mochi-surface-alt rounded-2xl p-3 border border-mochi-border/50">
+                    <div className="flex items-center gap-1.5 text-mochi-text-muted mb-1">
+                      <CreditCard className="w-3.5 h-3.5 text-sky-500" />
+                      <span className="text-[10px] font-bold uppercase tracking-wider">Payment Method</span>
+                    </div>
+                    <p className="text-xs font-bold text-mochi-text">
+                      {paymentMethodLabels[transaction.paymentMethod] || 'Cash'}
                     </p>
                   </div>
                 </div>
-                {linkedWallet && (
-                  <span className="text-xs font-black text-mochi-text">
-                    ₱{linkedWallet.balance.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                  </span>
-                )}
-              </div>
-            </div>
 
-            {/* Metadata Grid */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="bg-mochi-surface-alt rounded-2xl p-3 border border-mochi-border/50">
-                <div className="flex items-center gap-1.5 text-mochi-text-muted mb-1">
-                  <Calendar className="w-3.5 h-3.5 text-mochi-primary" />
-                  <span className="text-[10px] font-bold uppercase tracking-wider">Date & Time</span>
+                {/* Action Buttons: Edit (Left) and Delete (Right) */}
+                <div className="grid grid-cols-2 gap-3 pt-1">
+                  <button
+                    onClick={() => setIsEditing(true)}
+                    className="py-3 rounded-2xl text-xs font-bold bg-mochi-surface-alt hover:bg-mochi-surface text-mochi-text border border-mochi-border/80 transition-all flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-95 shadow-2xs"
+                  >
+                    <Pencil className="w-4 h-4 text-mochi-primary" /> Edit
+                  </button>
+
+                  <button
+                    onClick={handleDelete}
+                    className={`py-3 rounded-2xl text-xs font-bold transition-all flex items-center justify-center gap-2 ${
+                      confirmDelete
+                        ? 'bg-rose-500 text-white shadow-lg animate-pulse'
+                        : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 hover:bg-rose-500/20'
+                    }`}
+                  >
+                    {confirmDelete ? (
+                      <><AlertTriangle className="w-4 h-4" /> Confirm Delete</>
+                    ) : (
+                      <><Trash2 className="w-4 h-4" /> Delete</>
+                    )}
+                  </button>
                 </div>
-                <p className="text-xs font-bold text-mochi-text">{formatDate(transaction.date, 'long')}</p>
-                {transaction.time && (
-                  <p className="text-[10px] text-mochi-text-muted font-medium mt-0.5">{transaction.time}</p>
-                )}
-              </div>
-
-              <div className="bg-mochi-surface-alt rounded-2xl p-3 border border-mochi-border/50">
-                <div className="flex items-center gap-1.5 text-mochi-text-muted mb-1">
-                  <CreditCard className="w-3.5 h-3.5 text-sky-500" />
-                  <span className="text-[10px] font-bold uppercase tracking-wider">Payment Method</span>
-                </div>
-                <p className="text-xs font-bold text-mochi-text">
-                  {paymentMethodLabels[transaction.paymentMethod] || 'Cash'}
-                </p>
-              </div>
-            </div>
-
-            {/* Delete Button */}
-            <button
-              onClick={handleDelete}
-              className={`w-full py-3 rounded-2xl text-xs font-bold transition-all flex items-center justify-center gap-2 ${
-                confirmDelete
-                  ? 'bg-rose-500 text-white shadow-lg'
-                  : 'bg-mochi-surface-alt text-rose-500 border border-rose-200 dark:border-rose-900/40'
-              }`}
-            >
-              {confirmDelete ? (
-                <><AlertTriangle className="w-4 h-4" /> Tap again to confirm delete</>
-              ) : (
-                <><Trash2 className="w-4 h-4" /> Delete Transaction</>
-              )}
-            </button>
+              </>
+            )}
           </div>
         </motion.div>
       </motion.div>

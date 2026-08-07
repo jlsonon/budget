@@ -341,6 +341,18 @@ export interface CircleMilestone {
   rewardLabel: string
 }
 
+export interface CircleBillSplit {
+  id: string
+  title: string
+  totalAmount: number
+  paidByMemberId: string
+  paidByMemberName: string
+  splitMemberIds: string[]
+  amountPerMember: number
+  settledMemberIds: string[]
+  date: string
+}
+
 export interface MochiCircle extends BaseDocument {
   id: string
   userId?: string
@@ -357,6 +369,7 @@ export interface MochiCircle extends BaseDocument {
   polls: CirclePoll[]
   files: CircleFile[]
   milestones: CircleMilestone[]
+  splits?: CircleBillSplit[]
   status: 'active' | 'completed' | 'archived'
   completedAt?: string
   createdAt: string
