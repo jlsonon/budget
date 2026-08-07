@@ -7,6 +7,7 @@ import Dialog from '@/components/ui/Dialog'
 import Mascot from '@/components/ui/Mascot'
 import GroupMascotSVG from '@/components/ui/GroupMascotSVG'
 import { formatDate } from '@/lib/utils'
+import { calculateRealStreak } from '@/lib/streak'
 import {
   Settings,
   Shield,
@@ -43,7 +44,7 @@ const itemVariants = {
 export default function ProfilePage() {
   const navigate = useNavigate()
   const { user, logout, updateUser } = useAuthStore()
-  const { transactions, achievements, streaks, wallets, circles } = useAppStore()
+  const { transactions, achievements, wallets, circles } = useAppStore()
 
   const [isLoading, setIsLoading] = useState(true)
   const [showLogoutDialog, setShowLogoutDialog] = useState(false)
@@ -130,7 +131,7 @@ export default function ProfilePage() {
   const daysActive = user ? Math.max(1, Math.floor((Date.now() - new Date(user.createdAt).getTime()) / (1000 * 60 * 60 * 24))) : 14
   const unlockedAchievements = achievements.filter((a) => a.unlocked).length
   const totalAchievements = achievements.length || 8
-  const longestStreak = streaks.reduce((max, s) => Math.max(max, s.longest), 3)
+  const { current: currentStreak, longest: longestStreak } = calculateRealStreak(transactions)
 
   if (isLoading) {
     return (
@@ -369,8 +370,10 @@ export default function ProfilePage() {
             <div className="w-10 h-10 rounded-2xl bg-orange-500/10 text-orange-500 flex items-center justify-center mb-2">
               <Flame className="w-5 h-5 text-orange-500" />
             </div>
-            <p className="text-xl font-black text-mochi-text">{longestStreak} Days</p>
-            <p className="text-[10px] font-bold text-mochi-text-muted uppercase tracking-wider">Longest Streak</p>
+            <p className="text-xl font-black text-mochi-text">
+              {currentStreak} <span className="text-xs text-mochi-text-muted font-normal">({longestStreak} max)</span>
+            </p>
+            <p className="text-[10px] font-bold text-mochi-text-muted uppercase tracking-wider">Active Streak</p>
           </div>
         </div>
       </motion.section>

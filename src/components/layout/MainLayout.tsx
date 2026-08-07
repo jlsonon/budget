@@ -40,6 +40,7 @@ import { Receipt } from 'lucide-react'
 import MascotAIChatModal from '../ai/MascotAIChatModal'
 import ReceiptScannerModal from '../modals/ReceiptScannerModal'
 import { backgroundPrewarmAI } from '../../services/localAI'
+import { calculateRealStreak } from '@/lib/streak'
 
 const navItems = [
   { icon: Home, label: 'Home', path: '/' },
@@ -63,7 +64,7 @@ export default function MainLayout() {
   const navigate = useNavigate()
   const location = useLocation()
   const { user, logout } = useAuthStore()
-  const { setAddModalOpen, streaks, wallets, transactions, circles } = useAppStore()
+  const { setAddModalOpen, wallets, transactions, circles } = useAppStore()
   const { theme, setTheme } = useThemeStore()
   const notifications = useNotificationStore((s) => s.notifications)
   const hasUnreadNotifs = notifications.some((n) => !n.read)
@@ -79,7 +80,7 @@ export default function MainLayout() {
     backgroundPrewarmAI()
   }, [])
 
-  const activeStreak = streaks.reduce((max, s) => Math.max(max, s.current), 3)
+  const { current: activeStreak } = calculateRealStreak(transactions)
 
   const handleExportJSON = () => {
     const backupData = {

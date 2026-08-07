@@ -195,9 +195,9 @@ export default function DashboardPage() {
                 updatedAt: new Date().toISOString(),
               })
             }}
-            className="px-2.5 py-1 rounded-xl bg-mochi-surface hover:bg-mochi-border border border-mochi-border font-bold text-mochi-text active:scale-95 transition-all"
+            className="px-2.5 py-1 rounded-xl bg-mochi-surface hover:bg-mochi-border border border-mochi-border font-bold text-mochi-text active:scale-95 transition-all flex items-center gap-1"
           >
-            ☕ Coffee ₱120
+            <span>Coffee ₱120</span>
           </button>
 
           <button
@@ -217,9 +217,9 @@ export default function DashboardPage() {
                 updatedAt: new Date().toISOString(),
               })
             }}
-            className="px-2.5 py-1 rounded-xl bg-mochi-surface hover:bg-mochi-border border border-mochi-border font-bold text-mochi-text active:scale-95 transition-all"
+            className="px-2.5 py-1 rounded-xl bg-mochi-surface hover:bg-mochi-border border border-mochi-border font-bold text-mochi-text active:scale-95 transition-all flex items-center gap-1"
           >
-            🚗 Grab/Ride ₱150
+            <span>Grab/Ride ₱150</span>
           </button>
 
           <button
@@ -239,9 +239,9 @@ export default function DashboardPage() {
                 updatedAt: new Date().toISOString(),
               })
             }}
-            className="px-2.5 py-1 rounded-xl bg-mochi-surface hover:bg-mochi-border border border-mochi-border font-bold text-mochi-text active:scale-95 transition-all"
+            className="px-2.5 py-1 rounded-xl bg-mochi-surface hover:bg-mochi-border border border-mochi-border font-bold text-mochi-text active:scale-95 transition-all flex items-center gap-1"
           >
-            🍱 Lunch ₱180
+            <span>Lunch ₱180</span>
           </button>
         </div>
       </div>
