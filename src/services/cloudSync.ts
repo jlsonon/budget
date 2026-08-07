@@ -14,10 +14,11 @@ export function startRealtimeSync(userId: string): () => void {
   // 1. Transactions Listener
   const qTxns = query(collection(db, FIRESTORE_COLLECTIONS.TRANSACTIONS), where('userId', '==', userId))
   const unsubTxns = onSnapshot(qTxns, (snapshot) => {
-    const items = snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as Transaction))
-    // Client-side date sort
-    items.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-    useAppStore.getState().setTransactions(items)
+    if (!snapshot.empty) {
+      const items = snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as Transaction))
+      items.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      useAppStore.getState().setTransactions(items)
+    }
   }, (err) => console.warn('Realtime txns sync notice:', err.message))
 
   // 2. Wallets Listener
@@ -49,22 +50,28 @@ export function startRealtimeSync(userId: string): () => void {
   // 3. Budgets Listener
   const qBudgets = query(collection(db, FIRESTORE_COLLECTIONS.BUDGETS), where('userId', '==', userId))
   const unsubBudgets = onSnapshot(qBudgets, (snapshot) => {
-    const items = snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as Budget))
-    useAppStore.getState().setBudgets(items)
+    if (!snapshot.empty) {
+      const items = snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as Budget))
+      useAppStore.getState().setBudgets(items)
+    }
   }, (err) => console.warn('Realtime budgets sync notice:', err.message))
 
   // 4. Savings Goals Listener
   const qSavings = query(collection(db, FIRESTORE_COLLECTIONS.SAVINGS), where('userId', '==', userId))
   const unsubSavings = onSnapshot(qSavings, (snapshot) => {
-    const items = snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as SavingsGoal))
-    useAppStore.getState().setSavingsGoals(items)
+    if (!snapshot.empty) {
+      const items = snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as SavingsGoal))
+      useAppStore.getState().setSavingsGoals(items)
+    }
   }, (err) => console.warn('Realtime savings sync notice:', err.message))
 
   // 5. Debts Listener
   const qDebts = query(collection(db, FIRESTORE_COLLECTIONS.DEBTS), where('userId', '==', userId))
   const unsubDebts = onSnapshot(qDebts, (snapshot) => {
-    const items = snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as Debt))
-    useAppStore.getState().setDebts(items)
+    if (!snapshot.empty) {
+      const items = snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as Debt))
+      useAppStore.getState().setDebts(items)
+    }
   }, (err) => console.warn('Realtime debts sync notice:', err.message))
 
   // 6. Subscriptions Listener
