@@ -163,16 +163,6 @@ export default function MainLayout() {
               <span className="hidden sm:inline">Mochi AI</span>
             </button>
 
-            {/* Quick Dark / Light Theme Switcher */}
-            <button
-              onClick={() => setTheme(theme === 'moonlight' || theme === 'night-sky' ? 'sakura' : 'moonlight')}
-              className="p-2 rounded-2xl bg-mochi-surface-alt border border-mochi-border text-mochi-text-secondary hover:text-mochi-text hover:bg-mochi-border/50 transition-colors"
-              aria-label="Toggle Theme"
-              title="Switch Dark / Light Theme"
-            >
-              {theme === 'moonlight' || theme === 'night-sky' ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-indigo-500" />}
-            </button>
-
             {/* Notifications Bell */}
             <button
               onClick={() => navigate('/notifications')}
@@ -238,7 +228,7 @@ export default function MainLayout() {
 
                     <div className="mt-3 flex items-center justify-between bg-amber-400/15 border border-amber-400/30 rounded-xl px-2.5 py-1">
                       <span className="text-[10px] font-extrabold text-amber-700 dark:text-amber-300 flex items-center gap-1">
-                        <Crown className="w-3 h-3 fill-amber-400" /> Mochi Pro Member
+                        <Crown className="w-3 h-3 fill-amber-400" /> Pro Member
                       </span>
                       <span className="text-[9px] font-bold text-amber-600 dark:text-amber-400 uppercase">Active</span>
                     </div>
@@ -264,6 +254,28 @@ export default function MainLayout() {
                         <ChevronRight className="w-4 h-4 text-purple-500" />
                       </button>
                     )}
+
+                    {/* Dark / Light Mode Switcher inside Menu */}
+                    <button
+                      onClick={() => {
+                        setTheme(theme === 'moonlight' || theme === 'night-sky' ? 'sakura' : 'moonlight')
+                      }}
+                      className="w-full flex items-center justify-between p-2.5 rounded-2xl hover:bg-mochi-surface-alt transition-colors text-left"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <div className="p-1.5 bg-amber-500/10 text-amber-500 rounded-xl">
+                          {theme === 'moonlight' || theme === 'night-sky' ? (
+                            <Sun className="w-4 h-4 text-amber-400" />
+                          ) : (
+                            <Moon className="w-4 h-4 text-indigo-500" />
+                          )}
+                        </div>
+                        <span className="text-xs font-bold text-mochi-text">Dark / Light Mode</span>
+                      </div>
+                      <span className="text-[10px] font-bold text-mochi-text-muted capitalize">
+                        {theme === 'moonlight' || theme === 'night-sky' ? 'Dark' : 'Light'}
+                      </span>
+                    </button>
 
                     <button
                       onClick={() => {

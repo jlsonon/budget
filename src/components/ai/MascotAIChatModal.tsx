@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Send, ShieldCheck, X, RefreshCw, Cpu, CheckCircle2, AlertCircle } from 'lucide-react'
+import { Send, ShieldCheck, X, RefreshCw, Cpu, CheckCircle2, AlertCircle, Trash2 } from 'lucide-react'
 import { useAppStore, getUid } from '@/store/appStore'
 import { formatCurrency } from '@/lib/utils'
 import Mascot from '@/components/ui/Mascot'
@@ -35,14 +35,37 @@ export default function MascotAIChatModal({ isOpen, onClose }: MascotAIChatModal
     debts,
   } = useAppStore()
 
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: 'welcome',
-      sender: 'mochi',
-      text: "Hello. I am your local AI assistant. I run entirely inside your browser on device — your financial data is 100% private. You can ask me questions or instruct me to log expenses, create savings goals, or manage subscriptions.",
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-    },
-  ])
+  const INITIAL_WELCOME: Message = {
+    id: 'welcome',
+    sender: 'mochi',
+    text: "Hello! I am Mochi, your supercharged AI financial assistant. I run 100% locally inside your browser — keeping your financial records 100% private. Ask me for financial advice, balance diagnostics, or tell me to log an expense or income!",
+    timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+  }
+
+  const [messages, setMessages] = useState<Message[]>(() => {
+    try {
+      const saved = localStorage.getItem('mochi_ai_chat_history')
+      if (saved) {
+        const parsed = JSON.parse(saved)
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed.slice(-15)
+        }
+      }
+    } catch (e) {
+      console.warn('Could not load chat history:', e)
+    }
+    return [INITIAL_WELCOME]
+  })
+
+  // Persist latest 15 messages
+  useEffect(() => {
+    try {
+      localStorage.setItem('mochi_ai_chat_history', JSON.stringify(messages.slice(-15)))
+    } catch (e) {
+      console.warn('Could not save chat history:', e)
+    }
+  }, [messages])
+
   const [input, setInput] = useState('')
   const [isInitializing, setIsInitializing] = useState(false)
   const [isModelReady, setIsModelReady] = useState(isLocalAILoaded())
@@ -63,6 +86,11 @@ export default function MascotAIChatModal({ isOpen, onClose }: MascotAIChatModal
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, isGenerating])
 
+  const handleClearHistory = () => {
+    setMessages([INITIAL_WELCOME])
+    localStorage.removeItem('mochi_ai_chat_history')
+  }
+
   // Build live financial context string
   const getContextString = () => {
     const totalAssets = wallets.reduce((s, w) => s + w.balance, 0)
@@ -72,6 +100,9 @@ export default function MascotAIChatModal({ isOpen, onClose }: MascotAIChatModal
     const monthlyExpense = transactions
       .filter((t) => t.type === 'expense')
       .reduce((s, t) => s + t.amount, 0)
+    const netSurplus = monthlyIncome - monthlyExpense
+    const savingsRate = monthlyIncome > 0 ? (((monthlyIncome - monthlyExpense) / monthlyIncome) * 100).toFixed(1) : '0'
+
     const activeGoals = savingsGoals.map((g) => `${g.name}: ₱${g.currentAmount}/₱${g.targetAmount}`).join(', ')
     const subTotal = subscriptions.reduce((s, sub) => s + sub.amount, 0)
     const subList = subscriptions.map((s) => s.name).join(', ')
@@ -82,10 +113,12 @@ export default function MascotAIChatModal({ isOpen, onClose }: MascotAIChatModal
 Wallets: ${walletList || 'Cash Wallet'}
 Monthly Income Tracked: ${formatCurrency(monthlyIncome)}
 Monthly Expenses Tracked: ${formatCurrency(monthlyExpense)}
+Net Cash Surplus/Deficit: ${formatCurrency(netSurplus)}
+Savings Rate: ${savingsRate}%
 Active Savings Goals: ${activeGoals || 'None'}
 Active Subscriptions (${subscriptions.length}): ${subList || 'None'} (${formatCurrency(subTotal)}/mo)
-Total Remaining Debt: ${formatCurrency(totalDebt)}
-Budgets Active: ${budgets.length}`
+Total Debt Outstanding: ${formatCurrency(totalDebt)}
+Active Budget Categories: ${budgets.length}`
   }
 
   const handleInitEngine = async () => {
@@ -351,12 +384,22 @@ Budgets Active: ${budgets.length}`
                 </div>
               </div>
 
-              <button
-                onClick={onClose}
-                className="p-1.5 rounded-full hover:bg-mochi-surface-alt text-mochi-text-muted transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={handleClearHistory}
+                  title="Clear Chat History"
+                  className="p-1.5 rounded-full hover:bg-rose-500/10 text-mochi-text-muted hover:text-rose-500 transition-colors"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+
+                <button
+                  onClick={onClose}
+                  className="p-1.5 rounded-full hover:bg-mochi-surface-alt text-mochi-text-muted transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
             </div>
 
             {/* Model Init Progress Bar */}
