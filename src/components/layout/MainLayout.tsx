@@ -138,7 +138,7 @@ export default function MainLayout() {
                 Mochi Money
               </div>
               <h1 className="text-base md:text-lg font-black text-mochi-text tracking-tight">
-                {user?.name || 'Mochi Friend'}
+                {user?.name || 'Guest User'}
               </h1>
             </div>
           </div>

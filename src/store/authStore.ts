@@ -2,17 +2,6 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { UserProfile } from '../types'
 
-const DEFAULT_DEMO_USER: UserProfile = {
-  id: 'demo-user-123',
-  name: 'Mochi Friend',
-  email: 'hello@mochimoney.app',
-  currency: 'PHP',
-  language: 'en',
-  theme: 'sakura',
-  createdAt: new Date().toISOString(),
-  updatedAt: new Date().toISOString(),
-}
-
 interface AuthState {
   user: UserProfile | null
   isAuthenticated: boolean
@@ -30,8 +19,8 @@ interface AuthState {
 export const useAuthStore = create<AuthState>()(
   persist(
     (set) => ({
-      user: DEFAULT_DEMO_USER,
-      isAuthenticated: true,
+      user: null,
+      isAuthenticated: false,
       isLoading: false,
       error: null,
       setUser: (user) => set({ user, isAuthenticated: !!user, error: null }),
@@ -43,7 +32,19 @@ export const useAuthStore = create<AuthState>()(
       setLoading: (loading) => set({ isLoading: loading }),
       setError: (error) => set({ error }),
       logout: () => set({ user: null, isAuthenticated: false, error: null }),
-      loginAsGuest: () => set({ user: DEFAULT_DEMO_USER, isAuthenticated: true, error: null }),
+      loginAsGuest: () => {
+        const guestUser: UserProfile = {
+          id: `guest_${Date.now()}`,
+          name: 'Guest User',
+          email: 'guest@mochimoney.app',
+          currency: 'PHP',
+          language: 'en',
+          theme: 'sakura',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        }
+        set({ user: guestUser, isAuthenticated: true, error: null })
+      },
     }),
     { name: 'mochi-auth', partialize: (state) => ({ user: state.user, isAuthenticated: state.isAuthenticated }) }
   )
