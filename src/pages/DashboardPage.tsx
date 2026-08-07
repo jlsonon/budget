@@ -27,6 +27,7 @@ import {
   Eye,
   EyeOff,
   LayoutDashboard,
+  X,
 } from 'lucide-react'
 import ProgressRing from '@/components/ui/ProgressRing'
 import Mascot from '@/components/ui/Mascot'
@@ -1355,8 +1356,15 @@ export default function DashboardPage() {
         </section>
       )}
 
-      {/* All Achievements Grid Modal */}
-      <Dialog isOpen={showAchievementsModal} onClose={() => setShowAchievementsModal(false)} title="Mochi Achievements Badges">
+      {/* All Achievements Grid & Detail Modal */}
+      <Dialog
+        isOpen={showAchievementsModal}
+        onClose={() => {
+          setShowAchievementsModal(false)
+          setSelectedAchievement(null)
+        }}
+        title="Mochi Achievements Badges"
+      >
         <div className="space-y-4">
           <div className="flex items-center justify-between p-3 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-xs">
             <span className="font-extrabold text-amber-700 dark:text-amber-300">Earned Badges</span>
@@ -1365,31 +1373,102 @@ export default function DashboardPage() {
             </span>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            {achievementsList.map((ach) => (
-              <div
-                key={ach.id}
-                onClick={() => setSelectedAchievement(ach)}
-                className={cn(
-                  'flex flex-col items-center gap-1.5 p-3 rounded-2xl border text-center transition-all cursor-pointer hover:scale-105 active:scale-95',
-                  ach.unlocked
-                    ? 'bg-gradient-to-b from-amber-500/15 to-amber-500/5 border-amber-500/40 shadow-xs'
-                    : 'bg-mochi-surface-alt border-mochi-border opacity-70 hover:opacity-100'
-                )}
+          {/* Inline Detail Card for Selected Achievement */}
+          {selectedAchievement && (
+            <motion.div
+              initial={{ opacity: 0, y: -8, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -8 }}
+              className="p-4 rounded-3xl bg-gradient-to-br from-amber-500/20 via-orange-500/10 to-transparent border-2 border-amber-500/40 relative shadow-xs space-y-3"
+            >
+              <button
+                onClick={() => setSelectedAchievement(null)}
+                className="absolute top-3 right-3 p-1.5 rounded-full bg-mochi-surface hover:bg-mochi-surface-alt text-mochi-text-muted hover:text-mochi-text transition-colors cursor-pointer"
+                title="Close detail"
               >
-                <MochiIcon id={ach.icon} size="md" style="rounded-badge" />
-                <p className="text-xs font-extrabold text-mochi-text line-clamp-1">{ach.name}</p>
-                {ach.unlocked ? (
-                  <span className="text-[9px] font-black uppercase text-amber-600 bg-amber-500/20 px-2 py-0.5 rounded-full flex items-center gap-0.5">
-                    <Star className="w-2.5 h-2.5 text-amber-500 fill-amber-500" /> Earned
+                <X className="w-3.5 h-3.5" />
+              </button>
+
+              <div className="flex items-center gap-3">
+                <MochiIcon id={selectedAchievement.icon} size="lg" style="rounded-badge" />
+                <div>
+                  <h4 className="text-sm font-black text-mochi-text">{selectedAchievement.name}</h4>
+                  <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider">
+                    {selectedAchievement.category}
                   </span>
-                ) : (
-                  <span className="text-[9px] font-bold text-mochi-text-muted">
-                    {ach.progress}/{ach.requirement}
-                  </span>
-                )}
+                </div>
               </div>
-            ))}
+
+              <p className="text-xs text-mochi-text-secondary leading-relaxed">
+                {selectedAchievement.description}
+              </p>
+
+              {/* Progress & Status */}
+              <div className="space-y-1.5 pt-1">
+                <div className="flex items-center justify-between text-[11px] font-bold">
+                  <span className="text-mochi-text-muted">Progress</span>
+                  <span className={selectedAchievement.unlocked ? 'text-amber-600 font-black' : 'text-mochi-text'}>
+                    {selectedAchievement.unlocked ? '100% Unlocked' : `${selectedAchievement.progress} / ${selectedAchievement.requirement}`}
+                  </span>
+                </div>
+                <div className="w-full h-2 rounded-full bg-mochi-border/60 overflow-hidden">
+                  <div
+                    className="h-full bg-gradient-to-r from-amber-500 to-orange-500 transition-all duration-500"
+                    style={{
+                      width: `${Math.min(100, Math.round((selectedAchievement.progress / selectedAchievement.requirement) * 100))}%`,
+                    }}
+                  />
+                </div>
+              </div>
+
+              {selectedAchievement.unlocked ? (
+                <div className="flex items-center justify-between pt-1">
+                  <span className="text-[10px] font-bold text-emerald-600 bg-emerald-500/15 px-3 py-1 rounded-full border border-emerald-500/30 flex items-center gap-1">
+                    <Star className="w-3 h-3 text-emerald-500 fill-emerald-500" /> Badge Earned
+                  </span>
+                  {selectedAchievement.unlockedAt && (
+                    <span className="text-[10px] text-mochi-text-muted">
+                      Unlocked on {formatDate(selectedAchievement.unlockedAt)}
+                    </span>
+                  )}
+                </div>
+              ) : (
+                <p className="text-[11px] italic text-mochi-text-muted pt-1">
+                  Keep logging transactions to unlock this badge!
+                </p>
+              )}
+            </motion.div>
+          )}
+
+          {/* Badges Grid */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            {achievementsList.map((ach) => {
+              const isSelected = selectedAchievement?.id === ach.id
+              return (
+                <div
+                  key={ach.id}
+                  onClick={() => setSelectedAchievement(isSelected ? null : ach)}
+                  className={cn(
+                    'flex flex-col items-center gap-1.5 p-3 rounded-2xl border text-center transition-all cursor-pointer hover:scale-105 active:scale-95',
+                    isSelected && 'ring-2 ring-amber-500 border-amber-500 bg-amber-500/20 scale-105 shadow-md',
+                    !isSelected && ach.unlocked && 'bg-gradient-to-b from-amber-500/15 to-amber-500/5 border-amber-500/40 shadow-xs',
+                    !isSelected && !ach.unlocked && 'bg-mochi-surface-alt border-mochi-border opacity-70 hover:opacity-100'
+                  )}
+                >
+                  <MochiIcon id={ach.icon} size="md" style="rounded-badge" />
+                  <p className="text-xs font-extrabold text-mochi-text line-clamp-1">{ach.name}</p>
+                  {ach.unlocked ? (
+                    <span className="text-[9px] font-black uppercase text-amber-600 bg-amber-500/20 px-2 py-0.5 rounded-full flex items-center gap-0.5">
+                      <Star className="w-2.5 h-2.5 text-amber-500 fill-amber-500" /> Earned
+                    </span>
+                  ) : (
+                    <span className="text-[9px] font-bold text-mochi-text-muted">
+                      {ach.progress}/{ach.requirement}
+                    </span>
+                  )}
+                </div>
+              )
+            })}
           </div>
         </div>
       </Dialog>
