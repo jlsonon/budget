@@ -214,8 +214,8 @@ export function MultiLaneJourney({
       <div className="mochi-card bg-gradient-to-r from-sky-500/10 via-amber-500/10 to-purple-500/10 p-5 rounded-3xl border border-sky-400/30 shadow-md">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-sky-500/20 flex items-center justify-center text-xl">
-              🗺️
+            <div className="w-10 h-10 rounded-2xl bg-sky-500/20 flex items-center justify-center text-sm font-bold text-sky-700">
+              Map
             </div>
             <div>
               <h3 className="text-base font-black text-mochi-text flex items-center gap-2">

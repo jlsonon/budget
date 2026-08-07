@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { Sparkles, Calendar, Users, Heart, Camera } from 'lucide-react'
+import { Sparkles, Calendar, Users, Heart, Camera, CheckCircle2, Circle } from 'lucide-react'
 import type { MochiCircle } from '@/types'
 import GroupMascotSVG from '@/components/ui/GroupMascotSVG'
 import { formatCurrency } from '@/lib/utils'
@@ -111,7 +111,10 @@ export function CircleScrapbook({ circles }: CircleScrapbookProps) {
                   {circle.wishlist.map((item) => (
                     <li key={item.id} className="flex items-center gap-1.5">
                       <span className={item.completed ? 'text-emerald-500 font-bold' : 'text-mochi-text-muted font-normal'}>
-                        {item.completed ? '✓' : '○'}
+                        {item.completed 
+                          ? <CheckCircle2 className="w-4 h-4 text-mochi-success" />
+                          : <Circle className="w-4 h-4 text-mochi-text-muted" />
+                        }
                       </span>
                       <span className={item.completed ? 'line-through text-mochi-text-muted' : 'text-mochi-text font-medium'}>
                         {item.title}

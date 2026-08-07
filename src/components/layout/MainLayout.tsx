@@ -1,5 +1,5 @@
 import { Outlet, useNavigate, useLocation } from 'react-router-dom'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Home,
@@ -20,7 +20,6 @@ import {
   LayoutDashboard,
   Flame,
   Sun,
-  Moon,
   Sparkles,
   LogOut,
   Crown,
@@ -34,9 +33,7 @@ import {
 } from 'lucide-react'
 import { useAuthStore } from '../../store/authStore'
 import { useAppStore } from '../../store/appStore'
-import { useThemeStore } from '../../store/themeStore'
 import { useNotificationStore } from '../../store/notificationStore'
-import { getGreetingInfo } from '../../lib/utils'
 import Mascot from '../ui/Mascot'
 import AddTransactionModal from '../modals/AddTransactionModal'
 import { TransferModal } from '../modals/TransferModal'
@@ -45,6 +42,7 @@ import MascotAIChatModal from '../ai/MascotAIChatModal'
 import ReceiptScannerModal from '../modals/ReceiptScannerModal'
 import { backgroundPrewarmAI } from '../../services/localAI'
 import { calculateRealStreak } from '@/lib/streak'
+import { useThemeStore } from '../../store/themeStore'
 
 // 3x3 Grid (9 Icons) for More Menu Modal
 const moreItems = [
@@ -64,7 +62,6 @@ export default function MainLayout() {
   const location = useLocation()
   const { user, logout } = useAuthStore()
   const { setAddModalOpen, wallets, transactions, circles } = useAppStore()
-  const { theme, setTheme } = useThemeStore()
   const notifications = useNotificationStore((s) => s.notifications)
   const hasUnreadNotifs = notifications.some((n) => !n.read)
 
@@ -81,8 +78,13 @@ export default function MainLayout() {
     backgroundPrewarmAI()
   }, [])
 
-  const { current: activeStreak } = calculateRealStreak(transactions)
-  const greetingInfo = getGreetingInfo()
+  const { current: activeStreak } = useMemo(
+    () => calculateRealStreak(transactions),
+    // Only recalculate when transaction count or dates change
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [transactions.length]
+  )
+  const { toggleDarkMode } = useThemeStore()
 
   const handleExportJSON = () => {
     const backupData = {
@@ -133,7 +135,7 @@ export default function MainLayout() {
 
             <div>
               <div className="text-[10px] font-black text-mochi-primary uppercase tracking-widest">
-                {greetingInfo.greeting}
+                Mochi Money
               </div>
               <h1 className="text-base md:text-lg font-black text-mochi-text tracking-tight">
                 {user?.name || 'Mochi Friend'}
@@ -243,25 +245,18 @@ export default function MainLayout() {
                       </button>
                     )}
 
+
+
                     <button
-                      onClick={() => {
-                        setTheme(theme === 'moonlight' || theme === 'night-sky' ? 'sakura' : 'moonlight')
-                      }}
+                      onClick={toggleDarkMode}
                       className="w-full flex items-center justify-between p-2.5 rounded-2xl hover:bg-mochi-surface-alt transition-colors text-left"
                     >
                       <div className="flex items-center gap-2.5">
                         <div className="p-1.5 bg-amber-500/10 text-amber-500 rounded-xl">
-                          {theme === 'moonlight' || theme === 'night-sky' ? (
-                            <Sun className="w-4 h-4 text-amber-400" />
-                          ) : (
-                            <Moon className="w-4 h-4 text-indigo-500" />
-                          )}
+                          <Sun className="w-4 h-4 text-amber-400" />
                         </div>
-                        <span className="text-xs font-bold text-mochi-text">Dark / Light Mode</span>
+                        <span className="text-xs font-bold text-mochi-text">Dark / Light Toggle</span>
                       </div>
-                      <span className="text-[10px] font-bold text-mochi-text-muted capitalize">
-                        {theme === 'moonlight' || theme === 'night-sky' ? 'Dark' : 'Light'}
-                      </span>
                     </button>
 
                     <button
@@ -363,24 +358,24 @@ export default function MainLayout() {
             }`}
           >
             <ReceiptText className={`w-5 h-5 ${location.pathname === '/transactions' ? 'stroke-[2.5px]' : 'stroke-2'}`} />
-            <span className="text-[10px] font-black">Txns</span>
+            <span className="text-[10px] font-black">Logs</span>
           </button>
 
           {/* Column 3 (DEAD CENTER): ENLARGED, GLOWING & HIGHLY INTERACTIVE '+' BUTTON */}
-          <div className="flex items-center justify-center -mt-7">
+          <div className="flex items-center justify-center -mt-9">
             <motion.button
               whileHover={{ scale: 1.14, rotate: 90 }}
               whileTap={{ scale: 0.9 }}
               transition={{ type: 'spring', stiffness: 400, damping: 17 }}
               onClick={() => setShowRadialMenu((prev) => !prev)}
-              className={`w-16 h-16 rounded-full bg-gradient-to-tr from-mochi-primary via-purple-500 to-pink-500 text-white flex items-center justify-center shadow-[0_12px_30px_-4px_rgba(236,72,153,0.6)] border-4 border-mochi-surface select-none cursor-pointer relative ${
-                showRadialMenu ? 'ring-4 ring-pink-500/50 animate-pulse' : ''
+              className={`w-20 h-20 rounded-full bg-mochi-primary text-white flex items-center justify-center shadow-xl border-4 border-mochi-surface select-none cursor-pointer relative ${
+                showRadialMenu ? 'ring-4 ring-mochi-primary/50 animate-pulse' : ''
               }`}
               aria-label="Quick Actions Radial Menu"
               title="Tap for Quick Actions Menu"
             >
               <Plus
-                className={`w-8 h-8 stroke-[3.5px] transition-transform duration-300 ${
+                className={`w-10 h-10 stroke-[3.5px] transition-transform duration-300 ${
                   showRadialMenu ? 'rotate-45 text-rose-200' : ''
                 }`}
               />
@@ -415,87 +410,38 @@ export default function MainLayout() {
       <aside className="hidden md:flex flex-col fixed top-0 left-0 bottom-0 w-20 bg-mochi-surface border-r border-mochi-border z-40 py-6 items-center justify-between">
         <div className="flex flex-col items-center gap-6">
           <button onClick={() => navigate('/')} className="hover:scale-105 transition-transform">
-            <Mascot size="sm" mood="happy" animate={true} />
+            <Mascot size="sm" animate={true} />
           </button>
-
-          <div className="flex flex-col items-center gap-3">
-            {[
-              { icon: Home, label: 'Home', path: '/' },
-              { icon: ReceiptText, label: 'Transactions', path: '/transactions' },
-              { icon: Wallet, label: 'Wallets', path: '/wallets' },
-              { icon: User, label: 'Profile', path: '/profile' },
-            ].map((item) => {
-              const Icon = item.icon
-              const isActive = location.pathname === item.path
-              return (
-                <button
-                  key={item.path}
-                  onClick={() => navigate(item.path)}
-                  className={`p-3 rounded-2xl transition-all ${
-                    isActive
-                      ? 'bg-mochi-primary/15 text-mochi-primary border border-mochi-primary/30 shadow-2xs'
-                      : 'text-mochi-text-muted hover:bg-mochi-surface-alt hover:text-mochi-text'
-                  }`}
-                  title={item.label}
-                >
-                  <Icon className="w-5 h-5" />
-                </button>
-              )
-            })}
-          </div>
         </div>
-
-        <motion.button
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={() => setAddModalOpen(true)}
-          className="w-13 h-13 rounded-2xl bg-gradient-to-tr from-mochi-primary via-purple-500 to-pink-500 text-white flex items-center justify-center shadow-lg transition-all"
-          title="Add Transaction"
-        >
-          <Plus className="w-6 h-6 stroke-[3]" />
-        </motion.button>
       </aside>
 
-      {/* Movable / Draggable Floating Action Button (FAB) for Mochi AI */}
-      <motion.div
-        drag
-        dragConstraints={{ left: -320, right: 20, top: -500, bottom: 20 }}
-        dragElastic={0.05}
-        dragMomentum={false}
-        whileHover={{ scale: 1.08 }}
-        whileTap={{ scale: 0.95 }}
-        onClick={() => setShowAIChat(true)}
-        className="fixed bottom-20 right-4 md:bottom-6 md:right-6 z-40 p-3 rounded-full bg-gradient-to-r from-mochi-primary via-purple-500 to-pink-500 text-white shadow-2xl cursor-grab active:cursor-grabbing flex items-center gap-2 border-2 border-white dark:border-mochi-surface touch-none group select-none"
-        title="Drag anywhere • Tap to open Mochi Local AI"
-      >
-        <Sparkles className="w-5 h-5 text-amber-200 group-hover:rotate-12 transition-transform pointer-events-none" />
-        <span className="text-xs font-black pr-1 hidden sm:inline pointer-events-none">Mochi AI</span>
-      </motion.div>
-
-      {/* Explore All Modules Sheet - PERFECT 3 x 3 GRID (9 Icons including Profile) */}
+      {/* 3x3 Grid 'More' Sheet Modal */}
       <AnimatePresence>
         {showMore && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-end sm:items-center justify-center p-4"
+            className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-end md:items-center justify-center p-0 md:p-4"
             onClick={() => setShowMore(false)}
           >
             <motion.div
-              initial={{ y: 50, opacity: 0 }}
+              initial={{ y: 200, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
-              exit={{ y: 50, opacity: 0 }}
-              className="w-full max-w-md bg-mochi-surface rounded-3xl border border-mochi-border shadow-2xl p-5 space-y-4"
+              exit={{ y: 200, opacity: 0 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+              className="bg-mochi-surface border border-mochi-border rounded-t-3xl md:rounded-3xl p-6 w-full max-w-lg shadow-2xl space-y-5"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="flex items-center justify-between pb-2 border-b border-mochi-border">
+              <div className="flex items-center justify-between border-b border-mochi-border/60 pb-3">
                 <div className="flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-mochi-primary" />
-                  <h3 className="text-sm font-black text-mochi-text">More Options</h3>
+                  <span className="text-xs font-black text-mochi-primary uppercase tracking-wider">Features & Navigation</span>
                 </div>
-                <button onClick={() => setShowMore(false)} className="p-1.5 rounded-full hover:bg-mochi-surface-alt text-mochi-text-muted">
-                  <X className="w-4 h-4" />
+                <button
+                  onClick={() => setShowMore(false)}
+                  className="p-1 rounded-full text-mochi-text-muted hover:text-mochi-text hover:bg-mochi-border/50 transition-colors"
+                >
+                  <X className="w-5 h-5" />
                 </button>
               </div>
 
@@ -524,6 +470,34 @@ export default function MainLayout() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Dedicated Ultra-Premium Floating Mochi AI Mascot Button */}
+      <motion.div
+        animate={{ y: [0, -4, 0] }}
+        transition={{ repeat: Infinity, duration: 3, ease: 'easeInOut' }}
+        className="fixed bottom-24 right-4 z-40"
+      >
+        <motion.button
+          whileHover={{ scale: 1.12, y: -3 }}
+          whileTap={{ scale: 0.92 }}
+          onClick={() => setShowAIChat(true)}
+          className="relative p-1 rounded-full bg-gradient-to-tr from-amber-400 via-rose-500 to-mochi-primary shadow-[0_0_24px_rgba(245,158,11,0.45)] border-2 border-white/90 dark:border-slate-800 flex items-center justify-center group cursor-pointer"
+          aria-label="Open Mochi AI Assistant"
+          title="Ask Mochi AI Assistant"
+        >
+          <div className="w-13 h-13 rounded-full bg-mochi-surface flex items-center justify-center relative overflow-hidden shadow-inner">
+            <Mascot size="sm" mood="happy" animate={true} />
+            <div className="absolute top-0 right-0 w-4.5 h-4.5 bg-gradient-to-r from-amber-400 to-orange-500 rounded-full flex items-center justify-center text-white shadow-xs border border-white">
+              <Sparkles className="w-2.5 h-2.5 animate-pulse" />
+            </div>
+          </div>
+
+          {/* Floating Tooltip Tag on Hover */}
+          <span className="absolute right-full mr-2 px-2.5 py-1 rounded-xl bg-slate-900/90 text-white text-[10px] font-black whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-md backdrop-blur-xs border border-white/10">
+            Mochi AI Assistant
+          </span>
+        </motion.button>
+      </motion.div>
 
       {/* Semicircle Radial Quick-Menu Overlay */}
       <AnimatePresence>

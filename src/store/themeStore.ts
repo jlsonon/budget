@@ -64,7 +64,7 @@ export const useThemeStore = create<ThemeState>()(
       setTheme: (theme) => {
         document.documentElement.setAttribute('data-theme', theme)
         // Apply dark class for dark themes
-        const themeInfo = THEMES.find((t: any) => t.id === theme)
+        const themeInfo = THEMES.find((t: ThemeInfo) => t.id === theme)
         if (themeInfo?.isDark) {
           document.documentElement.classList.add('dark')
           set({ theme, darkMode: true })
@@ -93,7 +93,7 @@ export const useThemeStore = create<ThemeState>()(
           document.documentElement.setAttribute('data-theme', saved.state.theme)
         }
         // Also handle dark themes
-        const themeInfo = THEMES.find((t: any) => t.id === saved.state?.theme)
+        const themeInfo = THEMES.find((t: ThemeInfo) => t.id === saved.state?.theme)
         if (themeInfo?.isDark) {
           document.documentElement.classList.add('dark')
         }

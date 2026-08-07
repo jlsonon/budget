@@ -56,18 +56,38 @@ export function getGreeting(): string {
   return 'Good Night'
 }
 
-export function getGreetingInfo(): { greeting: string; subtitle: string } {
+export function getGreetingInfo(): { greeting: string; subtitle: string; iconType: 'sun' | 'sunset' | 'moon'; colorClass: string } {
   const hour = new Date().getHours()
   if (hour >= 5 && hour < 12) {
-    return { greeting: 'Good Morning', subtitle: 'Start your day with smart money habits!' }
+    return {
+      greeting: 'Good Morning',
+      subtitle: 'Start your day with smart money habits!',
+      iconType: 'sun',
+      colorClass: 'text-amber-500 bg-amber-500/10 border-amber-500/20',
+    }
   }
   if (hour >= 12 && hour < 17) {
-    return { greeting: 'Good Afternoon', subtitle: 'Hope your day is productive & bright!' }
+    return {
+      greeting: 'Good Afternoon',
+      subtitle: 'Hope your day is productive & bright!',
+      iconType: 'sun',
+      colorClass: 'text-orange-500 bg-orange-500/10 border-orange-500/20',
+    }
   }
   if (hour >= 17 && hour < 22) {
-    return { greeting: 'Good Evening', subtitle: 'Review your daily spending & savings!' }
+    return {
+      greeting: 'Good Evening',
+      subtitle: 'Review your daily spending & savings!',
+      iconType: 'sunset',
+      colorClass: 'text-purple-400 bg-purple-500/10 border-purple-500/20',
+    }
   }
-  return { greeting: 'Good Night', subtitle: 'Rest well! Mochi is keeping your budget safe.' }
+  return {
+    greeting: 'Good Night',
+    subtitle: 'Rest well! Mochi is keeping your budget safe.',
+    iconType: 'moon',
+    colorClass: 'text-indigo-400 bg-indigo-500/10 border-indigo-500/20',
+  }
 }
 
 

@@ -85,7 +85,7 @@ export const useAppStore = create<AppState>()((set) => ({
 
   setDebts: (d: Debt[]) => { useDebtStore.getState().setDebts(d); set({ debts: d }) },
   addDebt: async (d: Debt) => { await useDebtStore.getState().addDebt(d); set({ debts: useDebtStore.getState().debts }) },
-  makeDebtPayment: async (id: string, amt: number) => { await useDebtStore.getState().makeDebtPayment(id, amt); set({ debts: useDebtStore.getState().debts }) },
+  makeDebtPayment: async (id: string, amt: number, walletId?: string, notes?: string) => { await useDebtStore.getState().makeDebtPayment(id, amt, walletId, notes); set({ debts: useDebtStore.getState().debts, wallets: useWalletStore.getState().wallets }) },
 
   setSubscriptions: (s: Subscription[]) => { useSubscriptionStore.getState().setSubscriptions(s); set({ subscriptions: s }) },
   addSubscription: async (sub: Subscription) => { await useSubscriptionStore.getState().addSubscription(sub); set({ subscriptions: useSubscriptionStore.getState().subscriptions }) },
@@ -106,6 +106,8 @@ export const useAppStore = create<AppState>()((set) => ({
   setAddModalOpen: (open: boolean, type?: 'expense' | 'income') => { useUIStore.getState().setAddModalOpen(open, type); set({ isAddModalOpen: open, defaultModalType: type ?? 'expense' }) },
   setReceiptModalOpen: (open: boolean) => { useUIStore.getState().setReceiptModalOpen(open); set({ isReceiptModalOpen: open }) },
   setAIChatModalOpen: (open: boolean) => { useUIStore.getState().setAIChatModalOpen(open); set({ isAIChatModalOpen: open }) },
+  theme: useUIStore.getState().theme,
+  setTheme: (t) => { useUIStore.getState().setTheme(t); set({ theme: t }) },
 }))
 
 export { getUid }

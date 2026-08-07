@@ -463,6 +463,7 @@ function HealthTrendCard({ data }: { data: ReturnType<typeof useReportsData> }) 
             progress={data.healthScore}
             size={80}
             strokeWidth={6}
+            showText={false}
             color="var(--color-primary)"
           />
           <div className="absolute inset-0 flex items-center justify-center">

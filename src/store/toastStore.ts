@@ -20,12 +20,19 @@ interface ToastState {
   info: (message: string, title?: string) => void
 }
 
-export const useToastStore = create<ToastState>()((set) => ({
+export const useToastStore = create<ToastState>()((set, get) => ({
   toasts: [],
   addToast: (toast) => {
+    // Deduplicate: If an identical message is currently active, don't stack duplicates
+    const currentToasts = get().toasts
+    if (currentToasts.some((t) => t.message === toast.message)) {
+      return
+    }
+
     const id = crypto.randomUUID()
     const newToast: Toast = { ...toast, id, duration: toast.duration || 3000 }
     set((state) => ({ toasts: [...state.toasts, newToast] }))
+
     setTimeout(() => {
       set((state) => ({ toasts: state.toasts.filter((t) => t.id !== id) }))
     }, newToast.duration)

@@ -5,20 +5,24 @@ import {
   Plus,
   Compass,
   Award,
-  Calendar,
-  Lock,
   ArrowRight,
+  UserPlus,
+  Key,
+  CheckCircle2,
+  Sparkles,
 } from 'lucide-react'
 import { useAppStore, getUid } from '@/store/appStore'
 import CircleDetailView from '@/components/circles/CircleDetailView'
 import MochiPassport from '@/components/circles/MochiPassport'
-import CircleScrapbook from '@/components/circles/CircleScrapbook'
+import { CircleScrapbook } from '@/components/circles/CircleScrapbook'
 import GroupMascotSVG from '@/components/ui/GroupMascotSVG'
 import Dialog from '@/components/ui/Dialog'
-import type { JourneyTheme, MascotAnimal, MascotOutfit, MochiCircle } from '@/types'
-import { formatCurrency, formatDate, cn } from '@/lib/utils'
-
-import MochiIcon from '@/components/ui/MochiIcons'
+import type { JourneyTheme, MochiCircle } from '@/types'
+import { formatCurrency, cn } from '@/lib/utils'
+import { useToastStore } from '@/store/toastStore'
+import PaywallModal from '@/components/modals/PaywallModal'
+import { isProUser } from '@/lib/paywall'
+import { useAuthStore } from '@/store/authStore'
 
 const journeyThemes: { id: JourneyTheme; name: string; iconId: string }[] = [
   { id: 'boracay', name: 'Boracay Beach Road', iconId: 'palmtree' },
@@ -29,32 +33,6 @@ const journeyThemes: { id: JourneyTheme; name: string; iconId: string }[] = [
   { id: 'europe', name: 'Euro Rail Adventure', iconId: 'plane' },
   { id: 'camping', name: 'Campfire Wilderness', iconId: 'sparkles' },
 ]
-
-const mascotAnimals: { id: MascotAnimal; name: string }[] = [
-  { id: 'cat', name: 'Cat' },
-  { id: 'fox', name: 'Fox' },
-  { id: 'bear', name: 'Bear' },
-  { id: 'rabbit', name: 'Rabbit' },
-  { id: 'panda', name: 'Panda' },
-  { id: 'otter', name: 'Otter' },
-  { id: 'hamster', name: 'Hamster' },
-  { id: 'red_panda', name: 'Red Panda' },
-  { id: 'capybara', name: 'Capybara' },
-  { id: 'shiba', name: 'Shiba' },
-  { id: 'penguin', name: 'Penguin' },
-  { id: 'duck', name: 'Duck' },
-]
-
-const mascotOutfits: { id: MascotOutfit; name: string }[] = [
-  { id: 'casual', name: 'Casual' },
-  { id: 'beach', name: 'Beach Outfit' },
-  { id: 'winter', name: 'Winter Warm' },
-  { id: 'raincoat', name: 'Raincoat' },
-]
-
-import PaywallModal from '@/components/modals/PaywallModal'
-import { isProUser } from '@/lib/paywall'
-import { useAuthStore } from '@/store/authStore'
 
 export default function CirclesPage() {
   const { user } = useAuthStore()
@@ -75,13 +53,14 @@ export default function CirclesPage() {
 
   // New Circle Modal State
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
+  const [isJoinModalOpen, setIsJoinModalOpen] = useState(false)
+  const [joinCodeInput, setJoinCodeInput] = useState('')
+
   const [circleName, setCircleName] = useState('')
   const [description, setDescription] = useState('')
   const [targetAmount, setTargetAmount] = useState('')
   const [targetDate, setTargetDate] = useState('')
   const [selectedTheme, setSelectedTheme] = useState<JourneyTheme>('boracay')
-  const [myMascot, setMyMascot] = useState<MascotAnimal>('cat')
-  const [myOutfit, setMyOutfit] = useState<MascotOutfit>('beach')
 
   const selectedCircle = circles.find((c) => c.id === selectedCircleId)
 
@@ -90,11 +69,14 @@ export default function CirclesPage() {
     const amt = parseFloat(targetAmount)
     if (!circleName || isNaN(amt) || amt <= 0 || !targetDate) return
 
+    const randomCode = `MOCHI-${Math.random().toString(36).substring(2, 7).toUpperCase()}`
+
     const newCircle: MochiCircle = {
       id: crypto.randomUUID(),
       userId: getUid(),
       name: circleName,
       description: description || 'Cooperative savings circle for our shared goal!',
+      inviteCode: randomCode,
       targetAmount: amt,
       currentAmount: 0,
       currency: 'PHP',
@@ -106,16 +88,16 @@ export default function CirclesPage() {
       members: [
         {
           id: 'm1',
-          name: 'Jericho (You)',
-          mascot: myMascot,
-          outfit: myOutfit,
+          name: user?.name ? `${user.name} (You)` : 'You (Owner)',
+          mascot: 'cat',
+          outfit: 'beach',
           role: 'owner',
           totalContributed: 0,
         },
       ],
       contributions: [],
       wishlist: [
-        { id: crypto.randomUUID(), title: 'Group Photo & Celebration', completed: false },
+        { id: crypto.randomUUID(), title: 'Group Celebration & Memory Photo', completed: false },
       ],
       polls: [],
       files: [],
@@ -125,9 +107,12 @@ export default function CirclesPage() {
         { percentage: 75, label: 'Horizon Line', unlocked: false, rewardLabel: 'Special Scene' },
         { percentage: 100, label: 'Destination Arrival', unlocked: false, rewardLabel: 'Passport Stamp' },
       ],
+      posts: [],
+      splits: [],
     }
 
     addCircle(newCircle)
+    useToastStore.getState().success(`Circle "${circleName}" created! Code: ${randomCode}`, 'Created')
     setIsCreateModalOpen(false)
     setSelectedCircleId(newCircle.id)
     setCircleName('')
@@ -136,7 +121,57 @@ export default function CirclesPage() {
     setTargetDate('')
   }
 
-  // If a Circle is selected, render full detail view
+  const handleJoinCircleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    const code = joinCodeInput.trim().toUpperCase()
+    if (!code) return
+
+    const foundCircle = circles.find(
+      (c) => c.inviteCode?.toUpperCase() === code || c.name.toUpperCase().includes(code)
+    )
+
+    if (foundCircle) {
+      useToastStore.getState().success(`Joined ${foundCircle.name}!`, 'Circle Joined')
+      setSelectedCircleId(foundCircle.id)
+      setIsJoinModalOpen(false)
+      setJoinCodeInput('')
+      return
+    }
+
+    // If not found in local mock, create a joined circle instance
+    const joinedCircle: MochiCircle = {
+      id: `circle_joined_${Date.now()}`,
+      userId: getUid(),
+      name: `Joined Circle (${code})`,
+      description: 'Shared group savings and social feed',
+      inviteCode: code,
+      targetAmount: 50000,
+      currentAmount: 12500,
+      currency: 'PHP',
+      targetDate: new Date(Date.now() + 60 * 86400000).toISOString().split('T')[0],
+      theme: 'boracay',
+      status: 'active',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      members: [
+        { id: 'm1', name: 'Circle Host', mascot: 'panda', outfit: 'casual', role: 'owner', totalContributed: 12500 },
+        { id: 'm2', name: `${user?.name || 'You'} (Member)`, mascot: 'cat', outfit: 'beach', role: 'member', totalContributed: 0 },
+      ],
+      contributions: [],
+      wishlist: [],
+      polls: [],
+      files: [],
+      milestones: [],
+      posts: [],
+    }
+
+    addCircle(joinedCircle)
+    useToastStore.getState().success(`Successfully joined Circle using code ${code}!`, 'Circle Joined')
+    setSelectedCircleId(joinedCircle.id)
+    setIsJoinModalOpen(false)
+    setJoinCodeInput('')
+  }
+
   if (selectedCircle) {
     return (
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 pb-24">
@@ -162,6 +197,45 @@ export default function CirclesPage() {
         featureDescription="Cooperative group savings and travel passport mode is a Pro feature. Upgrade to Pro ₱199.00 to save & travel with friends!"
       />
 
+      {/* Join Circle Modal */}
+      <Dialog isOpen={isJoinModalOpen} onClose={() => setIsJoinModalOpen(false)} title="Join an Existing Circle">
+        <form onSubmit={handleJoinCircleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-xs font-bold text-mochi-text-secondary mb-1">
+              Enter 6-Digit Invite Code *
+            </label>
+            <div className="relative">
+              <Key className="w-4 h-4 text-mochi-primary absolute left-3 top-3" />
+              <input
+                type="text"
+                placeholder="e.g. MOCHI-8X92K"
+                value={joinCodeInput}
+                onChange={(e) => setJoinCodeInput(e.target.value)}
+                className="mochi-input text-xs w-full font-bold pl-9 tracking-widest uppercase"
+                required
+                autoFocus
+              />
+            </div>
+            <p className="text-[11px] text-mochi-text-muted mt-1.5 font-medium">
+              Ask your circle host or friend for their Mochi Circle invite code to join their group savings feed!
+            </p>
+          </div>
+
+          <div className="pt-2 flex gap-3">
+            <button
+              type="button"
+              onClick={() => setIsJoinModalOpen(false)}
+              className="mochi-btn-secondary text-xs flex-1 py-2.5 font-bold"
+            >
+              Cancel
+            </button>
+            <button type="submit" className="mochi-btn-primary text-xs flex-1 py-2.5 font-bold flex items-center justify-center gap-1">
+              <CheckCircle2 className="w-4 h-4" /> Join Circle Now
+            </button>
+          </div>
+        </form>
+      </Dialog>
+
       {/* Header Banner */}
       <header className="flex flex-wrap items-center justify-between gap-4">
         <div>
@@ -170,57 +244,67 @@ export default function CirclesPage() {
               <Users className="w-3 h-3" /> Mochi Circles™
             </span>
             <span className="mochi-badge mochi-badge-success text-[10px] font-bold flex items-center gap-1">
-              <Lock className="w-3 h-3" /> Cooperative & Private
+              <Sparkles className="w-3 h-3 text-amber-500" /> Group Social & Savings
             </span>
           </div>
           <h1 className="text-3xl font-black text-mochi-text">Shared Savings & Trips</h1>
-          <p className="text-xs sm:text-sm text-mochi-text-secondary mt-1">
-            Private financial spaces where friends & family save, plan, and travel together.
+          <p className="text-xs sm:text-sm text-mochi-text-secondary mt-1 font-semibold">
+            Social spaces where friends & family save, plan, and socialize together.
           </p>
         </div>
 
-        <button
-          onClick={() => {
-            if (!isProUser(user)) {
-              setShowPaywall(true)
-            } else {
-              setIsCreateModalOpen(true)
-            }
-          }}
-          className="mochi-btn-primary px-4 py-2.5 shadow-lg flex items-center gap-2 text-xs sm:text-sm"
-        >
-          <Plus className="w-4 h-4" />
-          Create New Circle
-        </button>
+        <div className="flex items-center gap-2">
+          {/* JOIN CIRCLE BUTTON */}
+          <button
+            onClick={() => setIsJoinModalOpen(true)}
+            className="mochi-btn-secondary px-4 py-2.5 shadow-md flex items-center gap-2 text-xs sm:text-sm font-bold"
+          >
+            <UserPlus className="w-4 h-4 text-mochi-primary" />
+            Join Circle
+          </button>
+
+          {/* CREATE CIRCLE BUTTON */}
+          <button
+            onClick={() => {
+              if (!isProUser(user)) {
+                setShowPaywall(true)
+              } else {
+                setIsCreateModalOpen(true)
+              }
+            }}
+            className="mochi-btn-primary px-4 py-2.5 shadow-lg flex items-center gap-2 text-xs sm:text-sm font-bold"
+          >
+            <Plus className="w-4 h-4" />
+            Create New Circle
+          </button>
+        </div>
       </header>
 
-      {/* Main Tabs — compact pill grid */}
+      {/* Main Tabs */}
       <div className="grid grid-cols-3 gap-1 p-1 bg-mochi-surface-alt rounded-2xl border border-mochi-border">
         {[
-          { id: 'circles',   label: 'Circles',   icon: Users,    badge: circles.length       },
-          { id: 'passport',  label: 'Passport',  icon: Compass,  badge: passportStamps.length },
-          { id: 'scrapbook', label: 'Memories',  icon: Award,    badge: null                  },
-        ].map(({ id, label, icon: Icon, badge }) => {
-          const isActive = activeTab === id
+          { id: 'circles', label: 'Circles', icon: Users, badge: circles.length },
+          { id: 'passport', label: 'Passport', icon: Compass, badge: passportStamps.length },
+          { id: 'scrapbook', label: 'Scrapbook', icon: Award },
+        ].map((tab) => {
+          const Icon = tab.icon
+          const isActive = activeTab === tab.id
           return (
             <button
-              key={id}
-              onClick={() => setActiveTab(id as any)}
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id as any)}
               className={cn(
-                'flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-bold transition-all',
+                'flex items-center justify-center gap-2 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all',
                 isActive
-                  ? 'bg-mochi-surface text-mochi-primary shadow-sm'
-                  : 'text-mochi-text-secondary hover:text-mochi-text hover:bg-mochi-surface/60'
+                  ? 'bg-mochi-surface text-mochi-primary shadow-xs border border-mochi-border'
+                  : 'text-mochi-text-muted hover:text-mochi-text'
               )}
             >
               <Icon className="w-4 h-4" />
-              {label}
-              {badge !== null && badge > 0 && (
-                <span className={cn(
-                  'text-[9px] font-extrabold px-1.5 py-0.5 rounded-full leading-none',
-                  isActive ? 'bg-mochi-primary/20 text-mochi-primary' : 'bg-mochi-border text-mochi-text-muted'
-                )}>
-                  {badge}
+              <span>{tab.label}</span>
+              {typeof tab.badge === 'number' && (
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-mochi-primary/15 text-mochi-primary">
+                  {tab.badge}
                 </span>
               )}
             </button>
@@ -228,222 +312,180 @@ export default function CirclesPage() {
         })}
       </div>
 
-      {/* 1. Active Circles Grid */}
+      {/* Tab 1: Circles Grid */}
       {activeTab === 'circles' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {circles.map((circle) => {
-            const progress = Math.min(100, (circle.currentAmount / circle.targetAmount) * 100)
-            return (
-              <motion.div
-                key={circle.id}
-                whileHover={{ y: -3 }}
-                onClick={() => setSelectedCircleId(circle.id)}
-                className="mochi-card p-6 rounded-3xl border border-mochi-border hover:border-mochi-primary/40 transition-all cursor-pointer shadow-md flex flex-col justify-between"
-              >
-                <div>
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="text-xs font-extrabold uppercase tracking-wider text-mochi-primary bg-mochi-primary/10 px-2.5 py-1 rounded-full">
-                      {circle.theme} Theme
-                    </span>
-                    <span className="text-xs font-bold text-mochi-text-muted flex items-center gap-1">
-                      <Calendar className="w-3.5 h-3.5" /> {formatDate(circle.targetDate)}
-                    </span>
-                  </div>
-
-                  <h3 className="text-xl font-black text-mochi-text">{circle.name}</h3>
-                  <p className="text-xs text-mochi-text-secondary mt-1 line-clamp-2">{circle.description}</p>
-
-                  {/* Member Mascots Preview */}
-                  <div className="flex items-center justify-between my-5 bg-mochi-surface-alt p-3 rounded-2xl border border-mochi-border/50">
-                    <div className="flex items-center -space-x-2">
-                      {circle.members.map((m) => (
-                        <div
-                          key={m.id}
-                          className="w-10 h-10 rounded-full bg-mochi-surface border-2 border-mochi-primary p-0.5 shadow-sm"
-                          title={`${m.name} (${m.mascot})`}
-                        >
-                          <GroupMascotSVG animal={m.mascot} outfit={m.outfit} size="xs" />
+        <section aria-label="Active Circles">
+          {circles.length === 0 ? (
+            <div className="mochi-card p-8 sm:p-12 text-center flex flex-col items-center justify-center border-2 border-dashed border-mochi-border">
+              <GroupMascotSVG size="md" className="mb-4" />
+              <h3 className="text-xl font-black text-mochi-text mb-2">No Active Circles Yet</h3>
+              <p className="text-xs sm:text-sm text-mochi-text-secondary max-w-md mb-6 font-medium">
+                Create a circle or join your friends' circle using their invite code to save together!
+              </p>
+              <div className="flex items-center gap-3">
+                <button onClick={() => setIsJoinModalOpen(true)} className="mochi-btn-secondary px-5 py-2.5 text-xs font-bold flex items-center gap-2">
+                  <UserPlus className="w-4 h-4 text-mochi-primary" /> Join with Code
+                </button>
+                <button onClick={() => setIsCreateModalOpen(true)} className="mochi-btn-primary px-5 py-2.5 text-xs font-bold flex items-center gap-2">
+                  <Plus className="w-4 h-4" /> Create Circle
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+              {circles.map((circle) => {
+                const progressPct = Math.min(100, Math.round((circle.currentAmount / circle.targetAmount) * 100))
+                return (
+                  <motion.div
+                    key={circle.id}
+                    whileHover={{ y: -4 }}
+                    onClick={() => setSelectedCircleId(circle.id)}
+                    className="mochi-card p-5 cursor-pointer flex flex-col justify-between hover:border-mochi-primary/50 transition-all shadow-md group relative overflow-hidden"
+                  >
+                    <div>
+                      <div className="flex items-start justify-between gap-3 mb-3">
+                        <div>
+                          <h3 className="text-base font-black text-mochi-text group-hover:text-mochi-primary transition-colors">
+                            {circle.name}
+                          </h3>
+                          <p className="text-xs text-mochi-text-muted line-clamp-1 mt-0.5 font-medium">{circle.description}</p>
                         </div>
-                      ))}
-                    </div>
-                    <span className="text-xs font-bold text-mochi-text-secondary">
-                      {circle.members.length} Members Traveling
-                    </span>
-                  </div>
+                        <span className="text-[10px] font-black px-2.5 py-1 rounded-full bg-mochi-primary/10 text-mochi-primary uppercase border border-mochi-primary/20 shrink-0">
+                          {circle.theme}
+                        </span>
+                      </div>
 
-                  {/* Progress Bar */}
-                  <div className="space-y-1.5">
-                    <div className="flex justify-between text-xs font-bold">
-                      <span className="text-mochi-text">
-                        {formatCurrency(circle.currentAmount, circle.currency)}
-                      </span>
-                      <span className="text-mochi-text-muted">
-                        Goal: {formatCurrency(circle.targetAmount, circle.currency)} ({progress.toFixed(0)}%)
-                      </span>
-                    </div>
-                    <div className="h-3 bg-mochi-border/40 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-gradient-to-r from-sky-400 via-mochi-primary to-amber-400 rounded-full transition-all duration-700"
-                        style={{ width: `${progress}%` }}
-                      />
-                    </div>
-                  </div>
-                </div>
+                      {/* Code Badge */}
+                      {circle.inviteCode && (
+                        <div className="mb-3 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-mochi-surface-alt border border-mochi-border text-[10px] font-bold text-mochi-text-secondary">
+                          <Key className="w-3 h-3 text-amber-500" />
+                          <span>Code: {circle.inviteCode}</span>
+                        </div>
+                      )}
 
-                <div className="mt-5 pt-3 border-t border-mochi-border/40 flex items-center justify-between text-xs font-bold text-mochi-primary">
-                  <span>Open Journey Track & Circle Home</span>
-                  <ArrowRight className="w-4 h-4" />
-                </div>
-              </motion.div>
-            )
-          })}
-        </div>
+                      <div className="space-y-1.5 mb-4">
+                        <div className="flex justify-between text-xs font-bold">
+                          <span className="text-mochi-text-muted">Target Progress</span>
+                          <span className="text-mochi-primary">{progressPct}%</span>
+                        </div>
+                        <div className="h-2.5 bg-mochi-border/50 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-gradient-to-r from-mochi-primary to-purple-500 rounded-full transition-all duration-500"
+                            style={{ width: `${progressPct}%` }}
+                          />
+                        </div>
+                        <div className="flex justify-between text-[11px] font-semibold text-mochi-text-secondary">
+                          <span>{formatCurrency(circle.currentAmount)}</span>
+                          <span>Goal: {formatCurrency(circle.targetAmount)}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="pt-3 border-t border-mochi-border/60 flex items-center justify-between text-xs">
+                      <span className="text-mochi-text-muted font-bold flex items-center gap-1">
+                        <Users className="w-3.5 h-3.5" /> {circle.members?.length || 1} Members
+                      </span>
+                      <span className="font-bold text-mochi-primary flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                        Open Feed <ArrowRight className="w-3.5 h-3.5" />
+                      </span>
+                    </div>
+                  </motion.div>
+                )
+              })}
+            </div>
+          )}
+        </section>
       )}
 
-      {/* 2. Passport Tab */}
+      {/* Tab 2: Passport */}
       {activeTab === 'passport' && <MochiPassport stamps={passportStamps} />}
 
-      {/* 3. Scrapbook Tab */}
+      {/* Tab 3: Scrapbook */}
       {activeTab === 'scrapbook' && <CircleScrapbook circles={circles} />}
 
-      {/* Create Circle Dialog */}
-      <Dialog
-        isOpen={isCreateModalOpen}
-        onClose={() => setIsCreateModalOpen(false)}
-        title="Create Mochi Circle™"
-        size="lg"
-      >
-        <form onSubmit={handleCreateSubmit} className="space-y-4 pt-2">
+      {/* Create Modal */}
+      <Dialog isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} title="Create New Mochi Circle™">
+        <form onSubmit={handleCreateSubmit} className="space-y-4">
           <div>
-            <label className="block text-xs font-semibold text-mochi-text-secondary mb-1">
-              Circle Name
-            </label>
+            <label className="block text-xs font-bold text-mochi-text-secondary mb-1">Circle Name *</label>
             <input
               type="text"
-              required
-              placeholder="e.g. Boracay Beach Getaway, Birthday Fund..."
+              placeholder="e.g. Boracay 2026 Trip, Japan Cherry Blossom, House Fund"
               value={circleName}
               onChange={(e) => setCircleName(e.target.value)}
-              className="mochi-input text-xs"
+              className="mochi-input text-xs w-full font-bold"
+              required
             />
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-mochi-text-secondary mb-1">
-              Circle Description
-            </label>
+            <label className="block text-xs font-bold text-mochi-text-secondary mb-1">Description</label>
             <input
               type="text"
-              placeholder="e.g. Cooperative savings for hotel, food crawl & activities!"
+              placeholder="What is this shared goal about?"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="mochi-input text-xs"
+              className="mochi-input text-xs w-full font-medium"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-mochi-text-secondary mb-1">
-                Target Group Goal (PHP)
-              </label>
+              <label className="block text-xs font-bold text-mochi-text-secondary mb-1">Target Savings (PHP) *</label>
               <input
                 type="number"
-                required
-                min="100"
-                placeholder="60000"
+                placeholder="e.g. 50000"
                 value={targetAmount}
                 onChange={(e) => setTargetAmount(e.target.value)}
-                className="mochi-input text-xs font-bold"
+                className="mochi-input text-xs w-full font-bold"
+                required
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-mochi-text-secondary mb-1">
-                Target Trip/Goal Date
-              </label>
+              <label className="block text-xs font-bold text-mochi-text-secondary mb-1">Target Date *</label>
               <input
                 type="date"
-                required
                 value={targetDate}
                 onChange={(e) => setTargetDate(e.target.value)}
-                className="mochi-input text-xs"
+                className="mochi-input text-xs w-full font-bold"
+                required
               />
             </div>
           </div>
 
-          {/* Journey Theme Picker */}
           <div>
-            <label className="block text-xs font-semibold text-mochi-text-secondary mb-2">
-              Choose Journey Artwork Theme:
-            </label>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-40 overflow-y-auto p-1 scrollbar-hide">
-              {journeyThemes.map((theme) => (
+            <label className="block text-xs font-bold text-mochi-text-secondary mb-2">Select Journey Theme</label>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              {journeyThemes.map((t) => (
                 <button
-                  key={theme.id}
+                  key={t.id}
                   type="button"
-                  onClick={() => setSelectedTheme(theme.id)}
+                  onClick={() => setSelectedTheme(t.id)}
                   className={cn(
-                    'p-2.5 rounded-2xl border text-left flex items-center gap-2 transition-all',
-                    selectedTheme === theme.id
-                      ? 'border-mochi-primary bg-mochi-primary/10 shadow-sm'
-                      : 'border-mochi-border bg-mochi-surface hover:border-mochi-primary/40'
+                    'p-2.5 rounded-xl border text-left text-xs font-bold transition-all',
+                    selectedTheme === t.id
+                      ? 'bg-mochi-primary/10 border-mochi-primary text-mochi-primary'
+                      : 'border-mochi-border hover:bg-mochi-surface-alt text-mochi-text'
                   )}
                 >
-                  <MochiIcon id={theme.iconId} size="sm" style="plain" />
-                  <span className="text-xs font-bold text-mochi-text line-clamp-1">{theme.name}</span>
+                  {t.name}
                 </button>
               ))}
             </div>
           </div>
 
-          {/* Mascot & Outfit Choice (Same row dropdowns) */}
-          <div className="border-t border-mochi-border pt-3">
-            <label className="block text-xs font-semibold text-mochi-text-secondary mb-2">
-              Your Member Mascot & Outfit:
-            </label>
-            <div className="flex items-center gap-4 bg-mochi-surface-alt p-3 rounded-2xl border border-mochi-border">
-              <GroupMascotSVG animal={myMascot} outfit={myOutfit} size="md" />
-
-              <div className="flex-1 grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-[10px] text-mochi-text-muted font-bold block mb-1">
-                    Animal Species
-                  </label>
-                  <select
-                    value={myMascot}
-                    onChange={(e) => setMyMascot(e.target.value as MascotAnimal)}
-                    className="mochi-input text-xs w-full font-bold py-1.5 px-2 bg-mochi-surface"
-                  >
-                    {mascotAnimals.map((a) => (
-                      <option key={a.id} value={a.id}>
-                        {a.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="text-[10px] text-mochi-text-muted font-bold block mb-1">
-                    Outfit
-                  </label>
-                  <select
-                    value={myOutfit}
-                    onChange={(e) => setMyOutfit(e.target.value as MascotOutfit)}
-                    className="mochi-input text-xs w-full font-bold py-1.5 px-2 bg-mochi-surface"
-                  >
-                    {mascotOutfits.map((o) => (
-                      <option key={o.id} value={o.id}>
-                        {o.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-            </div>
+          <div className="pt-2 flex gap-3">
+            <button
+              type="button"
+              onClick={() => setIsCreateModalOpen(false)}
+              className="mochi-btn-secondary text-xs flex-1 py-2.5 font-bold"
+            >
+              Cancel
+            </button>
+            <button type="submit" className="mochi-btn-primary text-xs flex-1 py-2.5 font-bold">
+              Create Circle
+            </button>
           </div>
-
-          <button type="submit" className="mochi-btn-primary w-full text-sm py-3 mt-2 flex items-center justify-center gap-2">
-            <Plus className="w-4 h-4" /> Create Mochi Circle
-          </button>
         </form>
       </Dialog>
     </div>

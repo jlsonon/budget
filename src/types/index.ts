@@ -97,8 +97,13 @@ export interface Debt extends BaseDocument {
   type: 'borrowed' | 'lent' | 'credit_card' | 'loan' | 'mortgage' | 'car_loan' | 'personal' | 'business' | 'bnpl' | 'medical' | 'student_loan' | 'tax'
   originalBalance: number
   currentBalance: number
+  hasInterest?: boolean
   interestRate: number
   interestType: 'simple' | 'compound'
+  durationMonths?: number
+  totalLumpSum?: number
+  monthlyAmortization?: number
+  paymentWalletId?: string
   dueDate: string
   dueDayOfMonth?: number
   minimumPayment: number
@@ -123,11 +128,23 @@ export interface DebtPayment {
   amount: number
   date: string
   method: PaymentMethod
+  walletId?: string
+  walletName?: string
   notes?: string
 }
 
 // Subscription types
 export type SubscriptionFrequency = 'weekly' | 'monthly' | 'quarterly' | 'biannual' | 'annual'
+
+export interface SubscriptionPayment {
+  id: string
+  amount: number
+  date: string
+  walletId?: string
+  walletName?: string
+  notes?: string
+}
+
 export interface Subscription extends BaseDocument {
   id: string
   userId: string
@@ -141,6 +158,7 @@ export interface Subscription extends BaseDocument {
   autoProcess?: boolean
   usageRating?: number // 1-5
   cancelReminderDays: number
+  payments?: SubscriptionPayment[]
   notes?: string
   createdAt: string
   updatedAt: string
@@ -353,11 +371,22 @@ export interface CircleBillSplit {
   date: string
 }
 
+export interface CirclePost {
+  id: string
+  authorName: string
+  authorAvatar?: string
+  content: string
+  likes: number
+  likedByMe?: boolean
+  date: string
+}
+
 export interface MochiCircle extends BaseDocument {
   id: string
   userId?: string
   name: string
   description: string
+  inviteCode?: string
   targetAmount: number
   currentAmount: number
   currency: string
@@ -370,6 +399,7 @@ export interface MochiCircle extends BaseDocument {
   files: CircleFile[]
   milestones: CircleMilestone[]
   splits?: CircleBillSplit[]
+  posts?: CirclePost[]
   status: 'active' | 'completed' | 'archived'
   completedAt?: string
   createdAt: string

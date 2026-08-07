@@ -441,7 +441,7 @@ export default function ReceiptScannerModal({ isOpen, onClose }: ReceiptScannerM
                               Scan Complete
                             </span>
                             <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                              🎯 {scannedData.confidence}% Confidence
+                              {scannedData.confidence}% Confidence
                             </span>
                           </div>
                           <p className="text-xs text-mochi-text-muted mt-0.5">
@@ -464,8 +464,8 @@ export default function ReceiptScannerModal({ isOpen, onClose }: ReceiptScannerM
                           <TrendingDown className="w-4 h-4 shrink-0" />
                           <span>
                             {isOverBudget
-                              ? `⚠️ Warning: Exceeds monthly ${DEFAULT_EXPENSE_CATEGORIES.find((c) => c.id === targetCategory)?.name || targetCategory} budget!`
-                              : `💚 Remaining budget in category: ₱${(remainingBudget || 0).toLocaleString()}`}
+                              ? `Warning: Exceeds monthly ${DEFAULT_EXPENSE_CATEGORIES.find((c) => c.id === targetCategory)?.name || targetCategory} budget!`
+                              : `Remaining budget in category: ₱${(remainingBudget || 0).toLocaleString()}`}
                           </span>
                         </div>
                         <span className="text-[10px] uppercase font-black px-2 py-0.5 rounded-md bg-current/10">

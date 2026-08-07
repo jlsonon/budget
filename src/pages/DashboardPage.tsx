@@ -11,7 +11,6 @@ import {
   Calendar,
   Users,
   Wallet,
-  ChevronDown,
   ChevronRight,
   Target,
   Trophy,
@@ -19,7 +18,15 @@ import {
   CheckCircle2,
   Circle,
   Star,
-  Flame,
+  Sparkles,
+  Check,
+  Bell,
+  Sun,
+  Sunset,
+  Moon,
+  Eye,
+  EyeOff,
+  LayoutDashboard,
 } from 'lucide-react'
 import ProgressRing from '@/components/ui/ProgressRing'
 import Mascot from '@/components/ui/Mascot'
@@ -27,14 +34,148 @@ import MochiIcon from '@/components/ui/MochiIcons'
 import GroupMascotSVG from '@/components/ui/GroupMascotSVG'
 import { useAppStore } from '@/store/appStore'
 import { useAuthStore } from '@/store/authStore'
-import { formatCurrency, getGreetingInfo, getHealthScoreColor, cn, formatDate } from '@/lib/utils'
+import Dialog from '@/components/ui/Dialog'
+import { useToastStore } from '@/store/toastStore'
+import { formatCurrency, getGreetingInfo, getHealthScoreColor, cn, formatDate, DEFAULT_EXPENSE_CATEGORIES } from '@/lib/utils'
 import type { Achievement, DailyMission, CalendarEvent as CalendarEventType } from '@/types'
 
-// Clean initial states
-const mockMissions: DailyMission[] = []
-const mockAchievements: Achievement[] = []
-const mockCalendarEvents: CalendarEventType[] = []
+// Default Interactive Missions
+const defaultMissions: DailyMission[] = [
+  {
+    id: 'm1',
+    type: 'log_expense',
+    title: "Log today's lunch or coffee expense",
+    description: 'Keep your financial logging streak active by tracking daily transactions',
+    status: 'available',
+    reward: '+50 XP',
+    date: new Date().toISOString().split('T')[0],
+  },
+  {
+    id: 'm2',
+    type: 'save_amount',
+    title: 'Transfer ₱100 to your Savings Vault',
+    description: 'Put extra money towards your travel or emergency goal',
+    status: 'available',
+    reward: '+100 XP',
+    date: new Date().toISOString().split('T')[0],
+  },
+  {
+    id: 'm3',
+    type: 'review_spending',
+    title: 'Review 50/30/20 budget allocations',
+    description: 'Check if Needs (50%), Wants (30%), and Savings (20%) are balanced',
+    status: 'available',
+    reward: '+40 XP',
+    date: new Date().toISOString().split('T')[0],
+  },
+  {
+    id: 'm4',
+    type: 'check_bills',
+    title: 'Review upcoming bills & subscriptions',
+    description: 'Stay ahead of upcoming rent, internet, or Netflix bills',
+    status: 'available',
+    reward: '+30 XP',
+    date: new Date().toISOString().split('T')[0],
+  },
+]
 
+// Default Interactive Achievements
+const defaultAchievements: Achievement[] = [
+  {
+    id: 'a1',
+    name: 'First Step',
+    description: 'Log your very first income or expense transaction in Mochi Money',
+    icon: 'sparkle',
+    category: 'Getting Started',
+    requirement: 1,
+    progress: 1,
+    unlocked: true,
+    unlockedAt: '2026-08-01',
+  },
+  {
+    id: 'a2',
+    name: 'Savings Master',
+    description: 'Save ₱1,000 across all your active savings goals',
+    icon: 'piggy',
+    category: 'Savings',
+    requirement: 1000,
+    progress: 1000,
+    unlocked: true,
+    unlockedAt: '2026-08-05',
+  },
+  {
+    id: 'a3',
+    name: 'Streak Warrior',
+    description: 'Maintain a 3-day continuous logging streak',
+    icon: 'flame',
+    category: 'Consistency',
+    requirement: 3,
+    progress: 3,
+    unlocked: true,
+    unlockedAt: '2026-08-07',
+  },
+  {
+    id: 'a4',
+    name: 'Mochi Companion',
+    description: 'Ask Mochi AI assistant for spending diagnostic insights',
+    icon: 'bot',
+    category: 'AI Diagnostics',
+    requirement: 1,
+    progress: 1,
+    unlocked: false,
+  },
+  {
+    id: 'a5',
+    name: 'Circle Squad',
+    description: 'Create or join a shared Mochi Circle bill split group',
+    icon: 'group',
+    category: 'Social',
+    requirement: 1,
+    progress: 1,
+    unlocked: false,
+  },
+  {
+    id: 'a6',
+    name: 'Budget Master',
+    description: 'Keep total monthly expenses within your budget plan',
+    icon: 'target',
+    category: 'Budgeting',
+    requirement: 100,
+    progress: 85,
+    unlocked: false,
+  },
+]
+
+// Default Interactive Upcoming Events
+const defaultCalendarEvents: CalendarEventType[] = [
+  {
+    id: 'evt_1',
+    userId: 'user_1',
+    title: 'Electricity & Utility Bill',
+    date: new Date(Date.now() + 86400000 * 2).toISOString().split('T')[0],
+    type: 'bill',
+    amount: 1850,
+    color: '#F87171',
+  },
+  {
+    id: 'evt_2',
+    userId: 'user_1',
+    title: 'Fiber Internet Subscription',
+    date: new Date(Date.now() + 86400000 * 5).toISOString().split('T')[0],
+    type: 'subscription',
+    amount: 1499,
+    color: '#60A5FA',
+  },
+  {
+    id: 'evt_3',
+    userId: 'user_1',
+    title: 'Monthly Salary Payday',
+    date: new Date(Date.now() + 86400000 * 7).toISOString().split('T')[0],
+    type: 'income',
+    amount: 25000,
+    color: '#34D399',
+  },
+]
 
 function SkeletonCard() {
   return (
@@ -73,17 +214,184 @@ function EmptyTransactions() {
   )
 }
 
-
 export default function DashboardPage() {
   const { user } = useAuthStore()
-  const { transactions, savingsGoals, debts, circles = [], wallets = [], setAddModalOpen } = useAppStore()
+  const { transactions, savingsGoals, debts, subscriptions = [], circles = [], wallets = [], budgets = [], setAddModalOpen, makeDebtPayment, updateSubscription, addTransaction } = useAppStore()
   const [isLoading, setIsLoading] = useState(true)
-  const [walletsExpanded, setWalletsExpanded] = useState(false)
+  const [showAssetBalance, setShowAssetBalance] = useState(true)
+  const [activePayItem, setActivePayItem] = useState<{ id: string; title: string; type: string; amount: number } | null>(null)
+  const [payWalletId, setPayWalletId] = useState<string>('')
+  
+  // Interactive Modals State
+  const [show503020Modal, setShow503020Modal] = useState(false)
+  const [showAchievementsModal, setShowAchievementsModal] = useState(false)
+  const [showGreetingModal, setShowGreetingModal] = useState(false)
+  const [selectedBudgetPlan, setSelectedBudgetPlan] = useState<any | null>(null)
+  const [missionsList, setMissionsList] = useState<DailyMission[]>(defaultMissions)
+  const [achievementsList, setAchievementsList] = useState<Achievement[]>(defaultAchievements)
+  const [calendarEventsList, setCalendarEventsList] = useState<CalendarEventType[]>(defaultCalendarEvents)
+  const [selectedAchievement, setSelectedAchievement] = useState<Achievement | null>(null)
+  const [selectedEvent, setSelectedEvent] = useState<CalendarEventType | null>(null)
 
   useEffect(() => {
     const timer = setTimeout(() => setIsLoading(false), 1000)
     return () => clearTimeout(timer)
   }, [])
+
+  // Daily Reset & Auto-Check for Today's Missions
+  useEffect(() => {
+    const todayStr = new Date().toISOString().split('T')[0]
+    const lastResetDate = localStorage.getItem('mochi_mission_last_reset')
+
+    let currentMissions = defaultMissions
+
+    // Daily reset check: if new day, reset checklist
+    if (lastResetDate !== todayStr) {
+      localStorage.setItem('mochi_mission_last_reset', todayStr)
+      localStorage.setItem('mochi_daily_missions', JSON.stringify(defaultMissions))
+    } else {
+      const saved = localStorage.getItem('mochi_daily_missions')
+      if (saved) {
+        try {
+          currentMissions = JSON.parse(saved)
+        } catch {
+          currentMissions = defaultMissions
+        }
+      }
+    }
+
+    // Auto-check missions if user performed the task today
+    const todayTxns = transactions.filter((t) => {
+      const d = new Date(t.date)
+      const now = new Date()
+      return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() === now.getDate()
+    })
+
+    const updatedMissions = currentMissions.map((m) => {
+      if (m.type === 'log_expense' && todayTxns.length >= 1 && m.status !== 'completed') {
+        return { ...m, status: 'completed' as const, completedAt: new Date().toISOString() }
+      }
+      return m
+    })
+
+    setMissionsList(updatedMissions)
+    localStorage.setItem('mochi_daily_missions', JSON.stringify(updatedMissions))
+  }, [transactions.length])
+
+  // Toggle mission checklist with single-toast notification (deduplicated outside state updater)
+  const handleToggleMission = (id: string) => {
+    let notifyMsg = ''
+    let isCompleted = false
+
+    setMissionsList((prev) => {
+      const updated = prev.map((m) => {
+        if (m.id === id) {
+          const isNowCompleted = m.status !== 'completed'
+          isCompleted = isNowCompleted
+          notifyMsg = isNowCompleted
+            ? `Mission Completed: "${m.title}" (${m.reward})`
+            : `Mission marked as pending`
+
+          return {
+            ...m,
+            status: isNowCompleted ? ('completed' as const) : ('available' as const),
+            completedAt: isNowCompleted ? new Date().toISOString() : undefined,
+          }
+        }
+        return m
+      })
+
+      localStorage.setItem('mochi_daily_missions', JSON.stringify(updated))
+      return updated
+    })
+
+    // Trigger toast once outside state updater to prevent StrictMode duplicate calls
+    if (notifyMsg) {
+      if (isCompleted) {
+        useToastStore.getState().success(notifyMsg, 'Task Done!')
+      } else {
+        useToastStore.getState().info(notifyMsg, 'Checked Off')
+      }
+    }
+  }
+
+  // Claim/Unlock Achievement
+  const handleClaimAchievement = (ach: Achievement) => {
+    setAchievementsList((prev) =>
+      prev.map((a) =>
+        a.id === ach.id
+          ? { ...a, unlocked: true, progress: a.requirement, unlockedAt: new Date().toISOString().split('T')[0] }
+          : a
+      )
+    )
+    setSelectedAchievement(null)
+    useToastStore.getState().success(`Achievement Unlocked: "${ach.name}"! Badge Earned!`, 'Congratulations!')
+  }
+
+  // Settle/Pay Upcoming Event
+  const handleSettleEvent = (evt: CalendarEventType) => {
+    if (evt.amount && evt.type !== 'income') {
+      const walletId = wallets[0]?.id
+      addTransaction({
+        id: `txn_evt_${Date.now()}`,
+        userId: user?.id || 'anon',
+        type: 'expense',
+        amount: evt.amount,
+        currency: 'PHP',
+        categoryId: 'bills',
+        walletId,
+        merchant: evt.title,
+        paymentMethod: 'cash',
+        date: new Date().toISOString().split('T')[0],
+        notes: `Paid upcoming event: ${evt.title}`,
+        isFavorite: false,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      })
+    }
+    setCalendarEventsList((prev) => prev.filter((e) => e.id !== evt.id))
+    setSelectedEvent(null)
+    useToastStore.getState().success(`Marked "${evt.title}" as paid & logged transaction!`, 'Event Settled')
+  }
+
+  const handleConfirmPayDueItem = async () => {
+    if (!activePayItem) return
+    const chosenWallet = wallets.find((w) => w.id === payWalletId) || wallets[0]
+    const walletId = chosenWallet?.id
+
+    if (activePayItem.type === 'Debt') {
+      await makeDebtPayment(activePayItem.id, activePayItem.amount, walletId, `Dashboard due payment for ${activePayItem.title}`)
+      useToastStore.getState().success(`Paid ₱${activePayItem.amount.toLocaleString()} for ${activePayItem.title}`, 'Payment Success')
+    } else {
+      // Subscription payment
+      const sub = subscriptions.find((s) => s.id === activePayItem.id)
+      if (sub) {
+        addTransaction({
+          id: `txn_sub_${Date.now()}`,
+          userId: user?.id || 'anon',
+          type: 'expense',
+          amount: sub.amount,
+          currency: 'PHP',
+          categoryId: 'subscriptions',
+          walletId,
+          merchant: sub.name,
+          paymentMethod: 'cash',
+          date: new Date().toISOString().split('T')[0],
+          notes: `Dashboard payment for ${sub.name}`,
+          isFavorite: false,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        })
+
+        const nextDate = new Date(sub.nextBilling || Date.now())
+        nextDate.setMonth(nextDate.getMonth() + 1)
+        updateSubscription(sub.id, { nextBilling: nextDate.toISOString().split('T')[0] })
+        useToastStore.getState().success(`Renewed ${sub.name} for ₱${sub.amount.toLocaleString()}`, 'Payment Success')
+      }
+    }
+
+    setActivePayItem(null)
+  }
 
   const mockHealthScore = transactions.length > 0 ? 85 : 100
 
@@ -102,10 +410,50 @@ export default function DashboardPage() {
   const netCashflow = realIncome - realExpenses
   const savingsRate = realIncome > 0 ? Math.round((netCashflow / realIncome) * 100) : 0
 
-  const upcomingEvents = mockCalendarEvents
-    .filter((e) => new Date(e.date) >= new Date())
-    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-    .slice(0, 3)
+  // Calculate Subscriptions and Debts due today, upcoming, or overdue
+  const todayStr = new Date().toISOString().split('T')[0]
+  const todayTime = new Date(todayStr).getTime()
+
+  const dueItems = [
+    ...subscriptions
+      .filter((s) => s.status === 'active' && s.nextBilling)
+      .map((s) => {
+        const itemTime = new Date(s.nextBilling.split('T')[0]).getTime()
+        const isOverdue = itemTime < todayTime
+        const daysDiff = Math.round((todayTime - itemTime) / 86400000)
+        return {
+          id: s.id,
+          title: s.name,
+          type: 'Subscription',
+          amount: s.amount,
+          dueDate: s.nextBilling,
+          isOverdue,
+          daysDiff,
+          route: '/subscriptions',
+        }
+      }),
+    ...debts
+      .filter((d) => d.currentBalance > 0 && d.dueDate)
+      .map((d) => {
+        const itemTime = new Date(d.dueDate.split('T')[0]).getTime()
+        const isOverdue = itemTime < todayTime
+        const daysDiff = Math.round((todayTime - itemTime) / 86400000)
+        return {
+          id: d.id,
+          title: d.lender,
+          type: 'Debt',
+          amount: d.minimumPayment,
+          dueDate: d.dueDate.split('T')[0],
+          isOverdue,
+          daysDiff,
+          route: '/debts',
+        }
+      }),
+  ].filter((item) => {
+    const itemTime = new Date(item.dueDate.split('T')[0]).getTime()
+    const diffDays = (itemTime - todayTime) / 86400000
+    return diffDays <= 4 // Show items due within 4 days or overdue!
+  })
 
   const totalSaved = savingsGoals.reduce((sum, g) => sum + g.currentAmount, 0)
   const totalDebt = debts.reduce((sum, d) => sum + d.currentBalance, 0)
@@ -125,252 +473,378 @@ export default function DashboardPage() {
             .reduce((sum, t) => sum + t.amount, 0)
         )
         const maxSpent = Math.max(...spentPerDay, 1)
-        return spentPerDay.map((spent) => Math.max(10, Math.round((spent / maxSpent) * 100)))
+        return spentPerDay.map((spent) => Math.max(12, Math.round((spent / maxSpent) * 100)))
       })()
+
+  const completedMissionsCount = missionsList.filter((m) => m.status === 'completed').length
+  const unlockedAchievementsCount = achievementsList.filter((a) => a.unlocked).length
 
   if (isLoading) {
     return (
-      <div className="space-y-4 animate-pulse" aria-busy="true" aria-label="Loading dashboard">
-        <div className="mochi-skeleton h-6 w-48" />
-        <div className="mochi-skeleton h-4 w-32" />
-        <SkeletonCard />
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="mochi-skeleton h-24 rounded-lg" />
-          ))}
+      <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
+        <div className="mochi-card animate-pulse flex items-center justify-between">
+          <div className="space-y-2">
+            <div className="mochi-skeleton h-6 w-40" />
+            <div className="mochi-skeleton h-4 w-60" />
+          </div>
+          <div className="mochi-skeleton w-16 h-16 rounded-full" />
         </div>
-        <SkeletonCard />
-        <SkeletonCard />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <SkeletonCard />
+          <SkeletonCard />
+        </div>
       </div>
     )
   }
 
+  const { greeting, subtitle, iconType, colorClass } = getGreetingInfo()
+  const totalAssets = wallets.reduce((sum, w) => sum + w.balance, 0)
+
   return (
     <motion.div
-      className="space-y-4 pb-8"
-      initial={{ opacity: 0, y: 12 }}
+      initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
-      role="main"
-      aria-label="Dashboard"
+      className="max-w-4xl mx-auto px-4 py-6 space-y-6"
     >
-      {/* Greeting */}
-      <header className="mb-2 flex items-center justify-between">
-        <div>
-          <div className="text-xs font-extrabold text-mochi-primary uppercase tracking-wider">
-            {getGreetingInfo().greeting}
+      {/* 0. Time Greeting Info Modal */}
+      <Dialog isOpen={showGreetingModal} onClose={() => setShowGreetingModal(false)} title={`${greeting} from Mochi!`}>
+        <div className="space-y-4 text-xs text-center p-2">
+          <div className="w-16 h-16 rounded-full mx-auto flex items-center justify-center bg-mochi-primary/10 text-mochi-primary">
+            {iconType === 'sun' && <Sun className="w-8 h-8 text-amber-500" />}
+            {iconType === 'sunset' && <Sunset className="w-8 h-8 text-purple-400" />}
+            {iconType === 'moon' && <Moon className="w-8 h-8 text-indigo-400" />}
           </div>
-          <h1 className="text-xl font-black text-mochi-text tracking-tight">
-            {user?.name || 'Mochi Friend'}
-          </h1>
-        </div>
-        <button
-          onClick={() => setAddModalOpen(true)}
-          className="mochi-btn-primary text-xs py-2 px-3 flex items-center gap-1.5 shadow-md active:scale-95 transition-all"
-        >
-          <Plus className="w-4 h-4" /> Log Transaction
-        </button>
-      </header>
-
-      {/* 1-Tap Quick Log Shortcut Widget */}
-      <div className="p-3 bg-mochi-surface-alt border border-mochi-border rounded-2xl flex flex-wrap items-center justify-between gap-2 text-xs">
-        <span className="font-extrabold text-mochi-text text-[11px] flex items-center gap-1.5">
-          <Zap className="w-3.5 h-3.5 text-amber-500 fill-amber-400" /> Quick Log:
-        </span>
-        <div className="flex flex-wrap gap-1.5">
-          <button
-            onClick={() => {
-              useAppStore.getState().addTransaction({
-                id: `txn_${Date.now()}`,
-                userId: 'anon',
-                type: 'expense',
-                amount: 120,
-                currency: 'PHP',
-                categoryId: 'food',
-                merchant: 'Starbucks / Coffee',
-                paymentMethod: 'cash',
-                isFavorite: false,
-                date: new Date().toISOString().split('T')[0],
-                createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString(),
-              })
-            }}
-            className="px-2.5 py-1 rounded-xl bg-mochi-surface hover:bg-mochi-border border border-mochi-border font-bold text-mochi-text active:scale-95 transition-all flex items-center gap-1"
-          >
-            <span>Coffee ₱120</span>
-          </button>
-
-          <button
-            onClick={() => {
-              useAppStore.getState().addTransaction({
-                id: `txn_${Date.now()}`,
-                userId: 'anon',
-                type: 'expense',
-                amount: 150,
-                currency: 'PHP',
-                categoryId: 'transportation',
-                merchant: 'Grab / Commute',
-                paymentMethod: 'cash',
-                isFavorite: false,
-                date: new Date().toISOString().split('T')[0],
-                createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString(),
-              })
-            }}
-            className="px-2.5 py-1 rounded-xl bg-mochi-surface hover:bg-mochi-border border border-mochi-border font-bold text-mochi-text active:scale-95 transition-all flex items-center gap-1"
-          >
-            <span>Grab/Ride ₱150</span>
-          </button>
-
-          <button
-            onClick={() => {
-              useAppStore.getState().addTransaction({
-                id: `txn_${Date.now()}`,
-                userId: 'anon',
-                type: 'expense',
-                amount: 180,
-                currency: 'PHP',
-                categoryId: 'food',
-                merchant: 'Lunch Meal',
-                paymentMethod: 'cash',
-                isFavorite: false,
-                date: new Date().toISOString().split('T')[0],
-                createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString(),
-              })
-            }}
-            className="px-2.5 py-1 rounded-xl bg-mochi-surface hover:bg-mochi-border border border-mochi-border font-bold text-mochi-text active:scale-95 transition-all flex items-center gap-1"
-          >
-            <span>Lunch ₱180</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Financial Pulse Card */}
-      <section aria-label="Financial Pulse">
-        <div className="bg-gradient-to-r from-amber-500/10 via-sky-500/10 to-emerald-500/10 border border-mochi-border/80 rounded-3xl p-4 sm:p-5 flex items-center gap-4 relative overflow-hidden shadow-xs">
-          <div className="w-11 h-11 rounded-2xl bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 border border-amber-400/30">
-            <Zap className="w-5 h-5 text-amber-500" />
+          <div className="space-y-1">
+            <h3 className="text-base font-black text-mochi-text">{greeting}, {user?.name || 'Friend'}!</h3>
+            <p className="text-mochi-text-secondary text-xs">{subtitle}</p>
           </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-[10px] font-black uppercase tracking-wider text-amber-700 dark:text-amber-300 bg-amber-400/20 px-2 py-0.5 rounded-full border border-amber-400/30">
-                Financial Pulse
-              </span>
-              <span className="text-[10px] text-mochi-text-muted font-bold">This Month</span>
+          <div className="p-3.5 rounded-2xl bg-mochi-surface-alt border border-mochi-border/70 text-left space-y-2">
+            <p className="text-[11px] font-bold text-mochi-text-muted uppercase">Financial Health Snapshot</p>
+            <div className="flex items-center justify-between text-xs font-extrabold text-mochi-text">
+              <span>Total Assets:</span>
+              <span className="text-emerald-500 font-black">{formatCurrency(totalAssets)}</span>
             </div>
-            <p className="text-xs font-extrabold text-mochi-text leading-relaxed">
-              {netCashflow > 0
-                ? `You're running a ${formatCurrency(netCashflow)} surplus this month with a ${savingsRate}% savings rate. Keep building your funds!`
-                : `Your monthly expenses are running close to your income (${formatCurrency(realExpenses)} spent). Keep an eye on non-essential spending.`}
+            <div className="flex items-center justify-between text-xs font-extrabold text-mochi-text">
+              <span>Monthly Surplus:</span>
+              <span className={netCashflow >= 0 ? 'text-sky-500' : 'text-rose-500'}>{formatCurrency(netCashflow)}</span>
+            </div>
+          </div>
+          <button
+            onClick={() => setShowGreetingModal(false)}
+            className="w-full py-3 rounded-2xl bg-mochi-primary text-white font-extrabold text-xs cursor-pointer shadow-md hover:brightness-105"
+          >
+            Got it, thanks!
+          </button>
+        </div>
+      </Dialog>
+      {/* 1. Interactive 50/30/20 Modal */}
+      <Dialog isOpen={show503020Modal} onClose={() => setShow503020Modal(false)} title="Understanding the 50/30/20 Budgeting Rule">
+        <div className="space-y-4 text-xs leading-relaxed text-mochi-text-secondary">
+          <div className="p-3.5 rounded-2xl bg-gradient-to-r from-mochi-primary/10 via-purple-500/10 to-sky-500/10 border border-mochi-primary/20">
+            <h4 className="font-extrabold text-mochi-text text-sm flex items-center gap-1.5">
+              <Zap className="w-4 h-4 text-mochi-primary" /> Smart Budget Allocation Formula
+            </h4>
+            <p className="text-mochi-text-muted text-[11px] mt-1">
+              The 50/30/20 rule is a simple, effective framework that divides your take-home pay into 3 main buckets to ensure balance and long-term financial security.
             </p>
           </div>
-        </div>
-      </section>
 
-      {/* Financial Health Score Card */}
-      <section
-        className="mochi-card flex flex-col sm:flex-row items-center gap-4 sm:gap-6"
-        aria-label="Financial Health Score"
-      >
-        <HealthScoreRing score={mockHealthScore} />
-        <div className="flex-1 text-center sm:text-left">
-          <h2 className="text-lg font-semibold text-mochi-text">Financial Health</h2>
-          <p className="text-sm text-mochi-text-muted mt-1">
-            {mockHealthScore >= 80
-              ? "Excellent! You're doing great!"
-              : mockHealthScore >= 60
-              ? "Good progress! Keep it up."
-              : mockHealthScore >= 40
-              ? "Room for improvement. Let's work on it!"
-              : "Needs attention. Don't worry, we'll help!"}
-          </p>
-          <div className="flex flex-wrap gap-2 mt-3 justify-center sm:justify-start">
-            <span className="mochi-badge mochi-badge-success">Savings: {savingsGoals.length > 0 ? 'Active' : 'None'}</span>
-            <span className={cn('mochi-badge', totalDebt > 0 ? 'mochi-badge-warning' : 'mochi-badge-success')}>
-              Debt: {totalDebt > 0 ? formatCurrency(totalDebt) : 'Free!'}
-            </span>
+          <div className="space-y-2.5">
+            <div className="p-3 rounded-2xl bg-rose-500/10 border border-rose-500/20">
+              <h5 className="font-extrabold text-rose-600 dark:text-rose-400 text-xs">1. 50% for Essential Needs</h5>
+              <p className="text-[11px] text-mochi-text-secondary mt-0.5">
+                Housing rent/mortgage, utilities (water, power, internet), groceries, healthcare, transportation, and minimum debt payments.
+              </p>
+            </div>
+
+            <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/20">
+              <h5 className="font-extrabold text-amber-600 dark:text-amber-400 text-xs">2. 30% for Personal Wants</h5>
+              <p className="text-[11px] text-mochi-text-secondary mt-0.5">
+                Dining out, coffee, entertainment, streaming subscriptions, hobbies, shopping, and weekend trips.
+              </p>
+            </div>
+
+            <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20">
+              <h5 className="font-extrabold text-emerald-600 dark:text-emerald-400 text-xs">3. 20% for Savings & Investments</h5>
+              <p className="text-[11px] text-mochi-text-secondary mt-0.5">
+                Emergency funds, travel goals, high-yield deposits, retirement contributions, and extra debt payoff.
+              </p>
+            </div>
           </div>
         </div>
-        <Mascot mood={mockHealthScore >= 80 ? 'excited' : mockHealthScore >= 60 ? 'happy' : 'neutral'} size="sm" />
-      </section>
+      </Dialog>
 
-      {/* Wallet Overview Widget */}
-      {wallets.length > 0 && (
-        <section aria-label="Wallet Overview">
-          <Link to="/wallets">
-            <motion.div
-              className="mochi-card bg-gradient-to-br from-amber-500/5 via-orange-500/5 to-transparent border-amber-400/20 hover:border-amber-400/50 transition-all cursor-pointer"
-              whileTap={{ scale: 0.99 }}
-            >
-              {/* Top row */}
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-xl bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
-                    <Wallet className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-                  </div>
-                  <div>
-                    <p className="text-xs font-bold text-mochi-text-muted">Total Assets</p>
-                    <p className="text-xl font-black text-mochi-text">
-                      {formatCurrency(wallets.filter((w) => w.includeInTotal).reduce((s, w) => s + w.balance, 0), 'PHP')}
-                    </p>
-                  </div>
-                </div>
-                <button
-                  onClick={(e) => { e.preventDefault(); setWalletsExpanded((x) => !x) }}
-                  className="p-1.5 rounded-full hover:bg-mochi-surface-alt transition-colors"
-                >
-                  <ChevronDown className={`w-4 h-4 text-mochi-text-muted transition-transform ${walletsExpanded ? 'rotate-180' : ''}`} />
-                </button>
+      {/* 2. Interactive Achievement Detail Modal */}
+      <Dialog
+        isOpen={!!selectedAchievement}
+        onClose={() => setSelectedAchievement(null)}
+        title={selectedAchievement?.name || 'Achievement Details'}
+      >
+        {selectedAchievement && (
+          <div className="space-y-4 text-center py-2">
+            <div className="w-16 h-16 rounded-3xl bg-amber-500/15 border-2 border-amber-500/40 flex items-center justify-center mx-auto shadow-md">
+              <MochiIcon id={selectedAchievement.icon} size="lg" style="rounded-badge" />
+            </div>
+
+            <div>
+              <span className="text-[10px] font-black uppercase tracking-wider text-amber-600 bg-amber-500/10 px-2.5 py-0.5 rounded-full border border-amber-500/20">
+                {selectedAchievement.category}
+              </span>
+              <h3 className="text-base font-extrabold text-mochi-text mt-2">{selectedAchievement.name}</h3>
+              <p className="text-xs text-mochi-text-muted mt-1 max-w-xs mx-auto">{selectedAchievement.description}</p>
+            </div>
+
+            {/* Progress Bar */}
+            <div className="p-3 rounded-2xl bg-mochi-surface-alt border border-mochi-border space-y-1.5 text-left">
+              <div className="flex justify-between text-xs font-bold">
+                <span className="text-mochi-text-secondary">Progress</span>
+                <span className="text-mochi-primary">
+                  {selectedAchievement.progress} / {selectedAchievement.requirement}
+                </span>
               </div>
+              <div className="w-full h-2.5 rounded-full bg-mochi-border overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-amber-400 to-mochi-primary transition-all duration-500"
+                  style={{
+                    width: `${Math.min(100, Math.round((selectedAchievement.progress / selectedAchievement.requirement) * 100))}%`,
+                  }}
+                />
+              </div>
+            </div>
 
-              {/* Always-visible top wallets */}
-              <div className="grid grid-cols-2 gap-2">
-                {wallets.slice(0, walletsExpanded ? undefined : 4).map((w) => (
-                  <div
-                    key={w.id}
-                    className="flex items-center gap-2 p-2 rounded-xl bg-white/50 dark:bg-white/5 border border-mochi-border/40"
-                  >
-                    <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: w.color }} />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[10px] text-mochi-text-muted truncate">{w.name}</p>
-                      <p className="text-xs font-extrabold text-mochi-text">{formatCurrency(w.balance, w.currency)}</p>
-                    </div>
-                  </div>
+            {/* Status & Action */}
+            {selectedAchievement.unlocked ? (
+              <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-xs font-bold flex items-center justify-center gap-1.5">
+                <CheckCircle2 className="w-4 h-4" /> Unlocked on {selectedAchievement.unlockedAt || 'Recently'}!
+              </div>
+            ) : (
+              <button
+                onClick={() => handleClaimAchievement(selectedAchievement)}
+                className="w-full py-3 rounded-2xl bg-gradient-to-r from-amber-400 to-mochi-primary text-white text-xs font-black shadow-md hover:brightness-105 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <Trophy className="w-4 h-4" /> Claim Achievement & Earn Badge!
+              </button>
+            )}
+          </div>
+        )}
+      </Dialog>
+
+      {/* 3. Interactive Upcoming Event Detail Modal */}
+      <Dialog
+        isOpen={!!selectedEvent}
+        onClose={() => setSelectedEvent(null)}
+        title={selectedEvent?.title || 'Upcoming Event'}
+      >
+        {selectedEvent && (
+          <div className="space-y-4 text-xs">
+            <div className="p-3.5 rounded-2xl bg-mochi-surface-alt border border-mochi-border flex items-center gap-3">
+              <div
+                className="w-10 h-10 rounded-2xl flex items-center justify-center text-white shrink-0 font-bold shadow-xs"
+                style={{ backgroundColor: selectedEvent.color || 'var(--color-primary)' }}
+              >
+                <Calendar className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="font-extrabold text-mochi-text text-sm">{selectedEvent.title}</h4>
+                <p className="text-[11px] text-mochi-text-muted">Due Date: {formatDate(selectedEvent.date)}</p>
+              </div>
+            </div>
+
+            <p className="text-mochi-text-secondary leading-relaxed bg-mochi-surface p-3 rounded-2xl border border-mochi-border/60">
+              Upcoming scheduled payment or financial calendar milestone.
+            </p>
+
+            {selectedEvent.amount && (
+              <div className="flex items-center justify-between p-3 rounded-2xl bg-rose-500/10 border border-rose-500/20">
+                <span className="font-bold text-mochi-text">Amount Due</span>
+                <span className="text-sm font-black text-rose-600 dark:text-rose-400">
+                  {formatCurrency(selectedEvent.amount)}
+                </span>
+              </div>
+            )}
+
+            <div className="grid grid-cols-2 gap-2 pt-2">
+              <button
+                onClick={() => {
+                  useToastStore.getState().info(`Reminder set for ${selectedEvent.title}`, 'Reminder Scheduled')
+                  setSelectedEvent(null)
+                }}
+                className="py-2.5 rounded-2xl border border-mochi-border font-bold text-mochi-text hover:bg-mochi-surface-alt active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <Bell className="w-4 h-4 text-mochi-text-muted" /> Remind Me
+              </button>
+
+              <button
+                onClick={() => handleSettleEvent(selectedEvent)}
+                className="py-2.5 rounded-2xl bg-mochi-primary text-white font-black shadow-xs hover:brightness-105 active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <Check className="w-4 h-4" /> Mark Paid
+              </button>
+            </div>
+          </div>
+        )}
+      </Dialog>
+
+      {/* 4. Payment Modal for Due Items */}
+      <Dialog isOpen={!!activePayItem} onClose={() => setActivePayItem(null)} title={`Pay ${activePayItem?.title}`}>
+        {activePayItem && (
+          <div className="space-y-4 text-xs">
+            <div className="p-3.5 rounded-2xl bg-mochi-primary/10 border border-mochi-primary/20">
+              <p className="text-mochi-text-muted">Item to Pay</p>
+              <p className="font-extrabold text-mochi-text text-sm">{activePayItem.title}</p>
+              <p className="text-lg font-black text-mochi-primary mt-1">₱{activePayItem.amount.toLocaleString()}</p>
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-bold text-mochi-text-secondary mb-1.5 uppercase">
+                Select Source Wallet
+              </label>
+              <select
+                value={payWalletId}
+                onChange={(e) => setPayWalletId(e.target.value)}
+                className="w-full p-3 rounded-2xl border border-mochi-border bg-mochi-surface text-mochi-text font-semibold text-xs focus:ring-2 focus:ring-mochi-primary outline-none"
+              >
+                {wallets.map((w) => (
+                  <option key={w.id} value={w.id}>
+                    {w.name} (Balance: ₱{w.balance.toLocaleString()})
+                  </option>
                 ))}
+              </select>
+            </div>
+
+            <button
+              onClick={handleConfirmPayDueItem}
+              className="w-full py-3 rounded-2xl bg-mochi-primary text-white font-extrabold text-xs shadow-md hover:brightness-105 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer"
+            >
+              Confirm ₱{activePayItem.amount.toLocaleString()} Payment
+            </button>
+          </div>
+        )}
+      </Dialog>
+
+      {/* Top Banner */}
+      <header
+        onClick={() => setShowGreetingModal(true)}
+        className="mochi-card flex items-center justify-between cursor-pointer hover:border-mochi-primary/40 transition-all shadow-xs"
+        aria-label="Greeting Header"
+      >
+        <div className="flex items-center gap-3">
+          <div className={cn('w-12 h-12 rounded-full flex items-center justify-center shrink-0 border', colorClass)}>
+            {iconType === 'sun' && <Sun className="w-6 h-6" />}
+            {iconType === 'sunset' && <Sunset className="w-6 h-6" />}
+            {iconType === 'moon' && <Moon className="w-6 h-6" />}
+          </div>
+          <div>
+            <h1 className="text-lg font-bold text-mochi-text">
+              {greeting}, {user?.name || user?.email?.split('@')[0] || 'Friend'}!
+            </h1>
+            <p className="text-xs text-mochi-text-muted">{subtitle}</p>
+          </div>
+        </div>
+        <HealthScoreRing score={mockHealthScore} />
+      </header>
+
+      {/* Overdue / Due Soon Alert Banner */}
+      {dueItems.length > 0 && (
+        <section aria-label="Due Alerts" className="space-y-2">
+          {dueItems.map((item) => (
+            <div
+              key={item.id}
+              className={cn(
+                'p-3.5 rounded-2xl border flex items-center justify-between shadow-xs transition-all',
+                item.isOverdue
+                  ? 'bg-rose-500/10 border-rose-500/30'
+                  : 'bg-amber-500/10 border-amber-500/30'
+              )}
+            >
+              <div className="flex items-center gap-3">
+                <div className={cn(
+                  'w-9 h-9 rounded-xl flex items-center justify-center font-black text-xs shrink-0',
+                  item.isOverdue ? 'bg-rose-500 text-white' : 'bg-amber-500 text-white'
+                )}>
+                  !
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-extrabold text-mochi-text">{item.title}</span>
+                    <span className={cn(
+                      'text-[9px] font-black uppercase px-2 py-0.5 rounded-full',
+                      item.isOverdue ? 'bg-rose-500/20 text-rose-600 dark:text-rose-400' : 'bg-amber-500/20 text-amber-600 dark:text-amber-400'
+                    )}>
+                      {item.isOverdue ? `Overdue by ${item.daysDiff}d` : 'Due Soon'}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-mochi-text-muted">
+                    {item.type} due on {formatDate(item.dueDate)} • <span className="font-bold text-mochi-text">₱{item.amount.toLocaleString()}</span>
+                  </p>
+                </div>
               </div>
 
-              <div className="flex items-center justify-end mt-2 gap-1">
-                <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400">View All Wallets</span>
-                <ChevronRight className="w-3 h-3 text-amber-600 dark:text-amber-400" />
-              </div>
-            </motion.div>
-          </Link>
+              <button
+                onClick={() => {
+                  setPayWalletId(wallets[0]?.id || '')
+                  setActivePayItem({ id: item.id, title: item.title, type: item.type, amount: item.amount })
+                }}
+                className="px-3 py-1.5 rounded-xl bg-mochi-primary text-white font-extrabold text-xs shadow-xs hover:brightness-105 active:scale-95 transition-all shrink-0 cursor-pointer"
+              >
+                Pay Now
+              </button>
+            </div>
+          ))}
         </section>
       )}
 
-      {/* Mochi Circles™ Featured Journey Home Widget */}
+      {/* Wallets Widget — Prominent Total Assets Only */}
+      {wallets.length > 0 && (
+        <section aria-label="Wallets Overview" className="mochi-card space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Wallet className="w-5 h-5 text-mochi-primary" />
+              <h2 className="font-bold text-mochi-text text-base">My Wallets</h2>
+            </div>
+            <Link to="/wallets" className="text-xs text-mochi-primary font-bold hover:underline flex items-center gap-1">
+              View Wallets <ChevronRight className="w-3 h-3" />
+            </Link>
+          </div>
+
+          {/* Prominent Total Assets Summary Card with Far Right Eye Button */}
+          <div className="relative overflow-hidden p-5 rounded-3xl bg-gradient-to-br from-mochi-primary/20 via-purple-500/15 to-sky-400/20 border border-mochi-primary/30 shadow-xs flex items-center justify-between">
+            <div>
+              <span className="text-xs font-black uppercase tracking-wider text-mochi-text-secondary">Total Net Worth / Assets</span>
+              <h3 className="text-3xl font-black text-mochi-text tracking-tight mt-1">
+                {showAssetBalance ? formatCurrency(totalAssets) : '••••••••'}
+              </h3>
+              <p className="text-[11px] text-mochi-text-muted mt-1">
+                Combined balance across cash, bank accounts, and e-wallets.
+              </p>
+            </div>
+            <button
+              onClick={() => setShowAssetBalance((prev) => !prev)}
+              className="p-3 rounded-2xl bg-mochi-surface/75 hover:bg-mochi-surface text-mochi-text-secondary hover:text-mochi-text border border-mochi-border/60 transition-all cursor-pointer shadow-2xs shrink-0"
+              title={showAssetBalance ? 'Hide Balance' : 'Show Balance'}
+            >
+              {showAssetBalance ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+            </button>
+          </div>
+        </section>
+      )}
+
+      {/* Mochi Circles Widget */}
       {circles.length > 0 && (
-        <section aria-label="Mochi Circles Journey Widget">
-          <Link
-            to="/circles"
-            className="mochi-card bg-gradient-to-r from-sky-500/10 via-amber-500/10 to-purple-500/10 p-5 rounded-3xl border border-sky-400/30 hover:border-sky-500/60 transition-all flex flex-col gap-3 group block"
-          >
+        <section aria-label="Mochi Circles" className="relative overflow-hidden p-4 rounded-3xl bg-gradient-to-r from-sky-400/20 via-mochi-primary/15 to-purple-500/20 border border-sky-400/30 shadow-xs">
+          <Link to="/circles" className="block space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <span className="mochi-badge mochi-badge-primary text-[10px] font-extrabold uppercase tracking-wider flex items-center gap-1">
-                  <Users className="w-3 h-3" /> Mochi Circles™
-                </span>
-                <span className="text-xs font-bold text-slate-700 dark:text-slate-200">
-                  {circles[0].name}
+                <Users className="w-4 h-4 text-sky-500" />
+                <h3 className="font-bold text-mochi-text text-sm">{circles[0].name}</h3>
+                <span className="text-[9px] font-black uppercase text-sky-600 bg-sky-500/20 px-2 py-0.5 rounded-full">
+                  Group Split
                 </span>
               </div>
-              <span className="text-xs font-bold text-sky-600 group-hover:translate-x-1 transition-transform flex items-center gap-1">
-                View Journey Track →
-              </span>
+              <ChevronRight className="w-4 h-4 text-mochi-text-muted" />
             </div>
 
-            {/* Mascot Trail Preview */}
             <div className="flex items-center justify-between bg-white/75 dark:bg-slate-900/80 p-3 rounded-2xl border border-white/40">
               <div className="flex items-center -space-x-3">
                 {circles[0].members.map((m: { id: string; mascot: any; outfit: any }) => (
@@ -395,7 +869,15 @@ export default function DashboardPage() {
 
       {/* Quick Actions */}
       <section aria-label="Quick Actions">
-        <h2 className="text-sm font-semibold text-mochi-text-secondary mb-2 uppercase tracking-wide">Quick Actions</h2>
+        <div className="flex items-center justify-between mb-2">
+          <h2 className="text-sm font-semibold text-mochi-text-secondary uppercase tracking-wide">Quick Actions</h2>
+          <button
+            onClick={() => setShow503020Modal(true)}
+            className="text-xs font-bold text-mochi-primary hover:underline flex items-center gap-1 cursor-pointer"
+          >
+            <Sparkles className="w-3.5 h-3.5" /> 50/30/20 Formula Guide
+          </button>
+        </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {[
             { icon: Plus, label: 'Add Expense', action: () => setAddModalOpen(true, 'expense'), color: 'bg-rose-500/10 text-rose-500' },
@@ -445,27 +927,60 @@ export default function DashboardPage() {
             {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
           </span>
         </div>
-        <div className="grid grid-cols-3 gap-3 mb-4">
-          <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20">
-            <div className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 mb-1">
-              <ArrowDownLeft className="w-3.5 h-3.5" />
-              <span className="text-[10px] font-bold uppercase tracking-wider">Income</span>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 mb-5">
+          {/* Income Card */}
+          <div className="p-4 rounded-3xl bg-gradient-to-br from-emerald-500/15 via-emerald-500/5 to-transparent border border-emerald-500/30 flex flex-col justify-between shadow-xs hover:border-emerald-500/60 transition-all">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-1.5 text-emerald-700 dark:text-emerald-300">
+                <div className="p-1.5 rounded-xl bg-emerald-500/20">
+                  <ArrowDownLeft className="w-4 h-4 text-emerald-500" />
+                </div>
+                <span className="text-xs font-black uppercase tracking-wider">Total Income</span>
+              </div>
+              <span className="text-[10px] font-extrabold text-emerald-600 dark:text-emerald-400 bg-emerald-500/20 px-2 py-0.5 rounded-full">
+                +Inflow
+              </span>
             </div>
-            <p className="text-sm font-black text-emerald-600 dark:text-emerald-400">{formatCurrency(realIncome)}</p>
+            <p className="text-xl sm:text-2xl font-black text-emerald-600 dark:text-emerald-400 tracking-tight">
+              {formatCurrency(realIncome)}
+            </p>
           </div>
-          <div className="p-3 rounded-2xl bg-rose-500/10 border border-rose-500/20">
-            <div className="flex items-center gap-1 text-rose-600 dark:text-rose-400 mb-1">
-              <ArrowUpRight className="w-3.5 h-3.5" />
-              <span className="text-[10px] font-bold uppercase tracking-wider">Expenses</span>
+
+          {/* Expenses Card */}
+          <div className="p-4 rounded-3xl bg-gradient-to-br from-rose-500/15 via-rose-500/5 to-transparent border border-rose-500/30 flex flex-col justify-between shadow-xs hover:border-rose-500/60 transition-all">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-1.5 text-rose-700 dark:text-rose-300">
+                <div className="p-1.5 rounded-xl bg-rose-500/20">
+                  <ArrowUpRight className="w-4 h-4 text-rose-500" />
+                </div>
+                <span className="text-xs font-black uppercase tracking-wider">Total Expenses</span>
+              </div>
+              <span className="text-[10px] font-extrabold text-rose-600 dark:text-rose-400 bg-rose-500/20 px-2 py-0.5 rounded-full">
+                -Outflow
+              </span>
             </div>
-            <p className="text-sm font-black text-rose-600 dark:text-rose-400">{formatCurrency(realExpenses)}</p>
+            <p className="text-xl sm:text-2xl font-black text-rose-600 dark:text-rose-400 tracking-tight">
+              {formatCurrency(realExpenses)}
+            </p>
           </div>
-          <div className="p-3 rounded-2xl bg-sky-500/10 border border-sky-500/20">
-            <div className="flex items-center gap-1 text-sky-600 dark:text-sky-400 mb-1">
-              <Zap className="w-3.5 h-3.5" />
-              <span className="text-[10px] font-bold uppercase tracking-wider">Net Surplus</span>
+
+          {/* Net Surplus Card */}
+          <div className="p-4 rounded-3xl bg-gradient-to-br from-sky-500/15 via-purple-500/5 to-transparent border border-sky-500/30 flex flex-col justify-between shadow-xs hover:border-sky-500/60 transition-all">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-1.5 text-sky-700 dark:text-sky-300">
+                <div className="p-1.5 rounded-xl bg-sky-500/20">
+                  <Zap className="w-4 h-4 text-sky-500" />
+                </div>
+                <span className="text-xs font-black uppercase tracking-wider">Net Surplus</span>
+              </div>
+              <span className="text-[10px] font-extrabold text-sky-600 dark:text-sky-400 bg-sky-500/20 px-2 py-0.5 rounded-full">
+                {savingsRate}% Saved
+              </span>
             </div>
-            <p className={`text-sm font-black ${netCashflow >= 0 ? 'text-sky-600 dark:text-sky-400' : 'text-rose-500'}`}>
+            <p className={cn(
+              'text-xl sm:text-2xl font-black tracking-tight',
+              netCashflow >= 0 ? 'text-sky-600 dark:text-sky-400' : 'text-rose-500'
+            )}>
               {formatCurrency(netCashflow)}
             </p>
           </div>
@@ -497,7 +1012,10 @@ export default function DashboardPage() {
           <EmptyTransactions />
         ) : (
           <div className="mochi-card space-y-3">
-            {transactions.slice(0, 5).map((txn) => (
+            {[...transactions]
+              .sort((a, b) => new Date(b.date || (b as any).createdAt || 0).getTime() - new Date(a.date || (a as any).createdAt || 0).getTime())
+              .slice(0, 5)
+              .map((txn) => (
               <div key={txn.id} className="flex items-center justify-between py-1">
                 <div className="flex items-center gap-3">
                   <div className={cn(
@@ -527,109 +1045,199 @@ export default function DashboardPage() {
         )}
       </section>
 
-      {/* Today's Mission */}
-      <section className="mochi-card" aria-label="Today's Missions">
-        <div className="flex items-center gap-2 mb-3">
-          <Target className="w-4 h-4 text-mochi-primary" />
-          <h2 className="font-semibold text-mochi-text">Today&apos;s Missions</h2>
-        </div>
-        <div className="space-y-2">
-          {mockMissions.map((mission) => (
-            <div
-              key={mission.id}
-              className={cn(
-                'flex items-center gap-3 p-3 rounded-lg border transition-colors',
-                mission.status === 'completed'
-                  ? 'bg-mochi-success/5 border-mochi-success/20'
-                  : 'bg-mochi-surface border-mochi-border hover:border-mochi-primary/30'
-              )}
-            >
-              <div className={cn(
-                'w-8 h-8 rounded-full flex items-center justify-center shrink-0',
-                mission.status === 'completed' ? 'bg-emerald-500 text-white' : 'bg-mochi-primary/10 text-mochi-primary'
-              )}>
-                {mission.status === 'completed' ? <CheckCircle2 className="w-4 h-4" /> : <Circle className="w-4 h-4" />}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className={cn(
-                  'text-sm font-medium',
-                  mission.status === 'completed' ? 'text-mochi-text-muted line-through' : 'text-mochi-text'
-                )}>
-                  {mission.title}
-                </p>
-                <p className="text-xs text-mochi-text-muted">{mission.description}</p>
-              </div>
-              <span className="text-xs font-medium text-mochi-secondary flex-shrink-0">{mission.reward}</span>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* Achievement Preview */}
-      <section className="mochi-card" aria-label="Achievements">
-        <div className="flex items-center gap-2 mb-3">
-          <Trophy className="w-4 h-4 text-mochi-warning" />
-          <h2 className="font-semibold text-mochi-text">Achievements</h2>
-          <span className="ml-auto text-xs text-mochi-text-muted">{mockAchievements.filter((a) => a.unlocked).length}/{mockAchievements.length}</span>
-        </div>
-        <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
-          {mockAchievements.map((achievement) => (
-            <div
-              key={achievement.id}
-              className={cn(
-                'flex-shrink-0 flex flex-col items-center gap-1 p-4 rounded-xl border min-w-[100px] text-center',
-                achievement.unlocked
-                  ? 'bg-mochi-warning/5 border-mochi-warning/20'
-                  : 'bg-mochi-surface border-mochi-border opacity-60'
-              )}
-            >
-              <MochiIcon id={achievement.icon} size="md" style="rounded-badge" />
-              <p className="text-xs font-medium text-mochi-text">{achievement.name}</p>
-              {achievement.unlocked && <Star className="w-3 h-3 text-mochi-warning" />}
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* Calendar Preview */}
-      <section className="mochi-card" aria-label="Upcoming Events">
-        <div className="flex items-center justify-between mb-3">
+      {/* Today's Missions (Interactive Checklist) */}
+      <section className="mochi-card space-y-3" aria-label="Today's Missions">
+        <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Calendar className="w-4 h-4 text-mochi-secondary" />
-            <h2 className="font-semibold text-mochi-text">Upcoming</h2>
+            <Target className="w-4.5 h-4.5 text-mochi-primary" />
+            <h2 className="font-bold text-mochi-text">Today&apos;s Missions</h2>
           </div>
-          <Link to="/calendar" className="text-xs text-mochi-primary hover:underline flex items-center gap-1">
+          <span className="text-[11px] font-black text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/20">
+            {completedMissionsCount} / {missionsList.length} Completed
+          </span>
+        </div>
+
+        <div className="space-y-2">
+          {missionsList.map((mission) => {
+            const isDone = mission.status === 'completed'
+            return (
+              <div
+                key={mission.id}
+                onClick={() => handleToggleMission(mission.id)}
+                className={cn(
+                  'flex items-center gap-3 p-3.5 rounded-2xl border transition-all cursor-pointer select-none',
+                  isDone
+                    ? 'bg-emerald-500/10 border-emerald-500/30'
+                    : 'bg-mochi-surface border-mochi-border hover:border-mochi-primary/40 hover:shadow-xs'
+                )}
+              >
+                <div
+                  className={cn(
+                    'w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-transform active:scale-90',
+                    isDone ? 'bg-emerald-500 text-white shadow-xs' : 'bg-mochi-primary/10 text-mochi-primary border border-mochi-primary/20'
+                  )}
+                >
+                  {isDone ? <CheckCircle2 className="w-5 h-5" /> : <Circle className="w-4 h-4" />}
+                </div>
+
+                <div className="flex-1 min-w-0">
+                  <p
+                    className={cn(
+                      'text-xs font-bold transition-all',
+                      isDone ? 'text-mochi-text-muted line-through opacity-60' : 'text-mochi-text'
+                    )}
+                  >
+                    {mission.title}
+                  </p>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </section>
+
+      {/* Budget Plans Section (Clickable Summary Card Only) */}
+      {budgets.length > 0 && (() => {
+        const totalBudgetLimit = budgets.reduce((sum, b) => sum + b.limit, 0)
+        const totalBudgetSpent = budgets.reduce((sum, b) => {
+          const spent = transactions
+            .filter((t) => t.type === 'expense' && t.categoryId === b.categoryId)
+            .reduce((tSum, t) => tSum + t.amount, 0)
+          return sum + spent
+        }, 0)
+        const overallProgress = Math.min(100, Math.round((totalBudgetSpent / totalBudgetLimit) * 100))
+        const isOverallOver = totalBudgetSpent > totalBudgetLimit
+
+        return (
+          <section className="mochi-card space-y-3" aria-label="Budget Plans Summary">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <LayoutDashboard className="w-4.5 h-4.5 text-amber-500" />
+                <h2 className="font-bold text-mochi-text">Budget Summary</h2>
+              </div>
+              <Link to="/budget" className="text-xs font-bold text-mochi-primary hover:underline flex items-center gap-1">
+                Manage Plans <ChevronRight className="w-3 h-3" />
+              </Link>
+            </div>
+
+            {/* Single Clickable Summary Card */}
+            <div
+              onClick={() => setSelectedBudgetPlan(budgets[0])}
+              className="p-4 rounded-3xl bg-gradient-to-br from-amber-500/15 via-orange-500/5 to-transparent border border-amber-500/30 hover:border-amber-500/60 transition-all cursor-pointer space-y-3 shadow-xs"
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <span className="text-xs font-black uppercase tracking-wider text-mochi-text-secondary">Overall Budget Allocation</span>
+                  <p className="text-xl font-black text-mochi-text mt-0.5">
+                    {formatCurrency(totalBudgetSpent)} <span className="text-xs font-semibold text-mochi-text-muted">/ {formatCurrency(totalBudgetLimit)}</span>
+                  </p>
+                </div>
+                <span className={cn(
+                  'text-xs font-black uppercase px-3 py-1 rounded-full',
+                  isOverallOver ? 'bg-rose-500/20 text-rose-600' : 'bg-amber-500/20 text-amber-600'
+                )}>
+                  {isOverallOver ? 'Exceeded' : `${overallProgress}% Used`}
+                </span>
+              </div>
+
+              <div className="w-full h-2.5 rounded-full bg-mochi-border/60 overflow-hidden">
+                <div
+                  className={cn('h-full transition-all duration-500', isOverallOver ? 'bg-rose-500' : 'bg-amber-500')}
+                  style={{ width: `${Math.min(100, overallProgress)}%` }}
+                />
+              </div>
+
+              <div className="flex items-center justify-between text-[11px] font-bold text-mochi-text-muted">
+                <span>{budgets.length} Categories Budgeted</span>
+                <span className="text-mochi-primary hover:underline font-extrabold flex items-center gap-1">
+                  View Full Breakdown &rarr;
+                </span>
+              </div>
+            </div>
+          </section>
+        )
+      })()}
+
+      {/* Achievements Section (Summary Card + View Achievements Button) */}
+      {achievementsList.length > 0 && (
+        <section className="mochi-card space-y-3" aria-label="Achievements">
+          <div className="flex items-center gap-2">
+            <Trophy className="w-4.5 h-4.5 text-amber-500" />
+            <h2 className="font-bold text-mochi-text">Achievements</h2>
+          </div>
+
+          {/* Summary Card */}
+          <div className="p-4 rounded-3xl bg-gradient-to-br from-amber-500/15 via-orange-500/5 to-transparent border border-amber-500/30 space-y-3 shadow-xs">
+            <div className="flex items-center justify-between">
+              <div>
+                <span className="text-xs font-black uppercase tracking-wider text-mochi-text-secondary">Achieved Badges</span>
+                <p className="text-2xl font-black text-mochi-text mt-0.5">
+                  {unlockedAchievementsCount} <span className="text-xs font-bold text-mochi-text-muted">/ {achievementsList.length} Unlocked</span>
+                </p>
+              </div>
+              <span className="text-xs font-black uppercase text-amber-600 bg-amber-500/20 px-3 py-1 rounded-full border border-amber-500/30">
+                {Math.round((unlockedAchievementsCount / achievementsList.length) * 100)}% Complete
+              </span>
+            </div>
+
+            <div className="w-full h-2.5 rounded-full bg-mochi-border/60 overflow-hidden">
+              <div
+                className="h-full bg-gradient-to-r from-amber-500 to-orange-500 transition-all duration-500"
+                style={{ width: `${Math.round((unlockedAchievementsCount / achievementsList.length) * 100)}%` }}
+              />
+            </div>
+
+            <button
+              onClick={() => setShowAchievementsModal(true)}
+              className="w-full py-3 rounded-2xl bg-amber-500 hover:bg-amber-600 text-white font-extrabold text-xs shadow-md transition-all cursor-pointer hover:scale-[1.01] active:scale-95 flex items-center justify-center gap-2"
+            >
+              <Trophy className="w-4 h-4" /> View Achievements
+            </button>
+          </div>
+        </section>
+      )}
+
+      {/* Calendar Preview (Interactive Upcoming Action Modal) */}
+      <section className="mochi-card space-y-3" aria-label="Upcoming Events">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Calendar className="w-4.5 h-4.5 text-sky-500" />
+            <h2 className="font-bold text-mochi-text">Upcoming</h2>
+          </div>
+          <Link to="/calendar" className="text-xs text-mochi-primary hover:underline flex items-center gap-1 font-bold">
             View Calendar <ChevronRight className="w-3 h-3" />
           </Link>
         </div>
+
         <div className="space-y-2">
-          {upcomingEvents.map((event) => (
+          {calendarEventsList.map((event) => (
             <div
               key={event.id}
-              className="flex items-center gap-3 p-3 rounded-lg bg-mochi-surface border border-mochi-border hover:border-mochi-border transition-colors"
+              onClick={() => setSelectedEvent(event)}
+              className="flex items-center gap-3 p-3.5 rounded-2xl bg-mochi-surface border border-mochi-border hover:border-mochi-primary/40 hover:shadow-xs transition-all cursor-pointer"
             >
               <div
-                className="w-1 h-10 rounded-full flex-shrink-0"
-                style={{ backgroundColor: event.color }}
+                className="w-1.5 h-10 rounded-full flex-shrink-0"
+                style={{ backgroundColor: event.color || 'var(--color-primary)' }}
               />
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-mochi-text truncate">{event.title}</p>
-                <p className="text-xs text-mochi-text-muted">
+                <p className="text-xs font-bold text-mochi-text truncate">{event.title}</p>
+                <p className="text-[11px] text-mochi-text-muted">
                   {formatDate(event.date)}
                 </p>
               </div>
               {event.amount && (
                 <span className={cn(
-                  'text-sm font-semibold',
-                  event.type === 'income' ? 'text-mochi-success' : 'text-mochi-error'
+                  'text-xs font-black px-2.5 py-1 rounded-full',
+                  event.type === 'income' ? 'text-emerald-600 bg-emerald-500/10' : 'text-rose-600 bg-rose-500/10'
                 )}>
                   {event.type === 'income' ? '+' : '-'}{formatCurrency(event.amount)}
                 </span>
               )}
             </div>
           ))}
-          {upcomingEvents.length === 0 && (
-            <p className="text-sm text-mochi-text-muted text-center py-4">No upcoming events</p>
+          {calendarEventsList.length === 0 && (
+            <p className="text-xs text-mochi-text-muted text-center py-4">No upcoming events scheduled</p>
           )}
         </div>
       </section>
@@ -662,16 +1270,128 @@ export default function DashboardPage() {
         </section>
       )}
 
-      {/* Streak */}
-      <section className="mochi-card flex items-center gap-3" aria-label="Streak">
-        <div className="w-10 h-10 rounded-full bg-orange-100 dark:bg-orange-900/20 flex items-center justify-center">
-          <Flame className="w-5 h-5 text-orange-500" />
+      {/* All Achievements Grid Modal */}
+      <Dialog isOpen={showAchievementsModal} onClose={() => setShowAchievementsModal(false)} title="Mochi Achievements Badges">
+        <div className="space-y-4">
+          <div className="flex items-center justify-between p-3 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-xs">
+            <span className="font-extrabold text-amber-700 dark:text-amber-300">Earned Badges</span>
+            <span className="font-black text-amber-600 bg-amber-500/20 px-2.5 py-0.5 rounded-full">
+              {unlockedAchievementsCount} of {achievementsList.length} Unlocked
+            </span>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            {achievementsList.map((ach) => (
+              <div
+                key={ach.id}
+                onClick={() => setSelectedAchievement(ach)}
+                className={cn(
+                  'flex flex-col items-center gap-1.5 p-3 rounded-2xl border text-center transition-all cursor-pointer hover:scale-105 active:scale-95',
+                  ach.unlocked
+                    ? 'bg-gradient-to-b from-amber-500/15 to-amber-500/5 border-amber-500/40 shadow-xs'
+                    : 'bg-mochi-surface-alt border-mochi-border opacity-70 hover:opacity-100'
+                )}
+              >
+                <MochiIcon id={ach.icon} size="md" style="rounded-badge" />
+                <p className="text-xs font-extrabold text-mochi-text line-clamp-1">{ach.name}</p>
+                {ach.unlocked ? (
+                  <span className="text-[9px] font-black uppercase text-amber-600 bg-amber-500/20 px-2 py-0.5 rounded-full flex items-center gap-0.5">
+                    <Star className="w-2.5 h-2.5 text-amber-500 fill-amber-500" /> Earned
+                  </span>
+                ) : (
+                  <span className="text-[9px] font-bold text-mochi-text-muted">
+                    {ach.progress}/{ach.requirement}
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
         </div>
-        <div>
-          <p className="text-sm font-medium text-mochi-text">3 Day Streak</p>
-          <p className="text-xs text-mochi-text-muted">Keep logging to maintain your streak!</p>
-        </div>
-      </section>
+      </Dialog>
+
+      {/* Selected Budget Plan Full Detail Modal */}
+      <Dialog isOpen={!!selectedBudgetPlan} onClose={() => setSelectedBudgetPlan(null)} title={selectedBudgetPlan ? (DEFAULT_EXPENSE_CATEGORIES.find(c => c.id === selectedBudgetPlan.categoryId)?.name || selectedBudgetPlan.categoryId) : 'Plan Details'}>
+        {selectedBudgetPlan && (() => {
+          const category = DEFAULT_EXPENSE_CATEGORIES.find(c => c.id === selectedBudgetPlan.categoryId)
+          const categoryTxns = transactions.filter(t => t.type === 'expense' && t.categoryId === selectedBudgetPlan.categoryId)
+          const spent = categoryTxns.reduce((sum, t) => sum + t.amount, 0)
+          const limit = selectedBudgetPlan.limit
+          const remaining = limit - spent
+          const progress = Math.min(100, Math.round((spent / limit) * 100))
+          const isOver = spent > limit
+
+          return (
+            <div className="space-y-4 text-xs">
+              <div className={cn(
+                'p-4 rounded-3xl border flex flex-col gap-2',
+                isOver ? 'bg-rose-500/10 border-rose-500/30' : 'bg-amber-500/10 border-amber-500/30'
+              )}>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-extrabold uppercase text-mochi-text-secondary">{category?.name || selectedBudgetPlan.categoryId} Budget</span>
+                  <span className={cn(
+                    'text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full',
+                    isOver ? 'bg-rose-500 text-white' : 'bg-amber-500 text-white'
+                  )}>
+                    {isOver ? 'Over Budget' : `${progress}% Used`}
+                  </span>
+                </div>
+
+                <div className="flex items-baseline justify-between mt-1">
+                  <div>
+                    <p className="text-2xl font-black text-mochi-text">{formatCurrency(spent)}</p>
+                    <p className="text-[11px] text-mochi-text-muted">Spent out of {formatCurrency(limit)}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className={cn('text-sm font-extrabold', isOver ? 'text-rose-500' : 'text-emerald-500')}>
+                      {isOver ? `+${formatCurrency(spent - limit)} over` : `${formatCurrency(remaining)} remaining`}
+                    </p>
+                    <p className="text-[10px] text-mochi-text-muted">Monthly Plan</p>
+                  </div>
+                </div>
+
+                <div className="w-full h-2.5 rounded-full bg-mochi-border/60 overflow-hidden mt-1">
+                  <div
+                    className={cn('h-full transition-all duration-500', isOver ? 'bg-rose-500' : 'bg-amber-500')}
+                    style={{ width: `${Math.min(100, progress)}%` }}
+                  />
+                </div>
+              </div>
+
+              {/* Transactions Logged Under This Category */}
+              <div className="space-y-2">
+                <h4 className="font-extrabold text-mochi-text uppercase text-[10px]">Logged Expenses ({categoryTxns.length})</h4>
+                {categoryTxns.length === 0 ? (
+                  <p className="text-mochi-text-muted text-center py-3 bg-mochi-surface-alt rounded-2xl">No expenses logged under this plan yet.</p>
+                ) : (
+                  <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
+                    {categoryTxns.map(t => (
+                      <div key={t.id} className="flex items-center justify-between p-2.5 rounded-xl bg-mochi-surface-alt border border-mochi-border/60">
+                        <div>
+                          <p className="font-bold text-mochi-text">{t.merchant}</p>
+                          <p className="text-[10px] text-mochi-text-muted">{formatDate(t.date)}</p>
+                        </div>
+                        <span className="font-black text-rose-500">-{formatCurrency(t.amount)}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <button
+                  onClick={() => {
+                    setSelectedBudgetPlan(null)
+                    setAddModalOpen(true, 'expense')
+                  }}
+                  className="flex-1 py-3 rounded-2xl bg-mochi-primary text-white font-extrabold text-xs cursor-pointer shadow-md hover:brightness-105"
+                >
+                  Log Expense in Category
+                </button>
+              </div>
+            </div>
+          )
+        })()}
+      </Dialog>
     </motion.div>
   )
 }

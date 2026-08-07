@@ -6,6 +6,9 @@ import { useThemeStore } from './store/themeStore'
 import { useAppStore } from './store/appStore'
 import { startRealtimeSync } from './services/cloudSync'
 import { initOfflineQueueListener } from './services/offlineQueue'
+import { ErrorBoundary } from './components/ui/ErrorBoundary'
+import { checkUpcomingDueDates } from './services/dueDateNotifier'
+import { useSubscriptionStore } from './store/subscriptionStore'
 
 // Auth Pages
 import SplashScreen from './pages/auth/SplashScreen'
@@ -104,121 +107,151 @@ function AnimatedRoutes() {
             <Route
               path="/"
               element={
-                <PageTransition>
-                  <DashboardPage />
-                </PageTransition>
+                <ErrorBoundary>
+                  <PageTransition>
+                    <DashboardPage />
+                  </PageTransition>
+                </ErrorBoundary>
               }
             />
             <Route
               path="/transactions"
               element={
-                <PageTransition>
-                  <TransactionsPage />
-                </PageTransition>
+                <ErrorBoundary>
+                  <PageTransition>
+                    <TransactionsPage />
+                  </PageTransition>
+                </ErrorBoundary>
               }
             />
             <Route
               path="/transactions/new"
               element={
-                <PageTransition>
-                  <TransactionsPage mode="add" />
-                </PageTransition>
+                <ErrorBoundary>
+                  <PageTransition>
+                    <TransactionsPage mode="add" />
+                  </PageTransition>
+                </ErrorBoundary>
               }
             />
             <Route
               path="/budget"
               element={
-                <PageTransition>
-                  <BudgetPage />
-                </PageTransition>
+                <ErrorBoundary>
+                  <PageTransition>
+                    <BudgetPage />
+                  </PageTransition>
+                </ErrorBoundary>
               }
             />
             <Route
               path="/savings"
               element={
-                <PageTransition>
-                  <SavingsPage />
-                </PageTransition>
+                <ErrorBoundary>
+                  <PageTransition>
+                    <SavingsPage />
+                  </PageTransition>
+                </ErrorBoundary>
               }
             />
             <Route
               path="/circles"
               element={
-                <PageTransition>
-                  <CirclesPage />
-                </PageTransition>
+                <ErrorBoundary>
+                  <PageTransition>
+                    <CirclesPage />
+                  </PageTransition>
+                </ErrorBoundary>
               }
             />
             <Route
               path="/debts"
               element={
-                <PageTransition>
-                  <DebtPage />
-                </PageTransition>
+                <ErrorBoundary>
+                  <PageTransition>
+                    <DebtPage />
+                  </PageTransition>
+                </ErrorBoundary>
               }
             />
             <Route
               path="/subscriptions"
               element={
-                <PageTransition>
-                  <SubscriptionsPage />
-                </PageTransition>
+                <ErrorBoundary>
+                  <PageTransition>
+                    <SubscriptionsPage />
+                  </PageTransition>
+                </ErrorBoundary>
               }
             />
             <Route
               path="/calendar"
               element={
-                <PageTransition>
-                  <CalendarPage />
-                </PageTransition>
+                <ErrorBoundary>
+                  <PageTransition>
+                    <CalendarPage />
+                  </PageTransition>
+                </ErrorBoundary>
               }
             />
             <Route
               path="/reports"
               element={
-                <PageTransition>
-                  <ReportsPage />
-                </PageTransition>
+                <ErrorBoundary>
+                  <PageTransition>
+                    <ReportsPage />
+                  </PageTransition>
+                </ErrorBoundary>
               }
             />
             <Route
               path="/profile"
               element={
-                <PageTransition>
-                  <ProfilePage />
-                </PageTransition>
+                <ErrorBoundary>
+                  <PageTransition>
+                    <ProfilePage />
+                  </PageTransition>
+                </ErrorBoundary>
               }
             />
             <Route
               path="/settings"
               element={
-                <PageTransition>
-                  <SettingsPage />
-                </PageTransition>
+                <ErrorBoundary>
+                  <PageTransition>
+                    <SettingsPage />
+                  </PageTransition>
+                </ErrorBoundary>
               }
             />
             <Route
               path="/wallets"
               element={
-                <PageTransition>
-                  <WalletsPage />
-                </PageTransition>
+                <ErrorBoundary>
+                  <PageTransition>
+                    <WalletsPage />
+                  </PageTransition>
+                </ErrorBoundary>
               }
             />
             <Route
               path="/notifications"
               element={
-                <PageTransition>
-                  <NotificationsPage />
-                </PageTransition>
+                <ErrorBoundary>
+                  <PageTransition>
+                    <NotificationsPage />
+                  </PageTransition>
+                </ErrorBoundary>
               }
             />
             <Route
               path="/superadmin"
               element={
-                <PageTransition>
-                  <SuperadminDashboardPage />
-                </PageTransition>
+                <ErrorBoundary>
+                  <PageTransition>
+                    <SuperadminDashboardPage />
+                  </PageTransition>
+                </ErrorBoundary>
               }
             />
           </Route>
@@ -242,8 +275,6 @@ function AnimatedRoutes() {
   )
 }
 
-import { checkUpcomingDueDates } from './services/dueDateNotifier'
-import { useSubscriptionStore } from './store/subscriptionStore'
 
 export default function App() {
   const { user } = useAuthStore()

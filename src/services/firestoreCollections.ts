@@ -18,6 +18,7 @@ export const FIRESTORE_COLLECTIONS = {
   ACHIEVEMENTS: 'achievements',
   STREAKS: 'streaks',
   NOTIFICATIONS: 'notifications',
+  PEOPLE_DEBTS: 'people_debts',
 } as const
 
 // Helper getters for typed Firestore Collection References

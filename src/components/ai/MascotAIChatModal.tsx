@@ -38,7 +38,7 @@ export default function MascotAIChatModal({ isOpen, onClose }: MascotAIChatModal
   const INITIAL_WELCOME: Message = {
     id: 'welcome',
     sender: 'mochi',
-    text: "Hello! I am Mochi, your supercharged AI financial assistant. I run 100% locally inside your browser — keeping your financial records 100% private. Ask me for financial advice, balance diagnostics, or tell me to log an expense or income!",
+    text: "Hello! I am Mochi, your local AI financial assistant. I run 100% locally inside your browser -- keeping your financial records completely private. Ask me for financial advice, balance diagnostics, or tell me to log an expense or income!",
     timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
   }
 
@@ -144,7 +144,6 @@ Active Budget Categories: ${budgets.length}`
     const now = new Date().toISOString()
     const today = now.split('T')[0]
 
-    // Ensure default wallet exists
     let defaultWallet = activeWallets.find((w) => w.isDefault) || activeWallets[0]
     if (!defaultWallet) {
       const newWallet = {
@@ -172,7 +171,7 @@ Active Budget Categories: ${budgets.length}`
       if (action === 'add_transaction' && payload) {
         const amount = Number(payload.amount) || 0
         const type = payload.type === 'income' ? 'income' : 'expense'
-        const merchant = payload.merchant || payload.notes || 'Transaction'
+        const merchant = payload.merchant || payload.notes || (type === 'income' ? 'Income Deposit' : 'Expense Item')
 
         if (amount > 0) {
           store.addTransaction({
@@ -230,7 +229,7 @@ Active Budget Categories: ${budgets.length}`
       }
     }
 
-    // 2. Intelligent NLP Fallback: if user explicit intent was to log/spent/buy
+    // 2. Intelligent NLP Fallback
     if (userPrompt) {
       const promptLower = userPrompt.toLowerCase()
       const isLogIntent = /(?:log|add|spent|spend|bought|buy|pay|paid|cost|expense|income)/i.test(promptLower)
@@ -241,7 +240,6 @@ Active Budget Categories: ${budgets.length}`
         if (!isNaN(amount) && amount > 0) {
           const type = /(?:income|earned|salary|deposit|received)/i.test(promptLower) ? 'income' : 'expense'
           
-          // Extract merchant/description cleanly
           let merchant = userPrompt
             .replace(/(?:log|add|spent|spend|bought|buy|pay|paid|cost|expense|income|for|at|on|₱|php|\$|\d+(?:\.\d{1,2})?)/gi, '')
             .trim()
@@ -251,7 +249,7 @@ Active Budget Categories: ${budgets.length}`
           merchant = merchant.charAt(0).toUpperCase() + merchant.slice(1)
 
           let category = 'other'
-          if (/(?:lunch|dinner|breakfast|food|coffee|jollibee|mcdonald|starbucks|eat|restaurant)/i.test(promptLower)) category = 'food'
+          if (/(?:lunch|dinner|breakfast|food|coffee|jollibee|mcdonald|starbucks|restaurant)/i.test(promptLower)) category = 'food'
           else if (/(?:groceries|grocery|supermarket|mart)/i.test(promptLower)) category = 'groceries'
           else if (/(?:gas|fuel|ride|grab|bus|transpo|taxi)/i.test(promptLower)) category = 'transportation'
 
@@ -319,10 +317,15 @@ Active Budget Categories: ${budgets.length}`
 
       const notice = executeAction(result.action, textToSend)
 
+      let finalDisplayText = result.text
+      if (finalDisplayText.startsWith('{') || /\{[\s\S]*?"action"/i.test(finalDisplayText)) {
+        finalDisplayText = notice || 'Action executed successfully.'
+      }
+
       setMessages((prev) =>
         prev.map((msg) =>
           msg.id === mochiMsgId
-            ? { ...msg, text: result.text || notice || 'Action executed successfully.', actionSuccessNotice: notice }
+            ? { ...msg, text: finalDisplayText || notice || 'Action executed successfully.', actionSuccessNotice: notice }
             : msg
         )
       )
@@ -373,7 +376,7 @@ Active Budget Categories: ${budgets.length}`
                 </div>
                 <div>
                   <h3 className="text-sm font-black text-mochi-text flex items-center gap-2">
-                    Mochi AI Assistant
+                    Mochi AI
                     <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center gap-1">
                       <ShieldCheck className="w-3 h-3" /> 100% Free & Local
                     </span>

@@ -6,12 +6,12 @@ import { registerWithEmail } from '../../services/auth'
 import { useThemeStore, type ThemeName } from '../../store/themeStore'
 
 const themes: { name: ThemeName; color: string; emoji: string }[] = [
-  { name: 'sakura', color: 'bg-pink-300', emoji: '🌸' },
-  { name: 'matcha', color: 'bg-green-300', emoji: '🍵' },
-  { name: 'peach', color: 'bg-orange-300', emoji: '🍑' },
-  { name: 'ocean', color: 'bg-blue-300', emoji: '🌊' },
-  { name: 'cloud', color: 'bg-sky-300', emoji: '☁️' },
-  { name: 'moonlight', color: 'bg-indigo-600', emoji: '🌙' },
+  { name: 'sakura', color: 'bg-pink-300', emoji: '' },
+  { name: 'matcha', color: 'bg-green-300', emoji: '' },
+  { name: 'peach', color: 'bg-orange-300', emoji: '' },
+  { name: 'ocean', color: 'bg-blue-300', emoji: '' },
+  { name: 'cloud', color: 'bg-sky-300', emoji: '' },
+  { name: 'moonlight', color: 'bg-indigo-600', emoji: '' },
 ]
 
 const steps = ['Account', 'Theme', 'PIN', 'Income', 'Goals', 'Notifications']

@@ -222,7 +222,7 @@ export function JourneyTrack({
         {/* Start Point */}
         <div className="absolute left-[4%] top-[68px] flex flex-col items-center z-20">
           <div className="w-8 h-8 rounded-full bg-white shadow-md border-2 border-slate-300 flex items-center justify-center text-xs font-bold text-slate-700">
-            🚩
+            
           </div>
           <span className="text-[10px] font-bold text-slate-700 mt-1 bg-white/80 px-1.5 py-0.5 rounded shadow-xs">
             {config.checkpoints[0]}

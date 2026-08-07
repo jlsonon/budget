@@ -12,6 +12,7 @@ export default {
           bg: 'var(--color-bg)',
           surface: 'var(--color-surface)',
           'surface-elevated': 'var(--color-surface-elevated)',
+          'surface-alt': 'var(--color-surface-alt)',
           primary: 'var(--color-primary)',
           'primary-hover': 'var(--color-primary-hover)',
           secondary: 'var(--color-secondary)',

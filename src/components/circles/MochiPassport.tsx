@@ -90,7 +90,7 @@ export function MochiPassport({ stamps, userName = 'Demo User', currency = 'PHP'
                 </h5>
                 <p className="text-[10px] text-slate-400 mt-0.5">{stamp.completedDate}</p>
                 <div className="mt-2 text-[10px] font-bold bg-amber-400/20 text-amber-300 px-2 py-0.5 rounded-full border border-amber-400/30">
-                  ✓ VERIFIED STAMP
+                  VERIFIED STAMP
                 </div>
               </motion.div>
             ))}

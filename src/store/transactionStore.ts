@@ -23,12 +23,36 @@ export const useTransactionStore = create<TransactionState>()(
     (set, get) => ({
       transactions: [],
       isLoadingTransactions: false,
-      setTransactions: (txns: Transaction[]) => set({ transactions: txns }),
+      setTransactions: (txns: Transaction[]) => {
+        const map = new Map<string, Transaction>()
+        txns.forEach((t) => {
+          if (t.id) map.set(t.id, t)
+        })
+        const sorted = Array.from(map.values()).sort((a, b) => {
+          const tA = new Date(a.date || (a as any).createdAt || 0).getTime()
+          const tB = new Date(b.date || (b as any).createdAt || 0).getTime()
+          if (tB !== tA) return tB - tA
+          return (b.id || '').localeCompare(a.id || '')
+        })
+        set({ transactions: sorted })
+      },
       addTransaction: async (txn: Transaction) => {
         const userId = useAuthStore.getState().user?.id || txn.userId || 'anon'
         const txnWithUser = { ...txn, userId }
 
-        set((s: TransactionState) => ({ transactions: [txnWithUser, ...s.transactions] }))
+        set((s: TransactionState) => {
+          const map = new Map<string, Transaction>()
+          ;[txnWithUser, ...s.transactions].forEach((t) => {
+            if (t.id) map.set(t.id, t)
+          })
+          const sorted = Array.from(map.values()).sort((a, b) => {
+            const tA = new Date(a.date || (a as any).createdAt || 0).getTime()
+            const tB = new Date(b.date || (b as any).createdAt || 0).getTime()
+            if (tB !== tA) return tB - tA
+            return (b.id || '').localeCompare(a.id || '')
+          })
+          return { transactions: sorted }
+        })
         try {
           await atomicAddTransaction(txnWithUser)
 

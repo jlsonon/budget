@@ -12,7 +12,7 @@ export default defineConfig({
       manifest: {
         name: 'Mochi Money',
         short_name: 'MochiMoney',
-        description: 'Your cozy financial companion 🍡',
+        description: 'Your cozy financial companion',
         theme_color: '#F9A8D4',
         background_color: '#FAFAFA',
         display: 'standalone',

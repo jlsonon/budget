@@ -2,21 +2,27 @@ import { useState, useEffect, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Plus,
-  Star,
   Pause,
   Play,
   Trash2,
-  Bell,
-  BellOff,
-  Sparkles,
   CreditCard,
+  Calendar,
+  ChevronLeft,
+  ChevronRight,
+  History,
+  Filter,
 } from 'lucide-react'
 import { useAppStore, getUid } from '@/store/appStore'
-import { Subscription, SubscriptionFrequency } from '@/types'
+import { Subscription, SubscriptionFrequency, SubscriptionPayment } from '@/types'
 import Mascot from '@/components/ui/Mascot'
 import Dialog from '@/components/ui/Dialog'
 import { SubscriptionBrandLogo } from '@/components/ui/SubscriptionBrandLogo'
 import { formatCurrency, cn, formatDate } from '@/lib/utils'
+import PaywallModal from '@/components/modals/PaywallModal'
+import { checkCanAddSubscription } from '@/lib/paywall'
+import { useAuthStore } from '@/store/authStore'
+import { useToastStore } from '@/store/toastStore'
+import { exportToDeviceCalendar, triggerNativeDeviceNotification } from '@/lib/calendarExport'
 
 export interface PresetService {
   name: string
@@ -45,21 +51,22 @@ const PRESET_SERVICES: PresetService[] = [
   { name: 'Xbox Game Pass', category: 'Gaming', amount: 490, color: '#107C41', frequency: 'monthly' },
 ]
 
-import PaywallModal from '@/components/modals/PaywallModal'
-import { checkCanAddSubscription } from '@/lib/paywall'
-import { useAuthStore } from '@/store/authStore'
-import { useToastStore } from '@/store/toastStore'
-
 export default function SubscriptionsPage() {
   const { user } = useAuthStore()
   const { subscriptions, wallets, addSubscription, updateSubscription, deleteSubscription } = useAppStore()
-  
+
   const [isLoading, setIsLoading] = useState(true)
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
   const [showPaywall, setShowPaywall] = useState(false)
   const [payingSub, setPayingSub] = useState<Subscription | null>(null)
+  const [selectedDetailsSub, setSelectedDetailsSub] = useState<Subscription | null>(null)
   const [payWalletId, setPayWalletId] = useState<string>('')
-  
+  const [filterDueThisWeek, setFilterDueThisWeek] = useState(false)
+
+  // History Pagination State
+  const [historyPage, setHistoryPage] = useState(1)
+  const ITEMS_PER_PAGE = 5
+
   // Form State
   const [formData, setFormData] = useState<Partial<Subscription>>({
     name: '',
@@ -69,7 +76,7 @@ export default function SubscriptionsPage() {
     nextBilling: new Date().toISOString().split('T')[0],
     cancelReminderDays: 3,
     status: 'active',
-    usageRating: 3
+    usageRating: 3,
   })
 
   useEffect(() => {
@@ -96,7 +103,7 @@ export default function SubscriptionsPage() {
 
   // Calculations
   const activeSubscriptions = subscriptions.filter(s => s.status === 'active' || s.status === 'trial')
-  
+
   const getMonthlyAmount = (sub: Subscription) => {
     switch (sub.frequency) {
       case 'weekly': return sub.amount * (52 / 12)
@@ -111,8 +118,28 @@ export default function SubscriptionsPage() {
   const monthlyCost = activeSubscriptions.reduce((acc, sub) => acc + getMonthlyAmount(sub), 0)
   const annualCost = monthlyCost * 12
 
+  // Calculate Subscriptions Due This Week
+  const dueThisWeekSubscriptions = useMemo(() => {
+    const today = new Date()
+    const weekFromNow = new Date()
+    weekFromNow.setDate(today.getDate() + 7)
+
+    return activeSubscriptions.filter((sub) => {
+      if (!sub.nextBilling) return false
+      const due = new Date(sub.nextBilling)
+      return due >= today && due <= weekFromNow
+    })
+  }, [activeSubscriptions])
+
+  const displayedSubscriptions = useMemo(() => {
+    if (filterDueThisWeek) {
+      return dueThisWeekSubscriptions
+    }
+    return subscriptions
+  }, [subscriptions, filterDueThisWeek, dueThisWeekSubscriptions])
+
   const nextRenewalDate = activeSubscriptions
-    .map(s => new Date(s.nextBilling))
+    .map((s) => new Date(s.nextBilling))
     .sort((a, b) => a.getTime() - b.getTime())[0]
 
   const topSubscription = useMemo(() => {
@@ -120,9 +147,10 @@ export default function SubscriptionsPage() {
     return [...activeSubscriptions].sort((a, b) => getMonthlyAmount(b) - getMonthlyAmount(a))[0]
   }, [activeSubscriptions])
 
-  const handleOpenLogPayModal = (sub: Subscription) => {
+  const handleOpenLogPayModal = (sub: Subscription, e: React.MouseEvent) => {
+    e.stopPropagation()
     setPayingSub(sub)
-    const initialWallet = sub.walletId && wallets.some(w => w.id === sub.walletId)
+    const initialWallet = sub.walletId && wallets.some((w) => w.id === sub.walletId)
       ? sub.walletId
       : wallets[0]?.id || ''
     setPayWalletId(initialWallet)
@@ -131,10 +159,22 @@ export default function SubscriptionsPage() {
   const handleConfirmLogPayment = () => {
     if (!payingSub) return
 
-    const selectedWallet = wallets.find(w => w.id === payWalletId) || wallets[0]
+    const selectedWallet = wallets.find((w) => w.id === payWalletId) || wallets[0]
     const todayStr = new Date().toISOString().split('T')[0]
 
-    // 1. Log expense transaction against chosen wallet
+    // 1. Record payment entry inside subscription
+    const pmt: SubscriptionPayment = {
+      id: crypto.randomUUID(),
+      amount: payingSub.amount,
+      date: todayStr,
+      walletId: selectedWallet?.id,
+      walletName: selectedWallet?.name || 'Wallet',
+      notes: `Subscription renewal for ${payingSub.name}`,
+    }
+
+    const updatedPayments = [pmt, ...(payingSub.payments || [])]
+
+    // 2. Log expense transaction against chosen wallet
     useAppStore.getState().addTransaction({
       id: `txn_sub_${Date.now()}`,
       userId: payingSub.userId || getUid(),
@@ -152,7 +192,7 @@ export default function SubscriptionsPage() {
       updatedAt: new Date().toISOString(),
     })
 
-    // 2. Advance next billing date by 1 cycle
+    // 3. Advance next billing date by 1 cycle
     const nextDate = new Date(payingSub.nextBilling || Date.now())
     if (payingSub.frequency === 'annual') {
       nextDate.setFullYear(nextDate.getFullYear() + 1)
@@ -166,8 +206,14 @@ export default function SubscriptionsPage() {
 
     updateSubscription(payingSub.id, {
       nextBilling: nextDate.toISOString().split('T')[0],
+      payments: updatedPayments,
       updatedAt: new Date().toISOString(),
     })
+
+    triggerNativeDeviceNotification(
+      'Subscription Renewed',
+      `Paid ${formatCurrency(payingSub.amount)} for ${payingSub.name} via ${selectedWallet?.name}`
+    )
 
     useToastStore.getState().success(
       `Deducted ${formatCurrency(payingSub.amount)} from ${selectedWallet?.name || 'Wallet'} for ${payingSub.name}`,
@@ -188,17 +234,20 @@ export default function SubscriptionsPage() {
       amount: Number(formData.amount),
       frequency: (formData.frequency as SubscriptionFrequency) || 'monthly',
       category: formData.category || 'Other',
-      walletId: formData.walletId,
-      nextBilling: new Date(formData.nextBilling || Date.now()).toISOString(),
+      walletId: formData.walletId || wallets[0]?.id,
+      nextBilling: new Date(formData.nextBilling || Date.now()).toISOString().split('T')[0],
       status: (formData.status as any) || 'active',
       usageRating: formData.usageRating || 3,
       cancelReminderDays: formData.cancelReminderDays || 3,
+      payments: [],
       notes: formData.notes,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     }
-    
+
     addSubscription(newSub)
+    triggerNativeDeviceNotification('New Subscription Tracked', `Added ${newSub.name} (${formatCurrency(newSub.amount)})`)
+
     setIsAddModalOpen(false)
     setFormData({
       name: '',
@@ -208,26 +257,20 @@ export default function SubscriptionsPage() {
       nextBilling: new Date().toISOString().split('T')[0],
       cancelReminderDays: 3,
       status: 'active',
-      usageRating: 3
+      usageRating: 3,
     })
   }
 
-  const toggleStatus = (id: string, currentStatus: string) => {
+  const toggleStatus = (id: string, currentStatus: string, e: React.MouseEvent) => {
+    e.stopPropagation()
     updateSubscription(id, {
-      status: currentStatus === 'paused' ? 'active' : 'paused'
+      status: currentStatus === 'paused' ? 'active' : 'paused',
     })
   }
-  
-  const setRating = (id: string, rating: number) => {
-    updateSubscription(id, { usageRating: rating })
-  }
 
-  const toggleReminder = (id: string, currentDays: number) => {
-    updateSubscription(id, { cancelReminderDays: currentDays > 0 ? 0 : 3 })
-  }
 
   const getStatusColor = (status: string) => {
-    switch(status) {
+    switch (status) {
       case 'active': return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 font-bold'
       case 'trial': return 'bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-400 font-bold'
       case 'paused': return 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 font-bold'
@@ -235,13 +278,21 @@ export default function SubscriptionsPage() {
       default: return 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400 font-bold'
     }
   }
-  
+
   const getValueColor = (rating?: number) => {
     if (!rating) return 'bg-gray-300 dark:bg-gray-700'
     if (rating >= 4) return 'bg-emerald-500'
     if (rating >= 3) return 'bg-amber-500'
     return 'bg-rose-500'
   }
+
+  // Details Modal History Pagination
+  const subPayments = selectedDetailsSub?.payments || []
+  const totalSubHistoryPages = Math.ceil(subPayments.length / ITEMS_PER_PAGE) || 1
+  const paginatedSubHistory = subPayments.slice(
+    (historyPage - 1) * ITEMS_PER_PAGE,
+    historyPage * ITEMS_PER_PAGE
+  )
 
   if (isLoading) {
     return (
@@ -255,17 +306,12 @@ export default function SubscriptionsPage() {
             <div key={i} className="mochi-skeleton h-24 rounded-2xl" />
           ))}
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {[...Array(6)].map((_, i) => (
-            <div key={i} className="mochi-skeleton h-48 rounded-2xl" />
-          ))}
-        </div>
       </div>
     )
   }
 
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-8 pb-28"
@@ -274,8 +320,171 @@ export default function SubscriptionsPage() {
         isOpen={showPaywall}
         onClose={() => setShowPaywall(false)}
         featureTitle="Unlock Unlimited Subscriptions"
-        featureDescription="Free tier is limited to 2 active subscriptions. Upgrade to Pro ₱199.00 for unlimited recurring services & brand alerts!"
+        featureDescription="Free tier is limited to 2 active subscriptions. Upgrade to Pro ₱199.00 for unlimited recurring services!"
       />
+
+      {/* Log Payment Modal */}
+      <Dialog
+        isOpen={!!payingSub}
+        onClose={() => setPayingSub(null)}
+        title={`Confirm Payment for ${payingSub?.name || ''}`}
+      >
+        {payingSub && (
+          <div className="space-y-4">
+            <p className="text-xs text-mochi-text-secondary font-medium">
+              This will deduct <strong className="text-mochi-text font-black">{formatCurrency(payingSub.amount)}</strong> and automatically advance next billing to the next cycle.
+            </p>
+
+            <div>
+              <label className="block text-xs font-bold text-mochi-text-secondary mb-1">
+                Select Wallet for Payment
+              </label>
+              <select
+                value={payWalletId}
+                onChange={(e) => setPayWalletId(e.target.value)}
+                className="mochi-input text-xs w-full font-bold"
+              >
+                {wallets.map((w) => (
+                  <option key={w.id} value={w.id}>
+                    {w.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="pt-2 flex gap-3">
+              <button
+                type="button"
+                onClick={() => setPayingSub(null)}
+                className="mochi-btn-secondary text-xs flex-1 py-2.5 font-bold"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmLogPayment}
+                className="mochi-btn-primary text-xs flex-1 py-2.5 font-bold flex items-center justify-center gap-1"
+              >
+                <CreditCard className="w-4 h-4" /> Deduct & Log Payment
+              </button>
+            </div>
+          </div>
+        )}
+      </Dialog>
+
+      {/* Subscription Details & History Modal with 5-Item Pagination */}
+      <Dialog
+        isOpen={!!selectedDetailsSub}
+        onClose={() => {
+          setSelectedDetailsSub(null)
+          setHistoryPage(1)
+        }}
+        title={`${selectedDetailsSub?.name || 'Subscription'} Details & History`}
+      >
+        {selectedDetailsSub && (
+          <div className="space-y-4">
+            <div className="flex items-center gap-3 p-3 rounded-2xl bg-mochi-surface-alt border border-mochi-border">
+              <SubscriptionBrandLogo name={selectedDetailsSub.name} />
+              <div>
+                <h4 className="text-sm font-black text-mochi-text">{selectedDetailsSub.name}</h4>
+                <p className="text-xs text-mochi-text-muted font-bold">
+                  {formatCurrency(selectedDetailsSub.amount)} / {selectedDetailsSub.frequency}
+                </p>
+              </div>
+            </div>
+
+            <div className="p-3 rounded-2xl bg-mochi-surface-alt/60 border border-mochi-border/60 space-y-2 text-xs">
+              <div className="flex justify-between">
+                <span className="text-mochi-text-muted font-medium">Assigned Payment Wallet:</span>
+                <strong className="text-mochi-text font-bold">
+                  {wallets.find((w) => w.id === selectedDetailsSub.walletId)?.name || 'Default Wallet'}
+                </strong>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-mochi-text-muted font-medium">Next Billing Date:</span>
+                <strong className="text-mochi-primary font-bold">{formatDate(selectedDetailsSub.nextBilling)}</strong>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-mochi-text-muted font-medium">Category:</span>
+                <strong className="text-mochi-text font-bold">{selectedDetailsSub.category}</strong>
+              </div>
+            </div>
+
+            <button
+              onClick={() => {
+                exportToDeviceCalendar({
+                  title: `Subscription Renewal: ${selectedDetailsSub.name}`,
+                  amount: selectedDetailsSub.amount,
+                  date: selectedDetailsSub.nextBilling?.split('T')[0] || new Date().toISOString().split('T')[0],
+                  description: `${selectedDetailsSub.frequency} subscription payment for ${selectedDetailsSub.name}`,
+                })
+                triggerNativeDeviceNotification(
+                  'Calendar Event Downloaded',
+                  `Exported iCal event for ${selectedDetailsSub.name}`
+                )
+              }}
+              className="mochi-btn-secondary text-xs w-full py-2 px-3 flex items-center justify-center gap-1.5 font-bold"
+            >
+              <Calendar className="w-3.5 h-3.5 text-mochi-primary" /> Sync to Device Calendar
+            </button>
+
+            {/* History Table */}
+            <div>
+              <h4 className="text-xs font-bold text-mochi-text flex items-center gap-1.5 mb-2">
+                <History className="w-4 h-4 text-mochi-primary" /> Payment History ({subPayments.length} records)
+              </h4>
+
+              {subPayments.length === 0 ? (
+                <div className="p-4 rounded-xl bg-mochi-surface-alt/40 text-center text-xs text-mochi-text-muted font-medium">
+                  No previous payments logged yet.
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <div className="divide-y divide-mochi-border/40 border border-mochi-border/60 rounded-xl overflow-hidden">
+                    {paginatedSubHistory.map((pmt: SubscriptionPayment) => (
+                      <div key={pmt.id} className="p-2.5 flex items-center justify-between text-xs bg-mochi-surface">
+                        <div>
+                          <p className="font-bold text-mochi-text">{formatCurrency(pmt.amount)}</p>
+                          <p className="text-[10px] text-mochi-text-muted">
+                            {formatDate(pmt.date)} • {pmt.walletName || 'Wallet'}
+                          </p>
+                        </div>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                          Renewed
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+
+                  {totalSubHistoryPages > 1 && (
+                    <div className="flex items-center justify-between pt-2">
+                      <span className="text-[11px] text-mochi-text-muted font-bold">
+                        Page {historyPage} of {totalSubHistoryPages}
+                      </span>
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => setHistoryPage((p) => Math.max(1, p - 1))}
+                          disabled={historyPage === 1}
+                          className="p-1 rounded-lg border border-mochi-border hover:bg-mochi-surface-alt disabled:opacity-40"
+                        >
+                          <ChevronLeft className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => setHistoryPage((p) => Math.min(totalSubHistoryPages, p + 1))}
+                          disabled={historyPage === totalSubHistoryPages}
+                          className="p-1 rounded-lg border border-mochi-border hover:bg-mochi-surface-alt disabled:opacity-40"
+                        >
+                          <ChevronRight className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </Dialog>
 
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -283,11 +492,11 @@ export default function SubscriptionsPage() {
           <h1 className="text-2xl sm:text-3xl font-black text-mochi-text flex items-center gap-2">
             Subscriptions & Services
           </h1>
-          <p className="text-xs sm:text-sm text-mochi-text-secondary mt-1">
+          <p className="text-xs sm:text-sm text-mochi-text-secondary mt-1 font-semibold">
             Track recurring memberships, streaming, and software with brand icons & reminders
           </p>
         </div>
-        <button 
+        <button
           onClick={() => {
             if (!checkCanAddSubscription(user, subscriptions.length)) {
               setShowPaywall(true)
@@ -295,7 +504,7 @@ export default function SubscriptionsPage() {
               setIsAddModalOpen(true)
             }
           }}
-          className="mochi-btn-primary whitespace-nowrap hidden sm:inline-flex items-center gap-2"
+          className="mochi-btn-primary whitespace-nowrap hidden sm:inline-flex items-center gap-2 font-bold"
         >
           <Plus className="w-4 h-4" />
           Add Subscription
@@ -305,47 +514,160 @@ export default function SubscriptionsPage() {
       {/* Summary Cards */}
       <section aria-label="Subscription Summary" className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
         <div className="mochi-card p-4 bg-gradient-to-br from-mochi-surface to-mochi-surface/80 border-t-4 border-t-sky-500 shadow-xs">
-          <div className="text-[10px] font-extrabold text-mochi-text-secondary uppercase tracking-wider mb-1">Monthly Spend</div>
+          <div className="text-[10px] font-black text-mochi-text-secondary uppercase tracking-wider mb-1">Monthly Spend</div>
           <div className="text-xl sm:text-2xl font-black text-sky-600 dark:text-sky-400">{formatCurrency(monthlyCost)}</div>
         </div>
 
         <div className="mochi-card p-4 bg-gradient-to-br from-mochi-surface to-mochi-surface/80 border-t-4 border-t-purple-500 shadow-xs">
-          <div className="text-[10px] font-extrabold text-mochi-text-secondary uppercase tracking-wider mb-1">Annual Forecast</div>
+          <div className="text-[10px] font-black text-mochi-text-secondary uppercase tracking-wider mb-1">Annual Forecast</div>
           <div className="text-xl sm:text-2xl font-black text-purple-600 dark:text-purple-400">{formatCurrency(annualCost)}</div>
         </div>
 
         <div className="mochi-card p-4 bg-gradient-to-br from-mochi-surface to-mochi-surface/80 border-t-4 border-t-amber-500 shadow-xs">
-          <div className="text-[10px] font-extrabold text-mochi-text-secondary uppercase tracking-wider mb-1">Next Renewal</div>
+          <div className="text-[10px] font-black text-mochi-text-secondary uppercase tracking-wider mb-1">Next Renewal</div>
           <div className="text-lg sm:text-xl font-black text-amber-600 dark:text-amber-400 mt-0.5">
             {nextRenewalDate ? formatDate(nextRenewalDate) : 'None'}
           </div>
         </div>
 
         <div className="mochi-card p-4 bg-gradient-to-br from-mochi-surface to-mochi-surface/80 border-t-4 border-t-rose-500 shadow-xs">
-          <div className="text-[10px] font-extrabold text-mochi-text-secondary uppercase tracking-wider mb-1">Top Recurring Bill</div>
+          <div className="text-[10px] font-black text-mochi-text-secondary uppercase tracking-wider mb-1">Top Recurring Bill</div>
           <div className="text-sm font-black text-rose-600 dark:text-rose-400 truncate mt-1">
             {topSubscription ? `${topSubscription.name} (${formatCurrency(topSubscription.amount)})` : 'None'}
           </div>
         </div>
 
-        <div className="mochi-card p-4 bg-gradient-to-br from-mochi-surface to-mochi-surface/80 border-t-4 border-t-emerald-500 shadow-xs col-span-2 sm:col-span-1">
-          <div className="text-[10px] font-extrabold text-mochi-text-secondary uppercase tracking-wider mb-1">Active Services</div>
-          <div className="text-xl sm:text-2xl font-black text-emerald-600 dark:text-emerald-400">{activeSubscriptions.length}</div>
+        {/* REPLACED ACTIVE SERVICES CARD WITH DUE THIS WEEK CARD & FILTER TOGGLE */}
+        <div
+          onClick={() => setFilterDueThisWeek((prev) => !prev)}
+          className={`mochi-card p-4 bg-gradient-to-br from-mochi-surface to-mochi-surface/80 border-t-4 border-t-emerald-500 shadow-xs cursor-pointer hover:scale-105 transition-transform ${
+            filterDueThisWeek ? 'ring-2 ring-emerald-500' : ''
+          }`}
+        >
+          <div className="flex items-center justify-between mb-1">
+            <div className="text-[10px] font-black text-mochi-text-secondary uppercase tracking-wider">Due This Week</div>
+            <Filter className={`w-3.5 h-3.5 ${filterDueThisWeek ? 'text-emerald-500' : 'text-mochi-text-muted'}`} />
+          </div>
+          <div className="text-xl sm:text-2xl font-black text-emerald-600 dark:text-emerald-400">
+            {dueThisWeekSubscriptions.length}
+          </div>
+          <p className="text-[9px] text-mochi-text-muted font-bold mt-0.5">
+            {filterDueThisWeek ? 'Showing Due This Week' : 'Click to filter'}
+          </p>
         </div>
       </section>
 
-      {/* Main Content */}
+      {/* Add Modal */}
+      <Dialog isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} title="Track New Subscription">
+        <form onSubmit={handleAddSubmit} className="space-y-4">
+          <div>
+            <label className="block text-xs font-bold text-mochi-text-secondary mb-1">Service Name *</label>
+            <input
+              type="text"
+              placeholder="e.g. Netflix, Spotify, Canva"
+              value={formData.name || ''}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              className="mochi-input text-xs w-full font-bold"
+              required
+            />
+            {filteredPresets.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mt-2">
+                {filteredPresets.map((preset) => (
+                  <button
+                    key={preset.name}
+                    type="button"
+                    onClick={() => selectPreset(preset)}
+                    className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-mochi-surface-alt border border-mochi-border/60 text-mochi-text hover:bg-mochi-primary/10 transition-colors"
+                  >
+                    + {preset.name} (₱{preset.amount})
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-bold text-mochi-text-secondary mb-1">Amount (PHP) *</label>
+              <input
+                type="number"
+                placeholder="e.g. 549"
+                value={formData.amount || ''}
+                onChange={(e) => setFormData({ ...formData, amount: Number(e.target.value) })}
+                className="mochi-input text-xs w-full font-bold"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-mochi-text-secondary mb-1">Billing Frequency</label>
+              <select
+                value={formData.frequency}
+                onChange={(e) => setFormData({ ...formData, frequency: e.target.value as SubscriptionFrequency })}
+                className="mochi-input text-xs w-full font-semibold"
+              >
+                <option value="monthly">Monthly</option>
+                <option value="annual">Annual</option>
+                <option value="weekly">Weekly</option>
+                <option value="quarterly">Quarterly</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-bold text-mochi-text-secondary mb-1">Select Payment Wallet</label>
+              <select
+                value={formData.walletId || wallets[0]?.id || ''}
+                onChange={(e) => setFormData({ ...formData, walletId: e.target.value })}
+                className="mochi-input text-xs w-full font-semibold"
+              >
+                {wallets.map((w) => (
+                  <option key={w.id} value={w.id}>
+                    {w.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-mochi-text-secondary mb-1">Next Billing Date</label>
+              <input
+                type="date"
+                value={formData.nextBilling}
+                onChange={(e) => setFormData({ ...formData, nextBilling: e.target.value })}
+                className="mochi-input text-xs w-full font-semibold"
+              />
+            </div>
+          </div>
+
+          <div className="pt-2 flex gap-3">
+            <button
+              type="button"
+              onClick={() => setIsAddModalOpen(false)}
+              className="mochi-btn-secondary text-xs flex-1 py-2.5 font-bold"
+            >
+              Cancel
+            </button>
+            <button type="submit" className="mochi-btn-primary text-xs flex-1 py-2.5 font-bold">
+              Save Subscription
+            </button>
+          </div>
+        </form>
+      </Dialog>
+
+      {/* Main Content List */}
       <section aria-label="Your Subscriptions">
-        {subscriptions.length === 0 ? (
+        {displayedSubscriptions.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <Mascot mood="excited" size="lg" className="mb-4 drop-shadow-xl" />
-            <h3 className="text-xl font-black text-mochi-text mb-2">No Subscriptions Tracked Yet</h3>
-            <p className="text-mochi-text-secondary mb-6 max-w-md text-xs sm:text-sm">
-              Keep your monthly recurring costs cozy and transparent! Choose popular brand presets like Netflix, Spotify, or ChatGPT.
+            <h3 className="text-xl font-black text-mochi-text mb-2">No Subscriptions Found</h3>
+            <p className="text-mochi-text-secondary mb-6 max-w-md text-xs sm:text-sm font-medium">
+              {filterDueThisWeek
+                ? 'Great news! You have no subscription bills due in the next 7 days.'
+                : 'Keep your monthly recurring costs cozy and transparent! Track subscriptions with custom wallets.'}
             </p>
-            <button 
+            <button
               onClick={() => setIsAddModalOpen(true)}
-              className="mochi-btn-primary px-5 py-3 text-xs flex items-center gap-2"
+              className="mochi-btn-primary px-5 py-3 text-xs flex items-center gap-2 font-bold"
             >
               <Plus className="w-4 h-4" />
               Track First Subscription
@@ -354,18 +676,21 @@ export default function SubscriptionsPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <AnimatePresence>
-              {subscriptions.map((sub) => (
+              {displayedSubscriptions.map((sub) => (
                 <motion.div
                   key={sub.id}
                   layout
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.95 }}
-                  className="mochi-card relative group overflow-hidden flex flex-col hover:border-mochi-primary/40 transition-all shadow-md"
+                  onClick={() => {
+                    setSelectedDetailsSub(sub)
+                    setHistoryPage(1)
+                  }}
+                  className="mochi-card relative group overflow-hidden flex flex-col hover:border-mochi-primary/40 transition-all shadow-md cursor-pointer"
                 >
-                  {/* Value Indicator Bar */}
-                  <div className={cn("absolute top-0 left-0 w-full h-1.5", getValueColor(sub.usageRating))} />
-                  
+                  <div className={cn('absolute top-0 left-0 w-full h-1.5', getValueColor(sub.usageRating))} />
+
                   <div className="p-5 flex-1">
                     <div className="flex justify-between items-start mb-4">
                       <div className="flex items-center space-x-3">
@@ -373,20 +698,20 @@ export default function SubscriptionsPage() {
                         <div>
                           <h3 className="font-bold text-mochi-text text-base line-clamp-1">{sub.name}</h3>
                           <div className="flex items-center space-x-2 mt-0.5">
-                            <span className={cn("text-[10px] font-bold px-2 py-0.5 rounded-full capitalize", getStatusColor(sub.status))}>
+                            <span className={cn('text-[10px] font-bold px-2 py-0.5 rounded-full capitalize', getStatusColor(sub.status))}>
                               {sub.status}
                             </span>
-                            <span className="text-xs text-mochi-text-muted capitalize">{sub.category}</span>
+                            <span className="text-xs text-mochi-text-muted capitalize font-bold">{sub.category}</span>
                           </div>
                         </div>
                       </div>
-                      
+
                       <div className="text-right">
                         <div className="font-black text-lg text-mochi-text">{formatCurrency(sub.amount)}</div>
                         <div className="text-[10px] font-bold text-mochi-text-muted uppercase">/{sub.frequency}</div>
                       </div>
                     </div>
-                    
+
                     <div className="grid grid-cols-2 gap-2 my-3 p-2.5 rounded-2xl bg-mochi-surface-alt border border-mochi-border/60 text-xs">
                       <div>
                         <div className="text-[10px] font-bold text-mochi-text-muted uppercase">Monthly Cost</div>
@@ -394,74 +719,38 @@ export default function SubscriptionsPage() {
                       </div>
                       <div className="text-right">
                         <div className="text-[10px] font-bold text-mochi-text-muted uppercase">Next Renewal</div>
-                        <div className="font-bold text-mochi-primary">
-                          {formatDate(sub.nextBilling)}
-                        </div>
+                        <div className="font-bold text-mochi-primary">{formatDate(sub.nextBilling)}</div>
                       </div>
-                    </div>
-                    
-                    <div className="pt-3 border-t border-mochi-border/50 flex items-center justify-between">
-                      <div className="flex items-center space-x-1" title="Usage Rating">
-                        {[1, 2, 3, 4, 5].map((star) => (
-                          <button
-                            key={star}
-                            onClick={() => setRating(sub.id, star)}
-                            className="focus:outline-none transition-transform hover:scale-110 p-0.5"
-                          >
-                            <Star
-                              className={cn(
-                                "w-3.5 h-3.5",
-                                (sub.usageRating || 0) >= star
-                                  ? "fill-amber-400 text-amber-400"
-                                  : "text-mochi-border hover:text-amber-200"
-                              )}
-                            />
-                          </button>
-                        ))}
-                      </div>
-                      
-                      <button
-                        onClick={() => toggleReminder(sub.id, sub.cancelReminderDays)}
-                        className={cn(
-                          "flex items-center justify-center p-1.5 rounded-full transition-colors",
-                          sub.cancelReminderDays > 0 
-                            ? "text-sky-500 bg-sky-500/10" 
-                            : "text-mochi-text-muted hover:bg-mochi-surface-alt"
-                        )}
-                        title={sub.cancelReminderDays > 0 ? "Reminder ON" : "Reminder OFF"}
-                      >
-                        {sub.cancelReminderDays > 0 ? <Bell className="w-4 h-4" /> : <BellOff className="w-4 h-4" />}
-                      </button>
                     </div>
                   </div>
-                  
-                  {/* Action Bar */}
-                  <div className="border-t border-mochi-border/40 p-2 bg-mochi-surface-alt flex items-center justify-around gap-1">
-                    <button 
-                      onClick={() => handleOpenLogPayModal(sub)}
-                      className="px-2.5 py-1 text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 rounded-xl transition-colors flex items-center gap-1 text-xs font-black shadow-2xs hover:scale-105 transition-transform"
-                      title="Log Renewal Payment"
+
+                  <div className="px-5 py-3 bg-mochi-surface-alt/40 border-t border-mochi-border/60 flex items-center justify-between text-xs">
+                    <button
+                      onClick={(e) => handleOpenLogPayModal(sub, e)}
+                      className="mochi-btn-primary text-[11px] py-1.5 px-3 font-bold flex items-center gap-1 shadow-xs"
                     >
-                      <CreditCard className="w-3.5 h-3.5" />
-                      <span>Pay / Log</span>
+                      <CreditCard className="w-3.5 h-3.5" /> Pay Now
                     </button>
 
-                    <button 
-                      onClick={() => toggleStatus(sub.id, sub.status)}
-                      className="p-1.5 text-mochi-text-secondary hover:text-mochi-primary rounded-xl hover:bg-mochi-surface transition-colors flex items-center gap-1 text-xs font-bold"
-                      title={sub.status === 'paused' ? 'Resume' : 'Pause'}
-                    >
-                      {sub.status === 'paused' ? <Play className="w-4 h-4" /> : <Pause className="w-4 h-4" />}
-                      <span>{sub.status === 'paused' ? 'Resume' : 'Pause'}</span>
-                    </button>
-                    <button 
-                      onClick={() => deleteSubscription(sub.id)}
-                      className="p-1.5 text-rose-500 hover:text-rose-600 rounded-xl hover:bg-rose-500/10 transition-colors flex items-center gap-1 text-xs font-bold"
-                      title="Delete"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                      <span>Delete</span>
-                    </button>
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={(e) => toggleStatus(sub.id, sub.status, e)}
+                        className="p-1.5 rounded-lg border border-mochi-border hover:bg-mochi-surface-alt text-mochi-text-muted"
+                        title="Pause/Resume"
+                      >
+                        {sub.status === 'paused' ? <Play className="w-3.5 h-3.5 text-emerald-500" /> : <Pause className="w-3.5 h-3.5" />}
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          deleteSubscription(sub.id)
+                        }}
+                        className="p-1.5 rounded-lg border border-mochi-border hover:bg-rose-500/10 text-mochi-text-muted hover:text-rose-500"
+                        title="Delete"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </div>
                 </motion.div>
               ))}
@@ -469,276 +758,6 @@ export default function SubscriptionsPage() {
           </div>
         )}
       </section>
-
-      {/* Floating Action Button for Mobile */}
-      <button
-        onClick={() => setIsAddModalOpen(true)}
-        className="sm:hidden fixed bottom-20 right-6 w-14 h-14 bg-mochi-primary text-white rounded-full shadow-lg flex items-center justify-center hover:scale-105 transition-transform z-40"
-      >
-        <Plus className="w-6 h-6" />
-      </button>
-
-      {/* Add Subscription Dialog with Autocomplete & Presets */}
-      <Dialog
-        isOpen={isAddModalOpen}
-        onClose={() => setIsAddModalOpen(false)}
-        title="Add Subscription"
-        size="md"
-      >
-        <form onSubmit={handleAddSubmit} className="space-y-4 pt-1">
-          {/* Autocomplete Quick Select Grid */}
-          <div>
-            <label className="block text-xs font-bold text-mochi-text-secondary mb-1.5 flex items-center gap-1">
-              <Sparkles className="w-3.5 h-3.5 text-mochi-primary" />
-              Quick Select Popular Presets:
-            </label>
-            <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5 max-h-32 overflow-y-auto p-1 border border-mochi-border/60 rounded-2xl bg-mochi-surface-alt scrollbar-hide">
-              {filteredPresets.map((preset) => (
-                <button
-                  key={preset.name}
-                  type="button"
-                  onClick={() => selectPreset(preset)}
-                  className={cn(
-                    'p-2 rounded-xl border text-center flex flex-col items-center justify-center gap-1 transition-all',
-                    formData.name === preset.name
-                      ? 'border-mochi-primary bg-mochi-primary/10 shadow-xs'
-                      : 'border-mochi-border bg-mochi-surface hover:border-mochi-primary/30'
-                  )}
-                >
-                  <SubscriptionBrandLogo name={preset.name} size="sm" />
-                  <span className="text-[10px] font-bold text-mochi-text line-clamp-1">{preset.name}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-mochi-text-secondary mb-1">Service Name *</label>
-            <input
-              type="text"
-              required
-              className="mochi-input text-xs w-full font-bold"
-              placeholder="e.g. Netflix, Spotify, ChatGPT..."
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-            />
-          </div>
-          
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-bold text-mochi-text-secondary mb-1">Amount (PHP) *</label>
-              <input
-                type="number"
-                required
-                min="0"
-                step="0.01"
-                className="mochi-input text-xs w-full font-bold"
-                placeholder="549"
-                value={formData.amount || ''}
-                onChange={(e) => setFormData({ ...formData, amount: Number(e.target.value) })}
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-mochi-text-secondary mb-1">Billing Frequency</label>
-              <select
-                className="mochi-input text-xs w-full font-bold"
-                value={formData.frequency}
-                onChange={(e) => setFormData({ ...formData, frequency: e.target.value as SubscriptionFrequency })}
-              >
-                <option value="weekly">Weekly</option>
-                <option value="monthly">Monthly</option>
-                <option value="quarterly">Quarterly</option>
-                <option value="annual">Annual</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-bold text-mochi-text-secondary mb-1">Next Renewal Date *</label>
-              <input
-                type="date"
-                required
-                className="mochi-input text-xs w-full font-bold"
-                value={formData.nextBilling}
-                onChange={(e) => setFormData({ ...formData, nextBilling: e.target.value })}
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-mochi-text-secondary mb-1">Category</label>
-              <select
-                className="mochi-input text-xs w-full font-semibold"
-                value={formData.category}
-                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-              >
-                <option value="Entertainment">Entertainment</option>
-                <option value="Music">Music</option>
-                <option value="Software">Software</option>
-                <option value="Storage">Storage</option>
-                <option value="Health">Health</option>
-                <option value="Gaming">Gaming</option>
-                <option value="Other">Other</option>
-              </select>
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-mochi-text-secondary mb-1">Default Payment Wallet</label>
-            <select
-              className="mochi-input text-xs w-full font-bold"
-              value={formData.walletId || ''}
-              onChange={(e) => setFormData({ ...formData, walletId: e.target.value })}
-            >
-              <option value="">Select Wallet (Optional)</option>
-              {wallets.map((w) => (
-                <option key={w.id} value={w.id}>
-                  {w.name} — Balance: {formatCurrency(w.balance)}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-mochi-text-secondary mb-1">Value & Priority Rating</label>
-            <div className="flex items-center space-x-2 bg-mochi-surface-alt p-2.5 rounded-2xl border border-mochi-border">
-              {[1, 2, 3, 4, 5].map((star) => (
-                <button
-                  key={star}
-                  type="button"
-                  onClick={() => setFormData({ ...formData, usageRating: star })}
-                  className="focus:outline-none transition-transform hover:scale-110 p-1"
-                >
-                  <Star
-                    className={cn(
-                      "w-5 h-5",
-                      (formData.usageRating || 0) >= star
-                        ? "fill-amber-400 text-amber-400"
-                        : "text-mochi-border hover:text-amber-200"
-                    )}
-                  />
-                </button>
-              ))}
-              <span className="text-xs font-bold text-mochi-text-secondary ml-2">
-                {formData.usageRating === 5 ? 'Essential (5/5)' : formData.usageRating === 1 ? 'Cancel soon (1/5)' : `${formData.usageRating}/5`}
-              </span>
-            </div>
-          </div>
-
-          <div className="pt-2 flex gap-3">
-            <button
-              type="button"
-              onClick={() => setIsAddModalOpen(false)}
-              className="mochi-btn-secondary text-xs flex-1 py-2.5"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="mochi-btn-primary text-xs flex-1 py-2.5"
-            >
-              Save Subscription
-            </button>
-          </div>
-        </form>
-      </Dialog>
-
-      {/* Log Subscription Payment Window with Before & After Wallet Balance Breakdown */}
-      <Dialog
-        isOpen={payingSub !== null}
-        onClose={() => setPayingSub(null)}
-        title="Log Subscription Payment"
-        size="md"
-      >
-        {payingSub && (
-          <div className="space-y-4 pt-1">
-            <div className="flex items-center gap-3 p-3.5 rounded-2xl bg-gradient-to-r from-mochi-primary/10 to-sky-500/10 border border-mochi-primary/20">
-              <Mascot mood="excited" size="md" className="shrink-0 drop-shadow-md" />
-              <div>
-                <h4 className="font-black text-sm text-mochi-text">{payingSub.name}</h4>
-                <div className="text-xs font-bold text-mochi-primary">
-                  {formatCurrency(payingSub.amount)} / {payingSub.frequency}
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-mochi-text-secondary mb-1">Select Payment Wallet</label>
-              <select
-                className="mochi-input text-xs w-full font-bold"
-                value={payWalletId}
-                onChange={(e) => setPayWalletId(e.target.value)}
-              >
-                {wallets.length === 0 ? (
-                  <option value="">No Wallets Available</option>
-                ) : (
-                  wallets.map((w) => (
-                    <option key={w.id} value={w.id}>
-                      {w.name} — Current: {formatCurrency(w.balance)}
-                    </option>
-                  ))
-                )}
-              </select>
-            </div>
-
-            {/* Before & After Balance Breakdown Card */}
-            {(() => {
-              const targetWallet = wallets.find((w) => w.id === payWalletId) || wallets[0]
-              const currentBal = targetWallet?.balance || 0
-              const newBal = currentBal - payingSub.amount
-
-              return (
-                <div className="p-4 rounded-2xl bg-mochi-surface-alt border border-mochi-border/80 space-y-2.5">
-                  <div className="text-xs font-bold text-mochi-text-secondary flex items-center justify-between border-b border-mochi-border/50 pb-2">
-                    <span>Selected Wallet:</span>
-                    <span className="font-black text-mochi-text text-sm">{targetWallet?.name || 'Default Wallet'}</span>
-                  </div>
-
-                  <div className="flex items-center justify-between text-xs font-bold">
-                    <span className="text-mochi-text-muted">Current Balance:</span>
-                    <span className="text-mochi-text">{formatCurrency(currentBal)}</span>
-                  </div>
-
-                  <div className="flex items-center justify-between text-xs font-bold text-rose-500">
-                    <span>Subscription Deducted:</span>
-                    <span>- {formatCurrency(payingSub.amount)}</span>
-                  </div>
-
-                  <div className="pt-2 border-t border-mochi-border/60 flex items-center justify-between text-sm font-black">
-                    <span className="text-mochi-text">New Balance After Payment:</span>
-                    <span className={cn(newBal >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400')}>
-                      {formatCurrency(newBal)}
-                    </span>
-                  </div>
-
-                  {newBal < 0 && (
-                    <p className="text-[11px] font-bold text-amber-600 dark:text-amber-400 bg-amber-500/10 p-2 rounded-xl text-center">
-                      Warning: Wallet balance will go below ₱0.00 after payment!
-                    </p>
-                  )}
-                </div>
-              )
-            })()}
-
-            <div className="pt-2 flex gap-3">
-              <button
-                type="button"
-                onClick={() => setPayingSub(null)}
-                className="mochi-btn-secondary text-xs flex-1 py-2.5"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleConfirmLogPayment}
-                className="mochi-btn-primary text-xs flex-1 py-2.5 flex items-center justify-center gap-1.5"
-              >
-                <CreditCard className="w-4 h-4" />
-                Confirm & Log Payment
-              </button>
-            </div>
-          </div>
-        )}
-      </Dialog>
     </motion.div>
   )
 }

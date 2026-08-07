@@ -7,6 +7,7 @@ import {
   CheckCircle2,
   Star,
   Calendar,
+  Coins,
 } from 'lucide-react'
 import ProgressRing from '@/components/ui/ProgressRing'
 import MochiIcon from '@/components/ui/MochiIcons'
@@ -15,6 +16,11 @@ import { useAppStore, getUid } from '@/store/appStore'
 import { formatCurrency, cn, calculateProgress, formatDate } from '@/lib/utils'
 import type { SavingsGoal } from '@/types'
 import Dialog from '@/components/ui/Dialog'
+import Confetti from '@/components/ui/Confetti'
+import { useToastStore } from '@/store/toastStore'
+import PaywallModal from '@/components/modals/PaywallModal'
+import { checkCanAddSavingsGoal } from '@/lib/paywall'
+import { useAuthStore } from '@/store/authStore'
 
 const goalIcons: Record<string, string> = {
   travel: 'plane',
@@ -27,9 +33,12 @@ const goalIcons: Record<string, string> = {
   other: 'star',
 }
 
+interface GoalCardProps {
+  goal: SavingsGoal
+  onDepositClick: (goal: SavingsGoal) => void
+}
 
-
-function GoalCard({ goal }: { goal: SavingsGoal }) {
+function GoalCard({ goal, onDepositClick }: GoalCardProps) {
   const progress = calculateProgress(goal.currentAmount, goal.targetAmount)
   const iconId = goalIcons[goal.icon] || 'star'
 
@@ -37,7 +46,7 @@ function GoalCard({ goal }: { goal: SavingsGoal }) {
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
-      className="mochi-card flex flex-col items-center text-center gap-3"
+      className="mochi-card flex flex-col items-center text-center gap-3 relative overflow-hidden"
     >
       <div className="relative inline-flex items-center justify-center">
         <ProgressRing
@@ -51,19 +60,21 @@ function GoalCard({ goal }: { goal: SavingsGoal }) {
           <MochiIcon id={iconId} size="md" style="plain" className="text-mochi-text" />
         </div>
       </div>
+
       <div className="flex-1">
-        <h3 className="text-sm font-semibold text-mochi-text">{goal.name}</h3>
+        <h3 className="text-sm font-bold text-mochi-text">{goal.name}</h3>
         <p className={cn(
-          'text-lg font-bold mt-1',
-          progress >= 100 ? 'text-mochi-success' : 'text-mochi-text'
+          'text-lg font-black mt-1',
+          progress >= 100 ? 'text-mochi-success' : 'text-mochi-primary'
         )}>
           {formatCurrency(goal.currentAmount, goal.currency)}
         </p>
-        <p className="text-xs text-mochi-text-muted">
+        <p className="text-xs text-mochi-text-muted font-medium">
           of {formatCurrency(goal.targetAmount, goal.currency)}
         </p>
       </div>
-      <div className="w-full flex items-center justify-between text-xs text-mochi-text-muted">
+
+      <div className="w-full flex items-center justify-between text-xs text-mochi-text-muted border-t border-mochi-border/50 pt-2 font-medium">
         <span>{Math.round(progress)}% saved</span>
         {goal.deadline && (
           <span className="flex items-center gap-1">
@@ -72,11 +83,19 @@ function GoalCard({ goal }: { goal: SavingsGoal }) {
           </span>
         )}
       </div>
-      {progress >= 100 && (
-        <div className="flex items-center gap-1 text-mochi-success text-xs font-medium">
-          <CheckCircle2 className="w-3 h-3" />
-          Goal Completed!
+
+      {progress >= 100 ? (
+        <div className="flex items-center gap-1 text-mochi-success text-xs font-bold bg-mochi-success/10 px-3 py-1 rounded-full border border-mochi-success/20 w-full justify-center">
+          <CheckCircle2 className="w-3.5 h-3.5" />
+          Goal Accomplished!
         </div>
+      ) : (
+        <button
+          onClick={() => onDepositClick(goal)}
+          className="mochi-btn-primary w-full text-xs py-2 font-extrabold flex items-center justify-center gap-1.5 shadow-xs active:scale-95 transition-all"
+        >
+          <Coins className="w-3.5 h-3.5" /> + Add Money / Deposit
+        </button>
       )}
     </motion.div>
   )
@@ -86,11 +105,11 @@ function EmptySavings({ onOpenModal }: { onOpenModal: () => void }) {
   return (
     <div className="flex flex-col items-center justify-center py-16 text-center">
       <MochiIllustration type="empty_savings" size="lg" />
-      <h3 className="text-lg font-semibold text-mochi-text mt-3">Dream it, save it!</h3>
-      <p className="mt-2 text-sm text-mochi-text-muted max-w-xs">
+      <h3 className="text-lg font-bold text-mochi-text mt-3">Dream it, save it!</h3>
+      <p className="mt-2 text-sm text-mochi-text-muted max-w-xs font-medium">
         Your savings goals are like seeds — plant one today and watch it grow!
       </p>
-      <button onClick={onOpenModal} className="mochi-btn-primary mt-4 cursor-pointer hover:scale-105 transition-transform flex items-center gap-1.5">
+      <button onClick={onOpenModal} className="mochi-btn-primary mt-4 cursor-pointer hover:scale-105 transition-transform flex items-center gap-1.5 font-bold">
         <Plus className="w-4 h-4" />
         Plant First Goal
       </button>
@@ -98,24 +117,27 @@ function EmptySavings({ onOpenModal }: { onOpenModal: () => void }) {
   )
 }
 
-import PaywallModal from '@/components/modals/PaywallModal'
-import { checkCanAddSavingsGoal } from '@/lib/paywall'
-import { useAuthStore } from '@/store/authStore'
-
 export default function SavingsPage() {
   const { user } = useAuthStore()
-  const { savingsGoals, addSavingsGoal } = useAppStore()
+  const { savingsGoals, addSavingsGoal, contributeToGoal, wallets, adjustWalletBalance, addTransaction } = useAppStore()
   const [isLoading, setIsLoading] = useState(true)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [showPaywall, setShowPaywall] = useState(false)
+  const [showConfetti, setShowConfetti] = useState(false)
 
+  // New Goal State
   const [goalName, setGoalName] = useState('')
   const [targetAmount, setTargetAmount] = useState('')
   const [goalCategory, setGoalCategory] = useState('travel')
   const [status, setStatus] = useState<'idle' | 'success'>('idle')
 
+  // Deposit Money Modal State
+  const [depositGoal, setDepositGoal] = useState<SavingsGoal | null>(null)
+  const [depositAmount, setDepositAmount] = useState('')
+  const [depositWalletId, setDepositWalletId] = useState('')
+
   useEffect(() => {
-    const timer = setTimeout(() => setIsLoading(false), 500)
+    const timer = setTimeout(() => setIsLoading(false), 400)
     return () => clearTimeout(timer)
   }, [])
 
@@ -158,6 +180,50 @@ export default function SavingsPage() {
     }, 1200)
   }
 
+  const handleDepositSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!depositGoal) return
+    const amt = parseFloat(depositAmount)
+    if (isNaN(amt) || amt <= 0) return
+
+    const wallet = wallets.find((w) => w.id === depositWalletId) || wallets[0]
+    const walletId = wallet?.id
+
+    // 1. Contribute to savings goal
+    await contributeToGoal(depositGoal.id, amt)
+
+    // 2. Deduct from selected wallet balance
+    if (walletId) {
+      await adjustWalletBalance(walletId, -amt)
+    }
+
+    // 3. Record expense transaction
+    addTransaction({
+      id: `txn_savings_${Date.now()}`,
+      userId: user?.id || 'anon',
+      type: 'expense',
+      amount: amt,
+      currency: 'PHP',
+      categoryId: 'savings',
+      walletId,
+      merchant: `Deposit to ${depositGoal.name}`,
+      paymentMethod: 'cash',
+      date: new Date().toISOString().split('T')[0],
+      notes: `Savings contribution towards ${depositGoal.name}`,
+      isFavorite: false,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    })
+
+    useToastStore.getState().success(`Deposited ${formatCurrency(amt)} to ${depositGoal.name}!`, 'Deposit Added')
+
+    setShowConfetti(true)
+    setTimeout(() => setShowConfetti(false), 4000)
+
+    setDepositGoal(null)
+    setDepositAmount('')
+  }
+
   if (isLoading) {
     return (
       <div className="space-y-3 animate-pulse" aria-busy="true">
@@ -181,6 +247,69 @@ export default function SavingsPage() {
       role="main"
       aria-label="Savings Goals"
     >
+      <Confetti isActive={showConfetti} />
+
+      {/* Deposit Money Modal */}
+      <Dialog
+        isOpen={!!depositGoal}
+        onClose={() => setDepositGoal(null)}
+        title={`Add Deposit to ${depositGoal?.name || ''}`}
+      >
+        {depositGoal && (
+          <form onSubmit={handleDepositSubmit} className="space-y-4">
+            <div>
+              <label className="block text-xs font-bold text-mochi-text-secondary mb-1">
+                Deposit Amount (PHP) *
+              </label>
+              <input
+                type="number"
+                step="any"
+                min="1"
+                placeholder="e.g. 1000"
+                value={depositAmount}
+                onChange={(e) => setDepositAmount(e.target.value)}
+                className="mochi-input text-lg font-black text-mochi-primary w-full"
+                required
+                autoFocus
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-mochi-text-secondary mb-1">
+                Deduct From Wallet
+              </label>
+              <select
+                value={depositWalletId || wallets[0]?.id || ''}
+                onChange={(e) => setDepositWalletId(e.target.value)}
+                className="mochi-input text-xs w-full font-bold"
+              >
+                {wallets.map((w) => (
+                  <option key={w.id} value={w.id}>
+                    {w.name} ({formatCurrency(w.balance, w.currency)})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="pt-2 flex gap-3">
+              <button
+                type="button"
+                onClick={() => setDepositGoal(null)}
+                className="mochi-btn-secondary text-xs flex-1 py-2.5 font-bold"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="mochi-btn-primary text-xs flex-1 py-2.5 font-bold flex items-center justify-center gap-1.5 shadow-md"
+              >
+                <Coins className="w-4 h-4" /> Deposit Savings
+              </button>
+            </div>
+          </form>
+        )}
+      </Dialog>
+
       {/* Create Goal Modal */}
       <Dialog isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Create New Savings Goal">
         {status === 'success' ? (
@@ -236,11 +365,11 @@ export default function SavingsPage() {
               <button
                 type="button"
                 onClick={() => setIsModalOpen(false)}
-                className="mochi-btn-secondary text-xs flex-1 py-2.5"
+                className="mochi-btn-secondary text-xs flex-1 py-2.5 font-bold"
               >
                 Cancel
               </button>
-              <button type="submit" className="mochi-btn-primary text-xs flex-1 py-2.5">
+              <button type="submit" className="mochi-btn-primary text-xs flex-1 py-2.5 font-bold">
                 Create Savings Goal
               </button>
             </div>
@@ -257,8 +386,8 @@ export default function SavingsPage() {
 
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h1 className="text-xl font-bold text-mochi-text">Savings Goals</h1>
-          <p className="text-xs text-mochi-text-muted mt-0.5">Every little bit counts toward your dreams</p>
+          <h1 className="text-xl font-black text-mochi-text">Savings Goals</h1>
+          <p className="text-xs text-mochi-text-muted mt-0.5 font-medium">Every little bit counts toward your dreams</p>
         </div>
         <button
           onClick={() => {
@@ -268,7 +397,7 @@ export default function SavingsPage() {
               setIsModalOpen(true)
             }
           }}
-          className="mochi-btn-primary text-sm flex items-center gap-1.5"
+          className="mochi-btn-primary text-xs sm:text-sm font-bold flex items-center gap-1.5 shadow-md active:scale-95 transition-all"
         >
           <Plus className="w-4 h-4" />
           <span>New Dream</span>
@@ -278,17 +407,17 @@ export default function SavingsPage() {
       {/* Hero Total Saved */}
       <section className="mochi-card bg-gradient-to-br from-mochi-success/10 via-mochi-success/5 to-mochi-primary/5 mb-4" aria-label="Total Saved">
         <div className="flex items-center gap-3 mb-2">
-          <div className="w-10 h-10 rounded-full bg-mochi-success/10 flex items-center justify-center">
+          <div className="w-10 h-10 rounded-2xl bg-mochi-success/15 flex items-center justify-center border border-mochi-success/30">
             <PiggyBank className="w-5 h-5 text-mochi-success" />
           </div>
           <div>
-            <p className="text-sm text-mochi-text-secondary">Total Saved</p>
-            <p className="text-2xl font-bold text-mochi-success">{formatCurrency(totalSaved)}</p>
+            <p className="text-xs font-bold text-mochi-text-secondary">Total Saved Across Goals</p>
+            <p className="text-2xl font-black text-mochi-success">{formatCurrency(totalSaved)}</p>
           </div>
         </div>
         {totalTarget > 0 && (
           <>
-            <div className="flex justify-between text-xs text-mochi-text-muted mb-1">
+            <div className="flex justify-between text-xs text-mochi-text-muted mb-1 font-bold">
               <span>{((totalSaved / totalTarget) * 100).toFixed(0)}% of total target</span>
               <span>{formatCurrency(totalTarget)} target</span>
             </div>
@@ -301,12 +430,12 @@ export default function SavingsPage() {
           </>
         )}
         <div className="flex items-center gap-4 mt-3">
-          <div className="flex items-center gap-1 text-xs text-mochi-text-secondary">
-            <Target className="w-3 h-3" />
+          <div className="flex items-center gap-1 text-xs text-mochi-text-secondary font-bold">
+            <Target className="w-3.5 h-3.5 text-mochi-primary" />
             {activeGoals.length} active
           </div>
-          <div className="flex items-center gap-1 text-xs text-mochi-success">
-            <Star className="w-3 h-3" />
+          <div className="flex items-center gap-1 text-xs text-mochi-success font-bold">
+            <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-400" />
             {completedGoals.length} completed
           </div>
         </div>
@@ -315,10 +444,10 @@ export default function SavingsPage() {
       {/* Active Goals Grid */}
       {activeGoals.length > 0 && (
         <section aria-label="Active Goals">
-          <h2 className="text-sm font-semibold text-mochi-text-secondary mb-2 uppercase tracking-wide">Active Goals</h2>
+          <h2 className="text-xs font-black text-mochi-text-secondary mb-3 uppercase tracking-wider">Active Goals</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {activeGoals.map((goal) => (
-              <GoalCard key={goal.id} goal={goal} />
+              <GoalCard key={goal.id} goal={goal} onDepositClick={setDepositGoal} />
             ))}
           </div>
         </section>
@@ -328,14 +457,14 @@ export default function SavingsPage() {
       {completedGoals.length > 0 && (
         <section aria-label="Completed Goals" className="mt-6">
           <div className="flex items-center justify-between mb-2">
-            <h2 className="text-sm font-semibold text-mochi-text-secondary uppercase tracking-wide">Completed</h2>
-            <span className="text-xs text-mochi-success flex items-center gap-1">
-              <CheckCircle2 className="w-3 h-3" /> {completedGoals.length} done
+            <h2 className="text-xs font-black text-mochi-text-secondary uppercase tracking-wider">Completed</h2>
+            <span className="text-xs text-mochi-success flex items-center gap-1 font-bold">
+              <CheckCircle2 className="w-3.5 h-3.5" /> {completedGoals.length} done
             </span>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {completedGoals.map((goal) => (
-              <GoalCard key={goal.id} goal={goal} />
+              <GoalCard key={goal.id} goal={goal} onDepositClick={setDepositGoal} />
             ))}
           </div>
         </section>
