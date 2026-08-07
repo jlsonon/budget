@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { Routes, Route, useLocation } from 'react-router-dom'
+import { Routes, Route, useLocation, Navigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useAuthStore } from './store/authStore'
 import { useThemeStore } from './store/themeStore'
@@ -107,11 +107,15 @@ function AnimatedRoutes() {
             <Route
               path="/"
               element={
-                <ErrorBoundary>
-                  <PageTransition>
-                    <DashboardPage />
-                  </PageTransition>
-                </ErrorBoundary>
+                !sessionStorage.getItem('mochi_splash_shown') ? (
+                  <Navigate to="/splash" replace />
+                ) : (
+                  <ErrorBoundary>
+                    <PageTransition>
+                      <DashboardPage />
+                    </PageTransition>
+                  </ErrorBoundary>
+                )
               }
             />
             <Route

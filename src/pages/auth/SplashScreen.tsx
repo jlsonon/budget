@@ -16,12 +16,14 @@ export default function SplashScreen() {
   const [greetingIndex, setGreetingIndex] = useState(0)
 
   useEffect(() => {
+    sessionStorage.setItem('mochi_splash_shown', 'true')
+
     const interval = setInterval(() => {
       setGreetingIndex((prev) => (prev + 1) % greetings.length)
     }, 2000)
 
     const timer = setTimeout(() => {
-      navigate(isAuthenticated ? '/' : '/welcome')
+      navigate(isAuthenticated ? '/' : '/welcome', { replace: true })
     }, 1500)
 
     return () => {
