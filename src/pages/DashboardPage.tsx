@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
@@ -199,6 +199,7 @@ export default function DashboardPage() {
   const [achievementsList, setAchievementsList] = useState<Achievement[]>(officialAchievements)
   const [selectedAchievement, setSelectedAchievement] = useState<Achievement | null>(null)
   const [selectedEvent, setSelectedEvent] = useState<CalendarEventType | null>(null)
+  const syncedAchievementsRef = useRef<Set<string>>(new Set())
 
   // Dynamic 100% Real Upcoming Events from Subscriptions, Debts, and People Debts
   const calendarEventsList = useMemo<CalendarEventType[]>(() => {
@@ -304,7 +305,8 @@ export default function DashboardPage() {
         unlockedAt: isUnlocked ? (ach.unlockedAt || new Date().toISOString().split('T')[0]) : undefined,
       }
 
-      if (isUnlocked) {
+      if (isUnlocked && !syncedAchievementsRef.current.has(ach.id)) {
+        syncedAchievementsRef.current.add(ach.id)
         saveDocToCloud(FIRESTORE_COLLECTIONS.ACHIEVEMENTS, {
           ...item,
           userId: user?.id || 'anon',
