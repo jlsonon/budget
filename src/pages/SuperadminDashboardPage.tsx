@@ -17,85 +17,9 @@ import { db } from '@/lib/firebase'
 
 const SUPERADMIN_EMAILS = ['jlsonon12@gmail.com', 'superadmin@mochimoney.app', 'owner@mochimoney.app']
 
-const MOCK_REGISTERED_USERS: UserProfile[] = [
-  {
-    id: 'user_1',
-    name: 'Jericho Sonon (Owner)',
-    email: 'jlsonon12@gmail.com',
-    role: 'superadmin',
-    subscriptionTier: 'pro',
-    subscriptionStatus: 'active',
-    paidAmount: 199,
-    paidAt: '2026-08-01T00:00:00.000Z',
-    currency: 'PHP',
-    language: 'en',
-    theme: 'sakura',
-    createdAt: '2026-08-01T00:00:00.000Z',
-    updatedAt: '2026-08-06T12:00:00.000Z',
-  },
-  {
-    id: 'user_2',
-    name: 'Maria Santos',
-    email: 'maria.santos@gmail.com',
-    role: 'user',
-    subscriptionTier: 'pro',
-    subscriptionStatus: 'active',
-    paidAmount: 199,
-    paidAt: '2026-08-03T10:15:00.000Z',
-    currency: 'PHP',
-    language: 'en',
-    theme: 'peach',
-    createdAt: '2026-08-03T10:00:00.000Z',
-    updatedAt: '2026-08-03T10:15:00.000Z',
-  },
-  {
-    id: 'user_3',
-    name: 'Juan Dela Cruz',
-    email: 'juan.delacruz@yahoo.com',
-    role: 'user',
-    subscriptionTier: 'free',
-    subscriptionStatus: 'free',
-    paidAmount: 0,
-    currency: 'PHP',
-    language: 'en',
-    theme: 'matcha',
-    createdAt: '2026-08-04T14:20:00.000Z',
-    updatedAt: '2026-08-04T14:20:00.000Z',
-  },
-  {
-    id: 'user_4',
-    name: 'Angelica Reyes',
-    email: 'angelica.reyes@outlook.com',
-    role: 'user',
-    subscriptionTier: 'pro',
-    subscriptionStatus: 'active',
-    paidAmount: 199,
-    paidAt: '2026-08-05T09:30:00.000Z',
-    currency: 'PHP',
-    language: 'en',
-    theme: 'moonlight',
-    createdAt: '2026-08-05T09:00:00.000Z',
-    updatedAt: '2026-08-05T09:30:00.000Z',
-  },
-  {
-    id: 'user_5',
-    name: 'Kenneth Tan',
-    email: 'kenneth.tan@gmail.com',
-    role: 'user',
-    subscriptionTier: 'free',
-    subscriptionStatus: 'free',
-    paidAmount: 0,
-    currency: 'PHP',
-    language: 'en',
-    theme: 'ocean',
-    createdAt: '2026-08-06T11:00:00.000Z',
-    updatedAt: '2026-08-06T11:00:00.000Z',
-  },
-]
-
 export default function SuperadminDashboardPage() {
   const { user } = useAuthStore()
-  const [usersList, setUsersList] = useState<UserProfile[]>(MOCK_REGISTERED_USERS)
+  const [usersList, setUsersList] = useState<UserProfile[]>(() => (user ? [user] : []))
   const [searchQuery, setSearchQuery] = useState('')
   const [tierFilter, setTierFilter] = useState<'all' | 'free' | 'pro'>('all')
   const [isRefreshing, setIsRefreshing] = useState(false)
@@ -110,19 +34,21 @@ export default function SuperadminDashboardPage() {
     if (!isSuperadmin) return
     try {
       const unsub = onSnapshot(collection(db, 'users'), (snapshot) => {
-        if (!snapshot.empty) {
-          const liveUsers: UserProfile[] = snapshot.docs.map((doc) => ({
-            id: doc.id,
-            ...(doc.data() as any),
-          }))
+        const liveUsers: UserProfile[] = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...(doc.data() as any),
+        }))
+        if (liveUsers.length > 0) {
           setUsersList(liveUsers)
+        } else if (user) {
+          setUsersList([user])
         }
       })
       return () => unsub()
     } catch (e) {
       console.warn('Firestore superadmin user sync offline fallback:', e)
     }
-  }, [isSuperadmin])
+  }, [isSuperadmin, user])
 
   const filteredUsers = useMemo(() => {
     return usersList.filter((u) => {
