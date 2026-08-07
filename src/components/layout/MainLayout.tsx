@@ -471,19 +471,22 @@ export default function MainLayout() {
         )}
       </AnimatePresence>
 
-      {/* Dedicated Ultra-Premium Floating Mochi AI Mascot Button */}
+      {/* Movable & Draggable Floating Mochi AI Mascot Button */}
       <motion.div
-        animate={{ y: [0, -4, 0] }}
-        transition={{ repeat: Infinity, duration: 3, ease: 'easeInOut' }}
-        className="fixed bottom-24 right-4 z-40"
+        drag
+        dragConstraints={{ left: -320, right: 10, top: -650, bottom: 10 }}
+        dragElastic={0.1}
+        dragMomentum={false}
+        whileDrag={{ scale: 1.15 }}
+        className="fixed bottom-24 right-4 z-40 touch-none select-none cursor-grab active:cursor-grabbing"
       >
         <motion.button
-          whileHover={{ scale: 1.12, y: -3 }}
+          whileHover={{ scale: 1.12 }}
           whileTap={{ scale: 0.92 }}
           onClick={() => setShowAIChat(true)}
           className="relative p-1 rounded-full bg-gradient-to-tr from-amber-400 via-rose-500 to-mochi-primary shadow-[0_0_24px_rgba(245,158,11,0.45)] border-2 border-white/90 dark:border-slate-800 flex items-center justify-center group cursor-pointer"
           aria-label="Open Mochi AI Assistant"
-          title="Ask Mochi AI Assistant"
+          title="Drag to move • Click to open Mochi AI"
         >
           <div className="w-13 h-13 rounded-full bg-mochi-surface flex items-center justify-center relative overflow-hidden shadow-inner">
             <Mascot size="sm" mood="happy" animate={true} />
@@ -494,7 +497,7 @@ export default function MainLayout() {
 
           {/* Floating Tooltip Tag on Hover */}
           <span className="absolute right-full mr-2 px-2.5 py-1 rounded-xl bg-slate-900/90 text-white text-[10px] font-black whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-md backdrop-blur-xs border border-white/10">
-            Mochi AI Assistant
+            Drag to Move • Mochi AI
           </span>
         </motion.button>
       </motion.div>
