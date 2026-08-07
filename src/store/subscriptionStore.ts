@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { persist } from 'zustand/middleware'
 import { Subscription, Transaction, Wallet } from '../types'
 import { saveDocToCloud, deleteDocFromCloud } from '../services/cloudSync'
 import { FIRESTORE_COLLECTIONS } from '../services/firestoreCollections'
@@ -16,38 +17,44 @@ export interface SubscriptionState {
   processDueRecurring: () => Promise<void>
 }
 
-export const useSubscriptionStore = create<SubscriptionState>()((set, get) => ({
-  subscriptions: [],
-  setSubscriptions: (subs: Subscription[]) => set({ subscriptions: subs }),
-  addSubscription: async (sub: Subscription) => {
-    set((s: SubscriptionState) => ({ subscriptions: [...s.subscriptions, sub] }))
-    try {
-      await saveDocToCloud(FIRESTORE_COLLECTIONS.SUBSCRIPTIONS, sub)
-      useToastStore.getState().success(`Subscription "${sub.name}" saved!`, 'Saved')
-    } catch (err: any) {
-      useToastStore.getState().error('Failed to add subscription', 'Error')
-    }
-  },
-  updateSubscription: async (id: string, updates: Partial<Subscription>) => {
-    set((s: SubscriptionState) => ({
-      subscriptions: s.subscriptions.map((sub: Subscription) =>
-        sub.id === id ? { ...sub, ...updates, updatedAt: new Date().toISOString() } : sub
-      ),
-    }))
-    const updated = get().subscriptions.find((s: Subscription) => s.id === id)
-    if (updated) {
-      await saveDocToCloud(FIRESTORE_COLLECTIONS.SUBSCRIPTIONS, updated)
-    }
-  },
-  deleteSubscription: async (id: string) => {
-    set((s: SubscriptionState) => ({ subscriptions: s.subscriptions.filter((sub: Subscription) => sub.id !== id) }))
-    try {
-      await deleteDocFromCloud(FIRESTORE_COLLECTIONS.SUBSCRIPTIONS, id)
-      useToastStore.getState().info('Subscription deleted', 'Removed')
-    } catch (err: any) {
-      useToastStore.getState().error('Failed to delete subscription', 'Error')
-    }
-  },
+export const useSubscriptionStore = create<SubscriptionState>()(
+  persist(
+    (set, get) => ({
+      subscriptions: [],
+      setSubscriptions: (subs: Subscription[]) => set({ subscriptions: subs }),
+      addSubscription: async (sub: Subscription) => {
+        const currentUserId = useAuthStore.getState().user?.id || sub.userId || 'anon'
+        const subWithUser = { ...sub, userId: currentUserId }
+        
+        set((s: SubscriptionState) => ({ subscriptions: [...s.subscriptions, subWithUser] }))
+        try {
+          await saveDocToCloud(FIRESTORE_COLLECTIONS.SUBSCRIPTIONS, subWithUser)
+          useToastStore.getState().success(`Subscription "${subWithUser.name}" saved!`, 'Saved')
+        } catch (err: any) {
+          useToastStore.getState().error('Failed to add subscription', 'Error')
+        }
+      },
+      updateSubscription: async (id: string, updates: Partial<Subscription>) => {
+        const currentUserId = useAuthStore.getState().user?.id || 'anon'
+        set((s: SubscriptionState) => ({
+          subscriptions: s.subscriptions.map((sub: Subscription) =>
+            sub.id === id ? { ...sub, ...updates, userId: currentUserId, updatedAt: new Date().toISOString() } : sub
+          ),
+        }))
+        const updated = get().subscriptions.find((s: Subscription) => s.id === id)
+        if (updated) {
+          await saveDocToCloud(FIRESTORE_COLLECTIONS.SUBSCRIPTIONS, updated)
+        }
+      },
+      deleteSubscription: async (id: string) => {
+        set((s: SubscriptionState) => ({ subscriptions: s.subscriptions.filter((sub: Subscription) => sub.id !== id) }))
+        try {
+          await deleteDocFromCloud(FIRESTORE_COLLECTIONS.SUBSCRIPTIONS, id)
+          useToastStore.getState().info('Subscription deleted', 'Removed')
+        } catch (err: any) {
+          useToastStore.getState().error('Failed to delete subscription', 'Error')
+        }
+      },
   processDueRecurring: async () => {
     const today = new Date().toISOString().split('T')[0]
     const state = get()
@@ -104,4 +111,9 @@ export const useSubscriptionStore = create<SubscriptionState>()((set, get) => ({
       }
     }
   },
-}))
+    }),
+    {
+      name: 'mochi-subscriptions-storage',
+    }
+  )
+)

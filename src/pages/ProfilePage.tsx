@@ -227,7 +227,7 @@ export default function ProfilePage() {
           <p className="text-xs text-mochi-text-muted font-medium">Manage membership, security, & Mochi companion</p>
         </div>
         <span className="mochi-badge bg-mochi-primary/15 text-mochi-primary font-extrabold text-xs flex items-center gap-1 border border-mochi-primary/30">
-          <Crown className="w-3.5 h-3.5 fill-amber-400 text-amber-500" /> Mochi Pro
+          <Crown className="w-3.5 h-3.5 fill-amber-400 text-amber-500" /> Pro
         </span>
       </div>
 

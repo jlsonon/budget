@@ -70,8 +70,10 @@ export function startRealtimeSync(userId: string): () => void {
   // 6. Subscriptions Listener
   const qSubs = query(collection(db, FIRESTORE_COLLECTIONS.SUBSCRIPTIONS), where('userId', '==', userId))
   const unsubSubs = onSnapshot(qSubs, (snapshot) => {
-    const items = snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as Subscription))
-    useAppStore.getState().setSubscriptions(items)
+    if (!snapshot.empty) {
+      const items = snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as Subscription))
+      useAppStore.getState().setSubscriptions(items)
+    }
   }, (err) => console.warn('Realtime subs sync notice:', err.message))
 
   // 7. Mochi Circles Listener
