@@ -45,38 +45,47 @@ import type { Achievement, DailyMission, CalendarEvent as CalendarEventType } fr
 const defaultMissions: DailyMission[] = [
   {
     id: 'm1',
-    type: 'log_expense',
-    title: "Log today's lunch or coffee expense",
-    description: 'Keep your financial logging streak active by tracking daily transactions',
+    type: 'review_spending',
+    title: 'Review your budget',
+    description: 'Quick 5-second check on your category limits',
     status: 'available',
-    reward: '+50 XP',
+    reward: '+30 XP',
     date: new Date().toISOString().split('T')[0],
   },
   {
     id: 'm2',
     type: 'save_amount',
-    title: 'Transfer ₱100 to your Savings Vault',
-    description: 'Put extra money towards your travel or emergency goal',
+    title: 'Save ₱50',
+    description: 'Put extra ₱50 into your savings vault',
     status: 'available',
-    reward: '+100 XP',
+    reward: '+50 XP',
     date: new Date().toISOString().split('T')[0],
   },
   {
     id: 'm3',
-    type: 'review_spending',
-    title: 'Review 50/30/20 budget allocations',
-    description: 'Check if Needs (50%), Wants (30%), and Savings (20%) are balanced',
+    type: 'check_bills',
+    title: 'Check upcoming bills',
+    description: 'Stay aware of upcoming subscriptions and bills',
+    status: 'available',
+    reward: '+30 XP',
+    date: new Date().toISOString().split('T')[0],
+  },
+  {
+    id: 'm4',
+    type: 'log_expense',
+    title: "Log today's expenses",
+    description: 'Record any spending from today',
     status: 'available',
     reward: '+40 XP',
     date: new Date().toISOString().split('T')[0],
   },
   {
-    id: 'm4',
-    type: 'check_bills',
-    title: 'Review upcoming bills & subscriptions',
-    description: 'Stay ahead of upcoming rent, internet, or Netflix bills',
+    id: 'm5',
+    type: 'add_to_goal',
+    title: 'Add money to a goal',
+    description: 'Keep your financial goals moving forward',
     status: 'available',
-    reward: '+30 XP',
+    reward: '+50 XP',
     date: new Date().toISOString().split('T')[0],
   },
 ]
@@ -948,13 +957,13 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* Safe to Spend Banner */}
+            {/* Safe to Spend Banner (Always Visible) */}
             <div className="p-3.5 rounded-2xl bg-gradient-to-r from-emerald-500/15 via-emerald-500/5 to-transparent border border-emerald-500/30 flex items-center justify-between text-xs font-bold">
               <span className="text-mochi-text-secondary flex items-center gap-1.5">
                 <Sparkles className="w-4 h-4 text-emerald-500" /> Safe to Spend Surplus
               </span>
               <span className="text-emerald-600 dark:text-emerald-400 font-black text-sm">
-                {showAssetBalance ? formatCurrency(safeToSpend) : '••••••••'}
+                {formatCurrency(safeToSpend)}
               </span>
             </div>
           </section>
@@ -966,10 +975,10 @@ export default function DashboardPage() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Calendar className="w-5 h-5 text-sky-500" />
-            <h2 className="font-bold text-mochi-text text-sm">Upcoming Money (Next 7 Days)</h2>
+            <h2 className="font-bold text-mochi-text text-sm">Upcoming Money</h2>
           </div>
           <span className="text-[10px] font-black uppercase text-sky-600 dark:text-sky-400 bg-sky-500/20 px-2 py-0.5 rounded-full">
-            Cash Flow Feed
+            Cash Flow
           </span>
         </div>
 
@@ -1170,7 +1179,9 @@ export default function DashboardPage() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Target className="w-4.5 h-4.5 text-mochi-primary" />
-            <h2 className="font-bold text-mochi-text">Today&apos;s Missions</h2>
+            <h2 className="font-bold text-mochi-text">
+              Today&apos;s little mission <span className="text-xs font-normal text-mochi-text-muted">(Optional)</span>
+            </h2>
           </div>
           <span className="text-[11px] font-black text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/20">
             {completedMissionsCount} / {missionsList.length} Completed

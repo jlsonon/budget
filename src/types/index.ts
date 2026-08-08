@@ -213,7 +213,7 @@ export interface Achievement {
 }
 
 // Mission types
-export type MissionType = 'log_expense' | 'review_spending' | 'save_amount' | 'categorize_transaction' | 'check_bills' | 'review_subscriptions'
+export type MissionType = 'log_expense' | 'review_spending' | 'save_amount' | 'categorize_transaction' | 'check_bills' | 'review_subscriptions' | 'add_to_goal'
 export type MissionStatus = 'available' | 'in_progress' | 'completed' | 'expired'
 
 export interface DailyMission {

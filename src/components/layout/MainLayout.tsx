@@ -536,7 +536,7 @@ export default function MainLayout() {
                     angle: -75,
                     onClick: () => {
                       setShowRadialMenu(false)
-                      setAddModalOpen(true)
+                      setAddModalOpen(true, 'expense')
                     },
                   },
                   {
@@ -547,7 +547,7 @@ export default function MainLayout() {
                     angle: -37.5,
                     onClick: () => {
                       setShowRadialMenu(false)
-                      setAddModalOpen(true)
+                      setAddModalOpen(true, 'income')
                     },
                   },
                   {
@@ -585,7 +585,7 @@ export default function MainLayout() {
                   },
                 ].map((item, index) => {
                   const Icon = item.icon
-                  const radius = 125
+                  const radius = 130
                   const rad = item.angle * (Math.PI / 180)
                   const x = radius * Math.sin(rad)
                   const y = -radius * Math.cos(rad)
@@ -593,19 +593,27 @@ export default function MainLayout() {
                   return (
                     <motion.button
                       key={item.id}
-                      initial={{ opacity: 0, scale: 0, x: 0, y: 0 }}
+                      initial={{ opacity: 0, scale: 0.2, x: 0, y: 0 }}
                       animate={{ opacity: 1, scale: 1, x, y }}
-                      exit={{ opacity: 0, scale: 0, x: 0, y: 0 }}
-                      transition={{ delay: index * 0.035, type: 'spring', damping: 22, stiffness: 310 }}
+                      exit={{ opacity: 0, scale: 0.2, x: 0, y: 0 }}
+                      whileHover={{ scale: 1.18, y: y - 4 }}
+                      whileTap={{ scale: 0.92 }}
+                      transition={{
+                        delay: index * 0.038,
+                        type: 'spring',
+                        stiffness: 380,
+                        damping: 24,
+                        mass: 0.7,
+                      }}
                       onClick={item.onClick}
-                      className="absolute flex flex-col items-center gap-1 hover:scale-110 active:scale-95 transition-transform group cursor-pointer"
+                      className="absolute flex flex-col items-center gap-1.5 transition-shadow group cursor-pointer"
                     >
                       <div
-                        className={`w-12 h-12 rounded-full bg-gradient-to-tr ${item.color} flex items-center justify-center shadow-2xl border-2 border-white dark:border-mochi-surface`}
+                        className={`w-13 h-13 rounded-full bg-gradient-to-tr ${item.color} flex items-center justify-center shadow-[0_8px_24px_rgba(0,0,0,0.3)] border-2 border-white dark:border-mochi-surface`}
                       >
-                        <Icon className="w-5.5 h-5.5 stroke-[2.5px]" />
+                        <Icon className="w-6 h-6 stroke-[2.5px]" />
                       </div>
-                      <span className="text-[10px] font-black text-white bg-black/80 px-2.5 py-0.5 rounded-full backdrop-blur-md whitespace-nowrap shadow-md border border-white/10">
+                      <span className="text-[10px] font-black text-white bg-slate-900/90 px-2.5 py-0.5 rounded-full backdrop-blur-md whitespace-nowrap shadow-md border border-white/20">
                         {item.label}
                       </span>
                     </motion.button>
