@@ -2,7 +2,6 @@ import { Outlet, useNavigate, useLocation } from 'react-router-dom'
 import { useState, useEffect, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  Home,
   ReceiptText,
   Wallet,
   User,
@@ -16,7 +15,6 @@ import {
   Settings,
   Users,
   X,
-  MoreHorizontal,
   LayoutDashboard,
   Flame,
   Sun,
@@ -31,6 +29,7 @@ import {
   ArrowLeftRight,
   Camera,
 } from 'lucide-react'
+import { cn } from '@/lib/utils'
 import { useAuthStore } from '../../store/authStore'
 import { useAppStore } from '../../store/appStore'
 import { useNotificationStore } from '../../store/notificationStore'
@@ -44,18 +43,99 @@ import { backgroundPrewarmAI } from '../../services/localAI'
 import { calculateRealStreak } from '@/lib/streak'
 import { useThemeStore } from '../../store/themeStore'
 
-// 3x3 Grid (9 Icons) for More Menu Modal
-const moreItems = [
-  { icon: User, label: 'Profile', path: '/profile', color: 'text-mochi-primary bg-mochi-primary/10' },
-  { icon: Users, label: 'Circles', path: '/circles', color: 'text-sky-500 bg-sky-500/10' },
-  { icon: PiggyBank, label: 'Savings', path: '/savings', color: 'text-emerald-500 bg-emerald-500/10' },
-  { icon: LayoutDashboard, label: 'Plans', path: '/budget', color: 'text-amber-500 bg-amber-500/10' },
-  { icon: CreditCard, label: 'Debt', path: '/debts', color: 'text-rose-500 bg-rose-500/10' },
-  { icon: Repeat, label: 'Subscriptions', path: '/subscriptions', color: 'text-purple-500 bg-purple-500/10' },
-  { icon: Calendar, label: 'Calendar', path: '/calendar', color: 'text-indigo-500 bg-indigo-500/10' },
-  { icon: BarChart3, label: 'Reports', path: '/reports', color: 'text-blue-500 bg-blue-500/10' },
-  { icon: Settings, label: 'Settings', path: '/settings', color: 'text-mochi-text-secondary bg-mochi-border/50' },
+// 1. Money Sheet Items (Wallets, Ledger, Plans, Subscriptions, Bills & Recurring Income)
+const moneySheetItems = [
+  { icon: Wallet, label: 'Wallet & Accounts', desc: 'Cash, GCash, Maya, Bank', path: '/wallets', color: 'text-mochi-primary bg-mochi-primary/10' },
+  { icon: ReceiptText, label: 'Transaction Ledger', desc: 'Full history & filters', path: '/transactions', color: 'text-sky-500 bg-sky-500/10' },
+  { icon: LayoutDashboard, label: 'Your Plans (Budget)', desc: 'Limits & 50/30/20 auto', path: '/budget', color: 'text-amber-500 bg-amber-500/10' },
+  { icon: Repeat, label: 'Subscriptions', desc: 'Streaming & software', path: '/subscriptions', color: 'text-purple-500 bg-purple-500/10' },
+  { icon: Calendar, label: 'Bills & Recurring Income', desc: 'Paychecks & utility bills', path: '/recurring', color: 'text-emerald-500 bg-emerald-500/10' },
 ]
+
+// 2. Goals Sheet Items (Savings Vaults, Debt Payoffs, Mochi Circles)
+const goalsSheetItems = [
+  { icon: PiggyBank, label: 'Savings Vaults', desc: 'Travel & emergency goals', path: '/savings', color: 'text-emerald-500 bg-emerald-500/10' },
+  { icon: CreditCard, label: 'Debt Payoffs', desc: 'Payoff milestones journey', path: '/debts', color: 'text-rose-500 bg-rose-500/10' },
+  { icon: Users, label: 'Mochi Circles', desc: 'Group splits & settlement', path: '/circles', color: 'text-sky-500 bg-sky-500/10' },
+]
+
+// 3. More Sheet Items (Reports, Calendar, Profile, Settings)
+const moreSheetItems = [
+  { icon: BarChart3, label: 'Reports & Analytics', desc: 'Wrapped & insights', path: '/reports', color: 'text-blue-500 bg-blue-500/10' },
+  { icon: Calendar, label: 'Financial Calendar', desc: 'Event markers & iCal sync', path: '/calendar', color: 'text-indigo-500 bg-indigo-500/10' },
+  { icon: User, label: 'Profile & Customizer', desc: 'Mascot & achievements', path: '/profile', color: 'text-mochi-primary bg-mochi-primary/10' },
+  { icon: Settings, label: 'Settings & Themes', desc: '8 themes & dark mode', path: '/settings', color: 'text-mochi-text-secondary bg-mochi-border/50' },
+]
+
+// Custom Mochi Vector Icons for Bottom Navigation
+function MochiHomeIcon({ className = "w-5 h-5", active = false }: { className?: string; active?: boolean }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path
+        d="M3 10.182L10.318 3.515C11.272 2.648 12.728 2.648 13.682 3.515L21 10.182V19C21 20.105 20.105 21 19 21H15V14H9V21H5C3.895 21 3 20.105 3 19V10.182Z"
+        fill={active ? "currentColor" : "none"}
+        fillOpacity={active ? "0.2" : "0"}
+        stroke="currentColor"
+        strokeWidth={active ? "2.4" : "2"}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
+}
+
+function MochiWalletIcon({ className = "w-5 h-5", active = false }: { className?: string; active?: boolean }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path
+        d="M21 7V17C21 18.657 19.657 20 18 20H6C4.343 20 3 18.657 3 17V7C3 5.343 4.343 4 6 4H18C19.657 4 21 5.343 21 7Z"
+        fill={active ? "currentColor" : "none"}
+        fillOpacity={active ? "0.2" : "0"}
+        stroke="currentColor"
+        strokeWidth={active ? "2.4" : "2"}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M16 12H18.5C19.328 12 20 12.672 20 13.5C20 14.328 19.328 15 18.5 15H16V12Z"
+        fill={active ? "currentColor" : "none"}
+        stroke="currentColor"
+        strokeWidth={active ? "2.4" : "2"}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
+}
+
+function MochiGoalsIcon({ className = "w-5 h-5", active = false }: { className?: string; active?: boolean }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle
+        cx="12"
+        cy="12"
+        r="9"
+        fill={active ? "currentColor" : "none"}
+        fillOpacity={active ? "0.2" : "0"}
+        stroke="currentColor"
+        strokeWidth={active ? "2.4" : "2"}
+      />
+      <circle cx="12" cy="12" r="5" stroke="currentColor" strokeWidth={active ? "2.4" : "2"} />
+      <circle cx="12" cy="12" r="1.5" fill="currentColor" />
+    </svg>
+  )
+}
+
+function MochiMoreIcon({ className = "w-5 h-5", active = false }: { className?: string; active?: boolean }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="3.5" y="3.5" width="6.5" height="6.5" rx="2" fill={active ? "currentColor" : "none"} stroke="currentColor" strokeWidth={active ? "2.4" : "2"} />
+      <rect x="14" y="3.5" width="6.5" height="6.5" rx="2" fill={active ? "currentColor" : "none"} stroke="currentColor" strokeWidth={active ? "2.4" : "2"} />
+      <rect x="3.5" y="14" width="6.5" height="6.5" rx="2" fill={active ? "currentColor" : "none"} stroke="currentColor" strokeWidth={active ? "2.4" : "2"} />
+      <rect x="14" y="14" width="6.5" height="6.5" rx="2" fill={active ? "currentColor" : "none"} stroke="currentColor" strokeWidth={active ? "2.4" : "2"} />
+    </svg>
+  )
+}
 
 export default function MainLayout() {
   const navigate = useNavigate()
@@ -65,7 +145,7 @@ export default function MainLayout() {
   const notifications = useNotificationStore((s) => s.notifications)
   const hasUnreadNotifs = notifications.some((n) => !n.read)
 
-  const [showMore, setShowMore] = useState(false)
+  const [activeSheet, setActiveSheet] = useState<'money' | 'goals' | 'more' | null>(null)
   const [showProfileMenu, setShowProfileMenu] = useState(false)
   const [backupSuccess, setBackupSuccess] = useState(false)
   const [showAIChat, setShowAIChat] = useState(false)
@@ -332,79 +412,132 @@ export default function MainLayout() {
         <Outlet />
       </main>
 
-      {/* Mobile Bottom Navigation - 5 Columns with ENLARGED INTERACTIVE CENTER '+' BUTTON & 'MORE' TAB */}
-      <nav className="fixed bottom-0 left-0 right-0 z-40 bg-mochi-surface/95 backdrop-blur-2xl border-t border-mochi-border/80 safe-bottom md:hidden shadow-2xl">
-        <div className="grid grid-cols-5 items-center py-2 text-center relative">
-          {/* Column 1: Home */}
-          <button
-            onClick={() => navigate('/')}
-            className={`flex flex-col items-center justify-center gap-1 p-2 rounded-2xl transition-all ${
-              location.pathname === '/'
-                ? 'text-mochi-primary font-extrabold scale-105 bg-mochi-primary/10 border border-mochi-primary/20'
-                : 'text-mochi-text-muted hover:text-mochi-text'
-            }`}
-          >
-            <Home className={`w-5 h-5 ${location.pathname === '/' ? 'stroke-[2.5px]' : 'stroke-2'}`} />
-            <span className="text-[10px] font-black">Home</span>
-          </button>
-
-          {/* Column 2: Transactions */}
-          <button
-            onClick={() => navigate('/transactions')}
-            className={`flex flex-col items-center justify-center gap-1 p-2 rounded-2xl transition-all ${
-              location.pathname === '/transactions'
-                ? 'text-mochi-primary font-extrabold scale-105 bg-mochi-primary/10 border border-mochi-primary/20'
-                : 'text-mochi-text-muted hover:text-mochi-text'
-            }`}
-          >
-            <ReceiptText className={`w-5 h-5 ${location.pathname === '/transactions' ? 'stroke-[2.5px]' : 'stroke-2'}`} />
-            <span className="text-[10px] font-black">Logs</span>
-          </button>
-
-          {/* Column 3 (DEAD CENTER): ENLARGED, GLOWING & HIGHLY INTERACTIVE '+' BUTTON */}
-          <div className="flex items-center justify-center -mt-9">
+      {/* Mobile Floating Glassmorphism Bottom Navigation */}
+      <div className="fixed bottom-3 left-3 right-3 z-40 md:hidden pointer-events-none">
+        <nav className="pointer-events-auto bg-mochi-surface/90 dark:bg-mochi-surface/95 backdrop-blur-2xl border-t border-t-white/40 dark:border-t-white/15 border-x border-b border-mochi-border/80 rounded-3xl shadow-xl shadow-black/15 p-1.5 px-2">
+          <div className="grid grid-cols-5 items-center text-center relative">
+            {/* Column 1: Home */}
             <motion.button
-              whileHover={{ scale: 1.14, rotate: 90 }}
-              whileTap={{ scale: 0.9 }}
-              transition={{ type: 'spring', stiffness: 400, damping: 17 }}
-              onClick={() => setShowRadialMenu((prev) => !prev)}
-              className={`w-20 h-20 rounded-full bg-mochi-primary text-white flex items-center justify-center shadow-xl border-4 border-mochi-surface select-none cursor-pointer relative ${
-                showRadialMenu ? 'ring-4 ring-mochi-primary/50 animate-pulse' : ''
+              whileTap={{ scale: 0.92 }}
+              onClick={() => {
+                setActiveSheet(null)
+                navigate('/')
+              }}
+              className={`relative flex flex-col items-center justify-center gap-0.5 py-2 px-1 rounded-2xl transition-all cursor-pointer ${
+                location.pathname === '/' && !activeSheet
+                  ? 'text-mochi-primary font-black'
+                  : 'text-mochi-text-muted hover:text-mochi-text'
               }`}
-              aria-label="Quick Actions Radial Menu"
-              title="Tap for Quick Actions Menu"
             >
-              <Plus
-                className={`w-10 h-10 stroke-[3.5px] transition-transform duration-300 ${
-                  showRadialMenu ? 'rotate-45 text-rose-200' : ''
+              {location.pathname === '/' && !activeSheet && (
+                <motion.div
+                  layoutId="activeNavPill"
+                  className="absolute inset-0 bg-mochi-primary/12 rounded-2xl border border-mochi-primary/25"
+                  transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                />
+              )}
+              <MochiHomeIcon active={location.pathname === '/' && !activeSheet} className={`w-5 h-5 z-10 transition-transform ${location.pathname === '/' && !activeSheet ? 'scale-110 text-mochi-primary' : ''}`} />
+              <span className="text-[10px] font-black z-10">Home</span>
+              {location.pathname === '/' && !activeSheet && (
+                <span className="w-1 h-1 rounded-full bg-mochi-primary animate-pulse z-10 -mt-0.5" />
+              )}
+            </motion.button>
+
+            {/* Column 2: Money (Opens Money Sheet Slider) */}
+            <motion.button
+              whileTap={{ scale: 0.92 }}
+              onClick={() => setActiveSheet((s) => (s === 'money' ? null : 'money'))}
+              className={`relative flex flex-col items-center justify-center gap-0.5 py-2 px-1 rounded-2xl transition-all cursor-pointer ${
+                (location.pathname === '/wallets' || location.pathname === '/transactions' || location.pathname === '/budget' || location.pathname === '/subscriptions' || location.pathname === '/recurring' || activeSheet === 'money')
+                  ? 'text-mochi-primary font-black'
+                  : 'text-mochi-text-muted hover:text-mochi-text'
+              }`}
+            >
+              {(location.pathname === '/wallets' || location.pathname === '/transactions' || location.pathname === '/budget' || location.pathname === '/subscriptions' || location.pathname === '/recurring' || activeSheet === 'money') && (
+                <motion.div
+                  layoutId="activeNavPill"
+                  className="absolute inset-0 bg-mochi-primary/12 rounded-2xl border border-mochi-primary/25"
+                  transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                />
+              )}
+              <MochiWalletIcon active={location.pathname === '/wallets' || activeSheet === 'money'} className={`w-5 h-5 z-10 transition-transform ${(location.pathname === '/wallets' || activeSheet === 'money') ? 'scale-110 text-mochi-primary' : ''}`} />
+              <span className="text-[10px] font-black z-10">Money</span>
+              {(location.pathname === '/wallets' || location.pathname === '/transactions' || location.pathname === '/budget' || location.pathname === '/subscriptions' || location.pathname === '/recurring' || activeSheet === 'money') && (
+                <span className="w-1 h-1 rounded-full bg-mochi-primary animate-pulse z-10 -mt-0.5" />
+              )}
+            </motion.button>
+
+            {/* Column 3 (CENTER): ENLARGED '+' BUTTON */}
+            <div className="flex items-center justify-center -mt-8 z-20">
+              <motion.button
+                whileHover={{ scale: 1.08 }}
+                whileTap={{ scale: 0.92 }}
+                transition={{ type: 'spring', stiffness: 400, damping: 20 }}
+                onClick={() => setShowRadialMenu((prev) => !prev)}
+                className={`w-16 h-16 rounded-full bg-mochi-primary text-white flex items-center justify-center shadow-lg border-4 border-mochi-surface select-none cursor-pointer relative z-10 ${
+                  showRadialMenu ? 'ring-4 ring-mochi-primary/30' : ''
                 }`}
-              />
+                aria-label="Quick Actions Radial Menu"
+                title="Tap for Quick Actions Menu"
+              >
+                <Plus
+                  className={`w-8 h-8 stroke-[3.5px] transition-transform duration-300 ${
+                    showRadialMenu ? 'rotate-45' : 'text-white'
+                  }`}
+                />
+              </motion.button>
+            </div>
+
+            {/* Column 4: Goals (Opens Goals Sheet Slider) */}
+            <motion.button
+              whileTap={{ scale: 0.92 }}
+              onClick={() => setActiveSheet((s) => (s === 'goals' ? null : 'goals'))}
+              className={`relative flex flex-col items-center justify-center gap-0.5 py-2 px-1 rounded-2xl transition-all cursor-pointer ${
+                (location.pathname === '/savings' || location.pathname === '/debts' || location.pathname === '/circles' || activeSheet === 'goals')
+                  ? 'text-mochi-primary font-black'
+                  : 'text-mochi-text-muted hover:text-mochi-text'
+              }`}
+            >
+              {(location.pathname === '/savings' || location.pathname === '/debts' || location.pathname === '/circles' || activeSheet === 'goals') && (
+                <motion.div
+                  layoutId="activeNavPill"
+                  className="absolute inset-0 bg-mochi-primary/12 rounded-2xl border border-mochi-primary/25"
+                  transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                />
+              )}
+              <MochiGoalsIcon active={location.pathname === '/savings' || activeSheet === 'goals'} className={`w-5 h-5 z-10 transition-transform ${(location.pathname === '/savings' || activeSheet === 'goals') ? 'scale-110 text-mochi-primary' : ''}`} />
+              <span className="text-[10px] font-black z-10">Goals</span>
+              {(location.pathname === '/savings' || location.pathname === '/debts' || location.pathname === '/circles' || activeSheet === 'goals') && (
+                <span className="w-1 h-1 rounded-full bg-mochi-primary animate-pulse z-10 -mt-0.5" />
+              )}
+            </motion.button>
+
+            {/* Column 5: More (Opens More Sheet Slider) */}
+            <motion.button
+              whileTap={{ scale: 0.92 }}
+              onClick={() => setActiveSheet((s) => (s === 'more' ? null : 'more'))}
+              className={`relative flex flex-col items-center justify-center gap-0.5 py-2 px-1 rounded-2xl transition-all cursor-pointer ${
+                (location.pathname === '/reports' || location.pathname === '/calendar' || location.pathname === '/profile' || location.pathname === '/settings' || activeSheet === 'more')
+                  ? 'text-mochi-primary font-black'
+                  : 'text-mochi-text-muted hover:text-mochi-text'
+              }`}
+            >
+              {(location.pathname === '/reports' || location.pathname === '/calendar' || location.pathname === '/profile' || location.pathname === '/settings' || activeSheet === 'more') && (
+                <motion.div
+                  layoutId="activeNavPill"
+                  className="absolute inset-0 bg-mochi-primary/12 rounded-2xl border border-mochi-primary/25"
+                  transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                />
+              )}
+              <MochiMoreIcon active={activeSheet === 'more'} className={`w-5 h-5 z-10 transition-transform ${activeSheet === 'more' ? 'scale-110 text-mochi-primary' : ''}`} />
+              <span className="text-[10px] font-black z-10">More</span>
+              {(location.pathname === '/reports' || location.pathname === '/calendar' || location.pathname === '/profile' || location.pathname === '/settings' || activeSheet === 'more') && (
+                <span className="w-1 h-1 rounded-full bg-mochi-primary animate-pulse z-10 -mt-0.5" />
+              )}
             </motion.button>
           </div>
-
-          {/* Column 4: Wallets */}
-          <button
-            onClick={() => navigate('/wallets')}
-            className={`flex flex-col items-center justify-center gap-1 p-2 rounded-2xl transition-all ${
-              location.pathname === '/wallets'
-                ? 'text-mochi-primary font-extrabold scale-105 bg-mochi-primary/10 border border-mochi-primary/20'
-                : 'text-mochi-text-muted hover:text-mochi-text'
-            }`}
-          >
-            <Wallet className={`w-5 h-5 ${location.pathname === '/wallets' ? 'stroke-[2.5px]' : 'stroke-2'}`} />
-            <span className="text-[10px] font-black">Wallets</span>
-          </button>
-
-          {/* Column 5: More (Opens 3x3 Grid including Profile & Modules) */}
-          <button
-            onClick={() => setShowMore(true)}
-            className="flex flex-col items-center justify-center gap-1 p-2 rounded-2xl text-mochi-text-muted hover:text-mochi-text transition-colors"
-          >
-            <MoreHorizontal className="w-5 h-5 stroke-2" />
-            <span className="text-[10px] font-black">More</span>
-          </button>
-        </div>
-      </nav>
+        </nav>
+      </div>
 
       {/* Desktop Sidebar Navigation */}
       <aside className="hidden md:flex flex-col fixed top-0 left-0 bottom-0 w-20 bg-mochi-surface border-r border-mochi-border z-40 py-6 items-center justify-between">
@@ -415,53 +548,81 @@ export default function MainLayout() {
         </div>
       </aside>
 
-      {/* 3x3 Grid 'More' Sheet Modal */}
+      {/* Dynamic Slide-Up Bottom Sheet Slider Modal for Money, Goals, and More */}
       <AnimatePresence>
-        {showMore && (
+        {activeSheet && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-end md:items-center justify-center p-0 md:p-4"
-            onClick={() => setShowMore(false)}
+            className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-end justify-center p-0"
+            onClick={() => setActiveSheet(null)}
           >
             <motion.div
-              initial={{ y: 200, opacity: 0 }}
+              initial={{ y: 240, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
-              exit={{ y: 200, opacity: 0 }}
-              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-              className="bg-mochi-surface border border-mochi-border rounded-t-3xl md:rounded-3xl p-6 w-full max-w-lg shadow-2xl space-y-5"
+              exit={{ y: 240, opacity: 0 }}
+              transition={{ type: 'spring', damping: 26, stiffness: 320 }}
+              className="bg-mochi-surface border-t border-x border-mochi-border rounded-t-3xl p-5 w-full max-w-lg shadow-2xl space-y-4 pb-8"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="flex items-center justify-between border-b border-mochi-border/60 pb-3">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-black text-mochi-primary uppercase tracking-wider">Features & Navigation</span>
+              {/* Sheet Drag Indicator & Header */}
+              <div className="flex flex-col items-center gap-2 border-b border-mochi-border/50 pb-3">
+                <div className="w-10 h-1 rounded-full bg-mochi-border" />
+                <div className="flex items-center justify-between w-full">
+                  <span className="text-xs font-black text-mochi-primary uppercase tracking-wider">
+                    {activeSheet === 'money' && 'Money & Accounts'}
+                    {activeSheet === 'goals' && 'Goals & Vaults'}
+                    {activeSheet === 'more' && 'More Features'}
+                  </span>
+                  <button
+                    onClick={() => setActiveSheet(null)}
+                    className="p-1 rounded-full text-mochi-text-muted hover:text-mochi-text hover:bg-mochi-border/50 transition-colors"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
                 </div>
-                <button
-                  onClick={() => setShowMore(false)}
-                  className="p-1 rounded-full text-mochi-text-muted hover:text-mochi-text hover:bg-mochi-border/50 transition-colors"
-                >
-                  <X className="w-5 h-5" />
-                </button>
               </div>
 
-              {/* Exact 3 by 3 Grid Layout for 9 Icons */}
-              <div className="grid grid-cols-3 gap-3.5">
-                {moreItems.map((item) => {
+              {/* Dynamic Glassmorphic Items Grid (1.B) */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                {(activeSheet === 'money'
+                  ? moneySheetItems
+                  : activeSheet === 'goals'
+                  ? goalsSheetItems
+                  : moreSheetItems
+                ).map((item) => {
                   const Icon = item.icon
+                  const isActive = location.pathname === item.path
+
                   return (
                     <button
-                      key={item.path}
+                      key={item.label}
                       onClick={() => {
                         navigate(item.path)
-                        setShowMore(false)
+                        setActiveSheet(null)
                       }}
-                      className="flex flex-col items-center justify-center gap-2 p-3 rounded-2xl bg-mochi-surface-alt/40 border border-mochi-border/40 hover:bg-mochi-surface-alt hover:scale-105 transition-all shadow-2xs group"
+                      className={cn(
+                        'flex items-center gap-3 p-3 rounded-2xl border transition-all shadow-2xs group text-left cursor-pointer relative overflow-hidden',
+                        isActive
+                          ? 'bg-mochi-primary/10 border-mochi-primary/40 shadow-xs'
+                          : 'bg-mochi-surface-alt/50 border-mochi-border/50 hover:bg-mochi-surface-alt hover:border-mochi-border'
+                      )}
                     >
-                      <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${item.color} border border-current/10 shadow-2xs group-hover:scale-110 transition-transform`}>
-                        <Icon className="w-5.5 h-5.5" />
+                      <div className={`w-11 h-11 rounded-2xl flex items-center justify-center ${item.color} border border-current/10 shadow-2xs group-hover:scale-105 transition-transform shrink-0`}>
+                        <Icon className="w-5 h-5 stroke-[2.2px]" />
                       </div>
-                      <span className="text-[11px] font-black text-mochi-text text-center truncate w-full">{item.label}</span>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5">
+                          <p className="text-xs font-bold text-mochi-text group-hover:text-mochi-primary transition-colors">{item.label}</p>
+                        </div>
+                        <p className="text-[10px] text-mochi-text-muted font-medium truncate">{item.desc}</p>
+                      </div>
+                      {isActive ? (
+                        <span className="text-[9px] font-black text-mochi-primary bg-mochi-primary/15 border border-mochi-primary/30 px-2 py-0.5 rounded-full shrink-0">ACTIVE</span>
+                      ) : (
+                        <ChevronRight className="w-4 h-4 text-mochi-text-muted shrink-0" />
+                      )}
                     </button>
                   )
                 })}

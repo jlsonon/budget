@@ -120,6 +120,44 @@ export function SubscriptionBrandLogo({ name, size = 'md', className }: Subscrip
     )
   }
 
+  if (lower.includes('meralco')) {
+    return (
+      <svg width={dimension} height={dimension} viewBox="0 0 48 48" fill="none" className={cn('shrink-0 rounded-2xl drop-shadow-xs', className)}>
+        <rect width="48" height="48" rx="14" fill="#E65100" />
+        <path d="M26 10L16 26H24L22 38L32 22H24L26 10Z" fill="white" />
+      </svg>
+    )
+  }
+
+  if (lower.includes('maynilad') || lower.includes('water')) {
+    return (
+      <svg width={dimension} height={dimension} viewBox="0 0 48 48" fill="none" className={cn('shrink-0 rounded-2xl drop-shadow-xs', className)}>
+        <rect width="48" height="48" rx="14" fill="#0288D1" />
+        <path d="M24 10C24 10 14 22 14 29C14 34.5 18.5 39 24 39C29.5 39 34 34.5 34 29C34 22 24 10 24 10Z" fill="white" />
+      </svg>
+    )
+  }
+
+  if (lower.includes('pldt') || lower.includes('globe') || lower.includes('smart') || lower.includes('converge')) {
+    return (
+      <svg width={dimension} height={dimension} viewBox="0 0 48 48" fill="none" className={cn('shrink-0 rounded-2xl drop-shadow-xs', className)}>
+        <rect width="48" height="48" rx="14" fill="#D32F2F" />
+        <path d="M14 34L24 14L34 34H14Z" fill="white" />
+        <circle cx="24" cy="27" r="3" fill="#D32F2F" />
+      </svg>
+    )
+  }
+
+  if (lower.includes('salary') || lower.includes('income') || lower.includes('retainer') || lower.includes('paycheck')) {
+    return (
+      <svg width={dimension} height={dimension} viewBox="0 0 48 48" fill="none" className={cn('shrink-0 rounded-2xl drop-shadow-xs', className)}>
+        <rect width="48" height="48" rx="14" fill="#2E7D32" />
+        <rect x="12" y="16" width="24" height="16" rx="4" fill="white" />
+        <circle cx="24" cy="24" r="4" fill="#2E7D32" />
+      </svg>
+    )
+  }
+
   // Fallback generic pastel brand badge with clean initials
   const initials = name ? name.substring(0, 2).toUpperCase() : 'SUB'
   return (

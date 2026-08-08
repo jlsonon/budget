@@ -8,6 +8,8 @@ import {
   Wallet,
   ArrowUpRight,
   ArrowDownLeft,
+  Pencil,
+  Trash2,
 } from 'lucide-react'
 import { useAppStore, getUid } from '@/store/appStore'
 import { formatCurrency, cn, DEFAULT_EXPENSE_CATEGORIES } from '@/lib/utils'
@@ -41,7 +43,7 @@ function calculateProgress(spent: number, limit: number) {
 
 
 
-function BudgetCard({ budget, spent }: { budget: Budget; spent: number }) {
+function BudgetCard({ budget, spent, onClick }: { budget: Budget; spent: number; onClick: () => void }) {
   const category = DEFAULT_EXPENSE_CATEGORIES.find((c) => c.id === budget.categoryId)
   const iconName = category ? iconMap[category.id] : 'Utensils'
   const iconId = iconCategoryMap[iconName] || 'receipt'
@@ -56,7 +58,9 @@ function BudgetCard({ budget, spent }: { budget: Budget; spent: number }) {
     <motion.div
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      className="mochi-card"
+      onClick={onClick}
+      className="mochi-card cursor-pointer hover:border-mochi-primary/50 hover:shadow-md transition-all group"
+      title="Click to edit or delete this budget plan"
     >
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-3">
@@ -68,7 +72,10 @@ function BudgetCard({ budget, spent }: { budget: Budget; spent: number }) {
             badgeColor={category?.color}
           />
           <div>
-            <h3 className="text-sm font-semibold text-mochi-text">{category?.name || budget.categoryId}</h3>
+            <h3 className="text-sm font-bold text-mochi-text group-hover:text-mochi-primary transition-colors flex items-center gap-1.5">
+              <span>{category?.name || budget.categoryId}</span>
+              <Pencil className="w-3 h-3 text-mochi-text-muted opacity-0 group-hover:opacity-100 transition-opacity" />
+            </h3>
             <p className="text-xs text-mochi-text-muted capitalize">{budget.period}</p>
           </div>
         </div>
@@ -142,7 +149,7 @@ import { useAuthStore } from '@/store/authStore'
 
 export default function BudgetPage() {
   const { user } = useAuthStore()
-  const { budgets, transactions, addBudget } = useAppStore()
+  const { budgets, transactions, addBudget, updateBudget, deleteBudget } = useAppStore()
   const [isLoading, setIsLoading] = useState(true)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [showPaywall, setShowPaywall] = useState(false)
@@ -150,6 +157,17 @@ export default function BudgetPage() {
   const [selectedCategory, setSelectedCategory] = useState(DEFAULT_EXPENSE_CATEGORIES[0]?.id || 'food')
   const [limitAmount, setLimitAmount] = useState('')
   const [period, setPeriod] = useState<'monthly' | 'weekly' | 'custom'>('monthly')
+
+  // Edit / Manage Budget Modal State
+  const [editingBudget, setEditingBudget] = useState<Budget | null>(null)
+  const [editLimit, setEditLimit] = useState('')
+  const [editPeriod, setEditPeriod] = useState<'monthly' | 'weekly' | 'custom'>('monthly')
+
+  const handleOpenEdit = (b: Budget) => {
+    setEditingBudget(b)
+    setEditLimit(b.limit.toString())
+    setEditPeriod(b.period)
+  }
 
   // Spend Calculator State
   const [calcCategory, setCalcCategory] = useState('food')
@@ -287,6 +305,78 @@ export default function BudgetPage() {
             </button>
           </div>
         </form>
+      </Dialog>
+
+      {/* Edit / Manage Budget Plan Dialog */}
+      <Dialog
+        isOpen={!!editingBudget}
+        onClose={() => setEditingBudget(null)}
+        title={editingBudget ? `Manage ${DEFAULT_EXPENSE_CATEGORIES.find((c) => c.id === editingBudget.categoryId)?.name || editingBudget.categoryId} Plan` : 'Manage Plan'}
+      >
+        {editingBudget && (
+          <form
+            onSubmit={(e) => {
+              e.preventDefault()
+              const limit = parseFloat(editLimit)
+              if (isNaN(limit) || limit <= 0) return
+              updateBudget(editingBudget.id, { limit, period: editPeriod })
+              setEditingBudget(null)
+            }}
+            className="space-y-4 pt-2"
+          >
+            <div>
+              <label className="block text-xs font-bold text-mochi-text-secondary mb-1">Limit Amount (PHP) *</label>
+              <input
+                type="number"
+                required
+                min="1"
+                value={editLimit}
+                onChange={(e) => setEditLimit(e.target.value)}
+                className="mochi-input text-xs w-full font-bold"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-mochi-text-secondary mb-1">Budget Period</label>
+              <select
+                value={editPeriod}
+                onChange={(e) => setEditPeriod(e.target.value as any)}
+                className="mochi-input text-xs w-full font-semibold"
+              >
+                <option value="monthly">Monthly</option>
+                <option value="weekly">Weekly</option>
+                <option value="annual">Annual</option>
+              </select>
+            </div>
+
+            <div className="pt-2 flex items-center justify-between gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  deleteBudget(editingBudget.id)
+                  setEditingBudget(null)
+                }}
+                className="px-3.5 py-2.5 rounded-2xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 font-bold text-xs flex items-center justify-center gap-1.5 border border-rose-500/30 transition-colors cursor-pointer"
+              >
+                <Trash2 className="w-4 h-4" />
+                <span>Delete Plan</span>
+              </button>
+
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setEditingBudget(null)}
+                  className="mochi-btn-secondary text-xs py-2.5 px-4"
+                >
+                  Cancel
+                </button>
+                <button type="submit" className="mochi-btn-primary text-xs py-2.5 px-4">
+                  Save Changes
+                </button>
+              </div>
+            </div>
+          </form>
+        )}
       </Dialog>
 
       <PaywallModal
@@ -450,6 +540,7 @@ export default function BudgetPage() {
                 key={budget.id}
                 budget={budget}
                 spent={categorySpentMap[budget.categoryId] || 0}
+                onClick={() => handleOpenEdit(budget)}
               />
             ))}
           </div>

@@ -23,6 +23,7 @@ import BudgetPage from './pages/BudgetPage'
 import SavingsPage from './pages/SavingsPage'
 import DebtPage from './pages/DebtPage'
 import SubscriptionsPage from './pages/SubscriptionsPage'
+import RecurringPage from './pages/RecurringPage'
 import CalendarPage from './pages/CalendarPage'
 import ReportsPage from './pages/ReportsPage'
 import ProfilePage from './pages/ProfilePage'
@@ -184,6 +185,16 @@ function AnimatedRoutes() {
                 <ErrorBoundary>
                   <PageTransition>
                     <SubscriptionsPage />
+                  </PageTransition>
+                </ErrorBoundary>
+              }
+            />
+            <Route
+              path="/recurring"
+              element={
+                <ErrorBoundary>
+                  <PageTransition>
+                    <RecurringPage />
                   </PageTransition>
                 </ErrorBoundary>
               }

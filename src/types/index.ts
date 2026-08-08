@@ -154,6 +154,10 @@ export interface Subscription extends BaseDocument {
   nextBilling: string
   category: string
   status: 'active' | 'paused' | 'cancelled' | 'trial'
+  itemType?: 'subscription' | 'bill' | 'income'
+  providerIcon?: string
+  syncToCalendar?: boolean
+  recurringDay?: number // Day of the month (1-31)
   walletId?: string
   autoProcess?: boolean
   usageRating?: number // 1-5

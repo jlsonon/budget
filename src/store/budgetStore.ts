@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { Budget } from '../types'
-import { saveDocToCloud } from '../services/cloudSync'
+import { saveDocToCloud, deleteDocFromCloud } from '../services/cloudSync'
 import { FIRESTORE_COLLECTIONS } from '../services/firestoreCollections'
 import { useToastStore } from './toastStore'
 
@@ -10,6 +10,7 @@ export interface BudgetState {
   setBudgets: (budgets: Budget[]) => void
   addBudget: (budget: Budget) => Promise<void>
   updateBudget: (id: string, updates: Partial<Budget>) => Promise<void>
+  deleteBudget: (id: string) => Promise<void>
 }
 
 export const useBudgetStore = create<BudgetState>()(
@@ -33,6 +34,18 @@ export const useBudgetStore = create<BudgetState>()(
         const updated = get().budgets.find((b: Budget) => b.id === id)
         if (updated) {
           await saveDocToCloud(FIRESTORE_COLLECTIONS.BUDGETS, updated)
+          useToastStore.getState().success('Budget updated!', 'Saved')
+        }
+      },
+      deleteBudget: async (id: string) => {
+        set((s: BudgetState) => ({
+          budgets: s.budgets.filter((b: Budget) => b.id !== id),
+        }))
+        try {
+          await deleteDocFromCloud(FIRESTORE_COLLECTIONS.BUDGETS, id)
+          useToastStore.getState().success('Budget plan deleted.', 'Deleted')
+        } catch (err: any) {
+          console.warn('Delete budget notice:', err)
         }
       },
     }),

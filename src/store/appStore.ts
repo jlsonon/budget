@@ -78,6 +78,7 @@ export const useAppStore = create<AppState>()((set) => ({
   setBudgets: (budgets: Budget[]) => { useBudgetStore.getState().setBudgets(budgets); set({ budgets }) },
   addBudget: async (b: Budget) => { await useBudgetStore.getState().addBudget(b); set({ budgets: useBudgetStore.getState().budgets }) },
   updateBudget: async (id: string, u: Partial<Budget>) => { await useBudgetStore.getState().updateBudget(id, u); set({ budgets: useBudgetStore.getState().budgets }) },
+  deleteBudget: async (id: string) => { await useBudgetStore.getState().deleteBudget(id); set({ budgets: useBudgetStore.getState().budgets }) },
 
   setSavingsGoals: (g: SavingsGoal[]) => { useSavingsStore.getState().setSavingsGoals(g); set({ savingsGoals: g }) },
   addSavingsGoal: async (g: SavingsGoal) => { await useSavingsStore.getState().addSavingsGoal(g); set({ savingsGoals: useSavingsStore.getState().savingsGoals }) },

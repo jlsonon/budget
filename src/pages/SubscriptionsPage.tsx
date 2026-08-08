@@ -51,6 +51,25 @@ const PRESET_SERVICES: PresetService[] = [
   { name: 'Xbox Game Pass', category: 'Gaming', amount: 490, color: '#107C41', frequency: 'monthly' },
 ]
 
+const PRESET_BILLS: PresetService[] = [
+  { name: 'Meralco Electricity', category: 'Utilities', amount: 3500, color: '#E65100', frequency: 'monthly' },
+  { name: 'Maynilad Water', category: 'Utilities', amount: 650, color: '#0288D1', frequency: 'monthly' },
+  { name: 'PLDT Home Fiber', category: 'Utilities', amount: 1699, color: '#D32F2F', frequency: 'monthly' },
+  { name: 'Globe At Home', category: 'Utilities', amount: 1499, color: '#1976D2', frequency: 'monthly' },
+  { name: 'Smart Postpaid', category: 'Utilities', amount: 999, color: '#388E3C', frequency: 'monthly' },
+  { name: 'Converge ICT Fiber', category: 'Utilities', amount: 1500, color: '#E64A19', frequency: 'monthly' },
+  { name: 'House / Condo Rent', category: 'Housing', amount: 12000, color: '#7B1FA2', frequency: 'monthly' },
+  { name: 'PAG-IBIG / SSS / PhilHealth', category: 'Government', amount: 1500, color: '#00796B', frequency: 'monthly' },
+]
+
+const PRESET_INCOMES: PresetService[] = [
+  { name: 'Monthly Salary', category: 'Income', amount: 35000, color: '#2E7D32', frequency: 'monthly' },
+  { name: 'Freelance Retainer', category: 'Income', amount: 15000, color: '#00897B', frequency: 'monthly' },
+  { name: 'Bi-Weekly Paycheck', category: 'Income', amount: 17500, color: '#43A047', frequency: 'weekly' },
+  { name: 'Monthly Allowance', category: 'Income', amount: 5000, color: '#00ACC1', frequency: 'monthly' },
+  { name: 'Store Revenue', category: 'Income', amount: 10000, color: '#8E24AA', frequency: 'monthly' },
+]
+
 export default function SubscriptionsPage() {
   const { user } = useAuthStore()
   const { subscriptions, wallets, addSubscription, updateSubscription, deleteSubscription } = useAppStore()
@@ -73,6 +92,8 @@ export default function SubscriptionsPage() {
     amount: 0,
     frequency: 'monthly',
     category: 'Entertainment',
+    itemType: 'subscription',
+    syncToCalendar: true,
     nextBilling: new Date().toISOString().split('T')[0],
     cancelReminderDays: 3,
     status: 'active',
@@ -84,12 +105,18 @@ export default function SubscriptionsPage() {
     return () => clearTimeout(timer)
   }, [])
 
+  const currentPresetList = useMemo(() => {
+    if (formData.itemType === 'bill') return PRESET_BILLS
+    if (formData.itemType === 'income') return PRESET_INCOMES
+    return PRESET_SERVICES
+  }, [formData.itemType])
+
   const filteredPresets = useMemo(() => {
-    if (!formData.name) return PRESET_SERVICES.slice(0, 6)
-    return PRESET_SERVICES.filter((s) =>
+    if (!formData.name) return currentPresetList.slice(0, 6)
+    return currentPresetList.filter((s) =>
       s.name.toLowerCase().includes((formData.name || '').toLowerCase())
     )
-  }, [formData.name])
+  }, [formData.name, currentPresetList])
 
   const selectPreset = (preset: PresetService) => {
     setFormData((prev) => ({
@@ -132,10 +159,15 @@ export default function SubscriptionsPage() {
   }, [activeSubscriptions])
 
   const displayedSubscriptions = useMemo(() => {
+    const digitalSubs = subscriptions.filter(
+      (s) => s.itemType === 'subscription' || (!s.itemType && s.category !== 'Utilities' && s.category !== 'Income' && s.category !== 'Government' && s.category !== 'Housing')
+    )
     if (filterDueThisWeek) {
-      return dueThisWeekSubscriptions
+      return dueThisWeekSubscriptions.filter(
+        (s) => s.itemType === 'subscription' || (!s.itemType && s.category !== 'Utilities' && s.category !== 'Income' && s.category !== 'Government' && s.category !== 'Housing')
+      )
     }
-    return subscriptions
+    return digitalSubs
   }, [subscriptions, filterDueThisWeek, dueThisWeekSubscriptions])
 
   const nextRenewalDate = activeSubscriptions
@@ -227,13 +259,16 @@ export default function SubscriptionsPage() {
     e.preventDefault()
     if (!formData.name || !formData.amount) return
 
+    const itemType = formData.itemType || 'subscription'
     const newSub: Subscription = {
       id: crypto.randomUUID(),
       userId: getUid(),
       name: formData.name,
       amount: Number(formData.amount),
       frequency: (formData.frequency as SubscriptionFrequency) || 'monthly',
-      category: formData.category || 'Other',
+      category: formData.category || (itemType === 'bill' ? 'Utilities' : itemType === 'income' ? 'Income' : 'Entertainment'),
+      itemType,
+      syncToCalendar: formData.syncToCalendar ?? true,
       walletId: formData.walletId || wallets[0]?.id,
       nextBilling: new Date(formData.nextBilling || Date.now()).toISOString().split('T')[0],
       status: (formData.status as any) || 'active',
@@ -246,7 +281,20 @@ export default function SubscriptionsPage() {
     }
 
     addSubscription(newSub)
-    triggerNativeDeviceNotification('New Subscription Tracked', `Added ${newSub.name} (${formatCurrency(newSub.amount)})`)
+
+    if (formData.syncToCalendar) {
+      exportToDeviceCalendar({
+        title: `${itemType === 'income' ? 'Recurring Income' : itemType === 'bill' ? 'Recurring Bill' : 'Subscription'}: ${newSub.name}`,
+        amount: newSub.amount,
+        date: newSub.nextBilling,
+        description: `${newSub.frequency} recurring ${itemType} payment for ${newSub.name}`,
+      })
+    }
+
+    triggerNativeDeviceNotification(
+      itemType === 'income' ? 'Recurring Income Tracked' : itemType === 'bill' ? 'Recurring Bill Tracked' : 'Subscription Tracked',
+      `Added ${newSub.name} (${formatCurrency(newSub.amount)})`
+    )
 
     setIsAddModalOpen(false)
     setFormData({
@@ -254,6 +302,8 @@ export default function SubscriptionsPage() {
       amount: 0,
       frequency: 'monthly',
       category: 'Entertainment',
+      itemType: 'subscription',
+      syncToCalendar: true,
       nextBilling: new Date().toISOString().split('T')[0],
       cancelReminderDays: 3,
       status: 'active',
@@ -487,28 +537,30 @@ export default function SubscriptionsPage() {
       </Dialog>
 
       {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-black text-mochi-text flex items-center gap-2">
-            Subscriptions & Services
-          </h1>
-          <p className="text-xs sm:text-sm text-mochi-text-secondary mt-1 font-semibold">
+      <div className="space-y-1">
+        <h1 className="text-2xl sm:text-3xl font-black text-mochi-text">
+          Subscriptions & Services
+        </h1>
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 w-full">
+          <p className="text-xs sm:text-sm text-mochi-text-secondary font-semibold flex-1">
             Track recurring memberships, streaming, and software with brand icons & reminders
           </p>
+          <div className="flex justify-end w-full sm:w-auto shrink-0">
+            <button
+              onClick={() => {
+                if (!checkCanAddSubscription(user, subscriptions.length)) {
+                  setShowPaywall(true)
+                } else {
+                  setIsAddModalOpen(true)
+                }
+              }}
+              className="mochi-btn-primary whitespace-nowrap inline-flex items-center gap-2 font-bold text-xs sm:text-sm shadow-md cursor-pointer shrink-0 ml-auto"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Add Subscriptions</span>
+            </button>
+          </div>
         </div>
-        <button
-          onClick={() => {
-            if (!checkCanAddSubscription(user, subscriptions.length)) {
-              setShowPaywall(true)
-            } else {
-              setIsAddModalOpen(true)
-            }
-          }}
-          className="mochi-btn-primary whitespace-nowrap inline-flex items-center gap-2 font-bold text-xs sm:text-sm shadow-md"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Add Subscription / Recurring Bill</span>
-        </button>
       </div>
 
       {/* Summary Cards */}
@@ -557,14 +609,56 @@ export default function SubscriptionsPage() {
         </div>
       </section>
 
-      {/* Add Modal */}
-      <Dialog isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} title="Track New Subscription">
+      {/* Add Modal with Separate Subscriptions, Recurring Bills & Income Workflow */}
+      <Dialog isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} title="Track Recurring Bill, Income or Subscription">
         <form onSubmit={handleAddSubmit} className="space-y-4">
+          {/* Type Segment Selector */}
           <div>
-            <label className="block text-xs font-bold text-mochi-text-secondary mb-1">Service Name *</label>
+            <label className="block text-xs font-bold text-mochi-text-secondary mb-1.5">Recurring Type *</label>
+            <div className="grid grid-cols-3 gap-1.5 p-1 bg-mochi-surface-alt rounded-2xl border border-mochi-border/60">
+              <button
+                type="button"
+                onClick={() => setFormData({ ...formData, itemType: 'subscription', category: 'Entertainment' })}
+                className={`py-2 px-1 text-[11px] font-extrabold rounded-xl transition-all ${
+                  (formData.itemType || 'subscription') === 'subscription'
+                    ? 'bg-mochi-surface text-mochi-primary shadow-xs border border-mochi-primary/20'
+                    : 'text-mochi-text-muted hover:text-mochi-text'
+                }`}
+              >
+                Subscription
+              </button>
+              <button
+                type="button"
+                onClick={() => setFormData({ ...formData, itemType: 'bill', category: 'Utilities' })}
+                className={`py-2 px-1 text-[11px] font-extrabold rounded-xl transition-all ${
+                  formData.itemType === 'bill'
+                    ? 'bg-mochi-surface text-rose-500 shadow-xs border border-rose-500/20'
+                    : 'text-mochi-text-muted hover:text-mochi-text'
+                }`}
+              >
+                Recurring Bill
+              </button>
+              <button
+                type="button"
+                onClick={() => setFormData({ ...formData, itemType: 'income', category: 'Income' })}
+                className={`py-2 px-1 text-[11px] font-extrabold rounded-xl transition-all ${
+                  formData.itemType === 'income'
+                    ? 'bg-mochi-surface text-emerald-500 shadow-xs border border-emerald-500/20'
+                    : 'text-mochi-text-muted hover:text-mochi-text'
+                }`}
+              >
+                Recurring Income
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-mochi-text-secondary mb-1">
+              {formData.itemType === 'income' ? 'Income / Payout Name *' : formData.itemType === 'bill' ? 'Bill / Provider Name *' : 'Service Name *'}
+            </label>
             <input
               type="text"
-              placeholder="e.g. Netflix, Spotify, Canva"
+              placeholder={formData.itemType === 'income' ? 'e.g. Monthly Salary, Retainer' : formData.itemType === 'bill' ? 'e.g. Meralco, Maynilad, PLDT, Rent' : 'e.g. Netflix, Spotify, Canva'}
               value={formData.name || ''}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               className="mochi-input text-xs w-full font-bold"
@@ -579,7 +673,7 @@ export default function SubscriptionsPage() {
                     onClick={() => selectPreset(preset)}
                     className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-mochi-surface-alt border border-mochi-border/60 text-mochi-text hover:bg-mochi-primary/10 transition-colors"
                   >
-                    + {preset.name} (₱{preset.amount})
+                    + {preset.name} (₱{preset.amount.toLocaleString()})
                   </button>
                 ))}
               </div>
@@ -591,7 +685,7 @@ export default function SubscriptionsPage() {
               <label className="block text-xs font-bold text-mochi-text-secondary mb-1">Amount (PHP) *</label>
               <input
                 type="number"
-                placeholder="e.g. 549"
+                placeholder="e.g. 1500"
                 value={formData.amount || ''}
                 onChange={(e) => setFormData({ ...formData, amount: Number(e.target.value) })}
                 className="mochi-input text-xs w-full font-bold"
@@ -599,7 +693,7 @@ export default function SubscriptionsPage() {
               />
             </div>
             <div>
-              <label className="block text-xs font-bold text-mochi-text-secondary mb-1">Billing Frequency</label>
+              <label className="block text-xs font-bold text-mochi-text-secondary mb-1">Frequency</label>
               <select
                 value={formData.frequency}
                 onChange={(e) => setFormData({ ...formData, frequency: e.target.value as SubscriptionFrequency })}
@@ -615,28 +709,46 @@ export default function SubscriptionsPage() {
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-bold text-mochi-text-secondary mb-1">Select Payment Wallet</label>
+              <label className="block text-xs font-bold text-mochi-text-secondary mb-1">
+                {formData.itemType === 'income' ? 'Deposit Into Wallet *' : 'Deduct From Wallet *'}
+              </label>
               <select
                 value={formData.walletId || wallets[0]?.id || ''}
                 onChange={(e) => setFormData({ ...formData, walletId: e.target.value })}
                 className="mochi-input text-xs w-full font-semibold"
+                required
               >
                 {wallets.map((w) => (
                   <option key={w.id} value={w.id}>
-                    {w.name}
+                    {w.name} ({w.type})
                   </option>
                 ))}
               </select>
             </div>
             <div>
-              <label className="block text-xs font-bold text-mochi-text-secondary mb-1">Next Billing Date</label>
+              <label className="block text-xs font-bold text-mochi-text-secondary mb-1">Next Date *</label>
               <input
                 type="date"
                 value={formData.nextBilling}
                 onChange={(e) => setFormData({ ...formData, nextBilling: e.target.value })}
                 className="mochi-input text-xs w-full font-semibold"
+                required
               />
             </div>
+          </div>
+
+          {/* Sync to Financial Calendar Toggle */}
+          <div className="flex items-center gap-2 p-3 rounded-2xl bg-mochi-surface-alt/60 border border-mochi-border/60">
+            <input
+              type="checkbox"
+              id="syncToCalendar"
+              checked={formData.syncToCalendar ?? true}
+              onChange={(e) => setFormData({ ...formData, syncToCalendar: e.target.checked })}
+              className="w-4 h-4 rounded text-mochi-primary focus:ring-mochi-primary cursor-pointer"
+            />
+            <label htmlFor="syncToCalendar" className="text-xs font-bold text-mochi-text cursor-pointer">
+              Sync event to Financial Calendar & Device Calendar
+            </label>
           </div>
 
           <div className="pt-2 flex gap-3">
@@ -648,7 +760,7 @@ export default function SubscriptionsPage() {
               Cancel
             </button>
             <button type="submit" className="mochi-btn-primary text-xs flex-1 py-2.5 font-bold">
-              Save Subscription
+              Save {formData.itemType === 'income' ? 'Income' : formData.itemType === 'bill' ? 'Recurring Bill' : 'Subscription'}
             </button>
           </div>
         </form>
