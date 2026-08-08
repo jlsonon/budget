@@ -143,28 +143,136 @@ function EmptyTransactions() {
 export default function DashboardPage() {
   const navigate = useNavigate()
   const { user } = useAuthStore()
-  const { transactions, savingsGoals, debts, subscriptions = [], circles = [], wallets = [], budgets = [], setAddModalOpen, makeDebtPayment, updateSubscription, addTransaction } = useAppStore()
+  const { transactions, savingsGoals, debts, subscriptions = [], circles = [], wallets = [], budgets = [], setAddModalOpen, makeDebtPayment, updateSubscription, contributeToGoal, addTransaction } = useAppStore()
   const [isLoading, setIsLoading] = useState(true)
   const [showAssetBalance, setShowAssetBalance] = useState(true)
   const [activePayItem, setActivePayItem] = useState<{ id: string; title: string; type: string; amount: number } | null>(null)
   const [payWalletId, setPayWalletId] = useState<string>('')
 
-  // 🍡 Mochi Suggests Completed State
-  const [doneSuggestions, setDoneSuggestions] = useState<Record<string, boolean>>({})
+  // Mochi Suggests State (Persisted locally & synced to Firestore)
+  const [doneSuggestions, setDoneSuggestions] = useState<Record<string, boolean>>(() => {
+    try {
+      const saved = localStorage.getItem('mochi_done_suggestions')
+      return saved ? JSON.parse(saved) : {}
+    } catch {
+      return {}
+    }
+  })
 
-  const handleSuggestionAction = (id: string, actionType: string) => {
-    setDoneSuggestions((prev) => ({ ...prev, [id]: true }))
+  // Dynamic Mochi Suggests (Strictly 3 Items Max, Based on Live User Data & Firestore Sync)
+  const mochiSuggestions = useMemo(() => {
+    const list: Array<{
+      id: string
+      actionType: string
+      text: string
+      buttonText: string
+      targetGoalId?: string
+    }> = []
+
+    // 1. Food / Top Category Spending Suggestion
+    const foodCat = DEFAULT_EXPENSE_CATEGORIES.find((c) => c.id === 'food') || DEFAULT_EXPENSE_CATEGORIES[0]
+    const foodBudget = budgets.find((b) => b.categoryId === foodCat.id)
+    if (foodBudget) {
+      list.push({
+        id: 's_food_spending',
+        actionType: 'review_food',
+        text: `Review your ${foodCat.name} spending`,
+        buttonText: 'Review',
+      })
+    } else {
+      list.push({
+        id: 's_food_spending',
+        actionType: 'review_food',
+        text: 'Review your Food spending',
+        buttonText: 'Review',
+      })
+    }
+
+    // 2. Real Savings Goal Suggestion (e.g. Boracay or top goal)
+    const boracayGoal = savingsGoals.find((g) => g.name.toLowerCase().includes('boracay')) || savingsGoals[0]
+    if (boracayGoal) {
+      list.push({
+        id: `s_goal_${boracayGoal.id}`,
+        actionType: 'add_goal_50',
+        text: `Tiny win: You haven't added anything to your ${boracayGoal.name} goal today.`,
+        buttonText: 'Add ₱50',
+        targetGoalId: boracayGoal.id,
+      })
+    } else {
+      list.push({
+        id: 's_save_100',
+        actionType: 'save_100',
+        text: 'Nice idea: You could save ₱100 toward your goal today.',
+        buttonText: 'Save ₱100',
+      })
+    }
+
+    // 3. Real Subscription Bill Check or Budget Challenge
+    const dueSub = subscriptions.find((s) => s.status === 'active')
+    if (dueSub) {
+      list.push({
+        id: `s_sub_${dueSub.id}`,
+        actionType: 'view_internet',
+        text: `Quick check: Your ${dueSub.name} bill is due soon.`,
+        buttonText: 'View',
+      })
+    } else {
+      list.push({
+        id: 's_food_challenge',
+        actionType: 'view_budget',
+        text: `Little challenge: Stay within your ${foodCat.name} budget today.`,
+        buttonText: 'View Budget',
+      })
+    }
+
+    // Strictly return top 3 items
+    return list.slice(0, 3)
+  }, [budgets, savingsGoals, subscriptions])
+
+  const handleSuggestionAction = (id: string, actionType: string, targetGoalId?: string) => {
+    setDoneSuggestions((prev) => {
+      const next = { ...prev, [id]: true }
+      try {
+        localStorage.setItem('mochi_done_suggestions', JSON.stringify(next))
+        saveDocToCloud(FIRESTORE_COLLECTIONS.MISSIONS, {
+          id: `mission_${id}_${new Date().toISOString().slice(0, 10)}`,
+          userId: user?.id || 'anon',
+          suggestionId: id,
+          completed: true,
+          date: new Date().toISOString().slice(0, 10),
+          updatedAt: new Date().toISOString(),
+        })
+      } catch (err) {
+        console.warn('Suggestion firestore sync notice:', err)
+      }
+      return next
+    })
+
     if (actionType === 'review_food') {
       navigate('/budgets')
       useToastStore.getState().success('Opened Budget Plans to review Food spending.', 'Reviewing Food')
-    } else if (actionType === 'add_boracay') {
-      useToastStore.getState().success('Added ₱50 to your Boracay goal! Tiny win 🎉', 'Tiny Win')
+    } else if (actionType === 'add_goal_50') {
+      if (targetGoalId) {
+        const goal = savingsGoals.find((g) => g.id === targetGoalId)
+        if (goal) {
+          contributeToGoal(goal.id, 50)
+          useToastStore.getState().success(`Added ₱50 to ${goal.name}! Tiny win 🎉`, 'Goal Progress')
+          return
+        }
+      }
+      useToastStore.getState().success('Added ₱50 to your savings goal! Tiny win 🎉', 'Tiny Win')
     } else if (actionType === 'view_internet') {
       navigate('/subscriptions')
     } else if (actionType === 'view_budget') {
       navigate('/budgets')
     } else if (actionType === 'save_100') {
-      useToastStore.getState().success('Saved ₱100 toward your goal! Great idea 💡', 'Saved ₱100')
+      if (savingsGoals.length > 0) {
+        const topGoal = savingsGoals[0]
+        contributeToGoal(topGoal.id, 100)
+        useToastStore.getState().success(`Saved ₱100 toward ${topGoal.name}! Great idea 💡`, 'Saved ₱100')
+      } else {
+        useToastStore.getState().success('Saved ₱100 toward your goal! Great idea 💡', 'Saved ₱100')
+      }
     }
   }
   
@@ -1068,56 +1176,22 @@ export default function DashboardPage() {
         )}
       </section>
 
-      {/* 🍡 Mochi Suggests Section */}
+      {/* Mochi Suggests Section (Dynamic 3 Items Max, Zero Emoji, Firestore Synced) */}
       <section className="mochi-card space-y-3.5" aria-label="Mochi Suggests">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="text-lg">🍡</span>
-            <div>
-              <h2 className="font-bold text-mochi-text text-base flex items-center gap-1.5">
-                Mochi Suggests
-              </h2>
-              <p className="text-xs text-mochi-text-secondary font-medium">A tiny step for today</p>
-            </div>
+          <div>
+            <h2 className="font-bold text-mochi-text text-base">
+              Mochi Suggests
+            </h2>
+            <p className="text-xs text-mochi-text-secondary font-medium">A tiny step for today</p>
           </div>
           <span className="text-[10px] font-black text-mochi-primary bg-mochi-primary/10 px-2.5 py-1 rounded-full border border-mochi-primary/20">
-            {Object.keys(doneSuggestions).length} / 5 Done
+            {Object.keys(doneSuggestions).filter((k) => mochiSuggestions.some((s) => s.id === k)).length} / {mochiSuggestions.length} Done
           </span>
         </div>
 
         <div className="space-y-2.5">
-          {[
-            {
-              id: 's1',
-              actionType: 'review_food',
-              text: 'Review your Food spending',
-              buttonText: 'Review',
-            },
-            {
-              id: 's2',
-              actionType: 'add_boracay',
-              text: "Tiny win: You haven't added anything to your Boracay goal today.",
-              buttonText: 'Add ₱50',
-            },
-            {
-              id: 's3',
-              actionType: 'view_internet',
-              text: 'Quick check: Your Internet bill is due tomorrow.',
-              buttonText: 'View',
-            },
-            {
-              id: 's4',
-              actionType: 'view_budget',
-              text: 'Little challenge: Stay within your Food budget today.',
-              buttonText: 'View Budget',
-            },
-            {
-              id: 's5',
-              actionType: 'save_100',
-              text: 'Nice idea: You could save ₱100 toward your goal today.',
-              buttonText: 'Save ₱100',
-            },
-          ].map((s) => {
+          {mochiSuggestions.map((s) => {
             const isDone = doneSuggestions[s.id]
             return (
               <div
@@ -1152,7 +1226,7 @@ export default function DashboardPage() {
 
                 <button
                   disabled={isDone}
-                  onClick={() => handleSuggestionAction(s.id, s.actionType)}
+                  onClick={() => handleSuggestionAction(s.id, s.actionType, s.targetGoalId)}
                   className={cn(
                     'px-3 py-1.5 rounded-xl text-xs font-bold shrink-0 transition-all cursor-pointer shadow-2xs',
                     isDone
