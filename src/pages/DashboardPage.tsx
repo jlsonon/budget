@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
   Plus,
@@ -11,11 +11,9 @@ import {
   Users,
   Wallet,
   ChevronRight,
-  Target,
   Trophy,
   Zap,
   CheckCircle2,
-  Circle,
   Star,
   Sparkles,
   Check,
@@ -39,56 +37,7 @@ import { useToastStore } from '@/store/toastStore'
 import { formatCurrency, getGreetingInfo, getHealthScoreColor, cn, formatDate, DEFAULT_EXPENSE_CATEGORIES, calculateFinancialHealthScore } from '@/lib/utils'
 import { saveDocToCloud } from '@/services/cloudSync'
 import { FIRESTORE_COLLECTIONS } from '@/services/firestoreCollections'
-import type { Achievement, DailyMission, CalendarEvent as CalendarEventType } from '@/types'
-
-// Default Interactive Missions
-const defaultMissions: DailyMission[] = [
-  {
-    id: 'm1',
-    type: 'review_spending',
-    title: 'Review your budget',
-    description: 'Quick 5-second check on your category limits',
-    status: 'available',
-    reward: '+30 XP',
-    date: new Date().toISOString().split('T')[0],
-  },
-  {
-    id: 'm2',
-    type: 'save_amount',
-    title: 'Save ₱50',
-    description: 'Put extra ₱50 into your savings vault',
-    status: 'available',
-    reward: '+50 XP',
-    date: new Date().toISOString().split('T')[0],
-  },
-  {
-    id: 'm3',
-    type: 'check_bills',
-    title: 'Check upcoming bills',
-    description: 'Stay aware of upcoming subscriptions and bills',
-    status: 'available',
-    reward: '+30 XP',
-    date: new Date().toISOString().split('T')[0],
-  },
-  {
-    id: 'm4',
-    type: 'log_expense',
-    title: "Log today's expenses",
-    description: 'Record any spending from today',
-    status: 'available',
-    reward: '+40 XP',
-    date: new Date().toISOString().split('T')[0],
-  },
-  {
-    id: 'm5',
-    type: 'add_to_goal',
-    title: 'Add money to a goal',
-    description: 'Keep your financial goals moving forward',
-    status: 'available',
-    reward: '+50 XP',
-    date: new Date().toISOString().split('T')[0],
-  },
-]
+import type { Achievement, CalendarEvent as CalendarEventType } from '@/types'
 
 // Official Achievements Template
 const officialAchievements: Achievement[] = [
@@ -192,19 +141,38 @@ function EmptyTransactions() {
 }
 
 export default function DashboardPage() {
+  const navigate = useNavigate()
   const { user } = useAuthStore()
   const { transactions, savingsGoals, debts, subscriptions = [], circles = [], wallets = [], budgets = [], setAddModalOpen, makeDebtPayment, updateSubscription, addTransaction } = useAppStore()
   const [isLoading, setIsLoading] = useState(true)
   const [showAssetBalance, setShowAssetBalance] = useState(true)
   const [activePayItem, setActivePayItem] = useState<{ id: string; title: string; type: string; amount: number } | null>(null)
   const [payWalletId, setPayWalletId] = useState<string>('')
+
+  // 🍡 Mochi Suggests Completed State
+  const [doneSuggestions, setDoneSuggestions] = useState<Record<string, boolean>>({})
+
+  const handleSuggestionAction = (id: string, actionType: string) => {
+    setDoneSuggestions((prev) => ({ ...prev, [id]: true }))
+    if (actionType === 'review_food') {
+      navigate('/budgets')
+      useToastStore.getState().success('Opened Budget Plans to review Food spending.', 'Reviewing Food')
+    } else if (actionType === 'add_boracay') {
+      useToastStore.getState().success('Added ₱50 to your Boracay goal! Tiny win 🎉', 'Tiny Win')
+    } else if (actionType === 'view_internet') {
+      navigate('/subscriptions')
+    } else if (actionType === 'view_budget') {
+      navigate('/budgets')
+    } else if (actionType === 'save_100') {
+      useToastStore.getState().success('Saved ₱100 toward your goal! Great idea 💡', 'Saved ₱100')
+    }
+  }
   
   // Interactive Modals State
   const [show503020Modal, setShow503020Modal] = useState(false)
   const [showAchievementsModal, setShowAchievementsModal] = useState(false)
   const [showGreetingModal, setShowGreetingModal] = useState(false)
   const [selectedBudgetPlan, setSelectedBudgetPlan] = useState<any | null>(null)
-  const [missionsList, setMissionsList] = useState<DailyMission[]>(defaultMissions)
   const [achievementsList, setAchievementsList] = useState<Achievement[]>(officialAchievements)
   const [selectedAchievement, setSelectedAchievement] = useState<Achievement | null>(null)
   const [selectedEvent, setSelectedEvent] = useState<CalendarEventType | null>(null)
@@ -333,82 +301,9 @@ export default function DashboardPage() {
     return () => clearTimeout(timer)
   }, [])
 
-  // Daily Reset & Auto-Check for Today's Missions
-  useEffect(() => {
-    const todayStr = new Date().toISOString().split('T')[0]
-    const lastResetDate = localStorage.getItem('mochi_mission_last_reset')
 
-    let currentMissions = defaultMissions
 
-    // Daily reset check: if new day, reset checklist
-    if (lastResetDate !== todayStr) {
-      localStorage.setItem('mochi_mission_last_reset', todayStr)
-      localStorage.setItem('mochi_daily_missions', JSON.stringify(defaultMissions))
-    } else {
-      const saved = localStorage.getItem('mochi_daily_missions')
-      if (saved) {
-        try {
-          currentMissions = JSON.parse(saved)
-        } catch {
-          currentMissions = defaultMissions
-        }
-      }
-    }
 
-    // Auto-check missions if user performed the task today
-    const todayTxns = transactions.filter((t) => {
-      const d = new Date(t.date)
-      const now = new Date()
-      return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() === now.getDate()
-    })
-
-    const updatedMissions = currentMissions.map((m) => {
-      if (m.type === 'log_expense' && todayTxns.length >= 1 && m.status !== 'completed') {
-        return { ...m, status: 'completed' as const, completedAt: new Date().toISOString() }
-      }
-      return m
-    })
-
-    setMissionsList(updatedMissions)
-    localStorage.setItem('mochi_daily_missions', JSON.stringify(updatedMissions))
-  }, [transactions.length])
-
-  // Toggle mission checklist with single-toast notification (deduplicated outside state updater)
-  const handleToggleMission = (id: string) => {
-    let notifyMsg = ''
-    let isCompleted = false
-
-    setMissionsList((prev) => {
-      const updated = prev.map((m) => {
-        if (m.id === id) {
-          const isNowCompleted = m.status !== 'completed'
-          isCompleted = isNowCompleted
-          notifyMsg = isNowCompleted
-            ? `Mission Completed: "${m.title}" (${m.reward})`
-            : `Mission marked as pending`
-
-          return {
-            ...m,
-            status: isNowCompleted ? ('completed' as const) : ('available' as const),
-            completedAt: isNowCompleted ? new Date().toISOString() : undefined,
-          }
-        }
-        return m
-      })
-
-      localStorage.setItem('mochi_daily_missions', JSON.stringify(updated))
-      return updated
-    })
-
-    // Trigger toast once outside state updater to prevent StrictMode duplicate calls
-    if (notifyMsg) {
-      if (isCompleted) {
-        useToastStore.getState().success(notifyMsg, 'Task Done!')
-      } else {
-        useToastStore.getState().info(notifyMsg, 'Checked Off')
-      }
-    }
-  }
 
   // Claim/Unlock Achievement
   const handleClaimAchievement = (ach: Achievement) => {
@@ -570,7 +465,6 @@ export default function DashboardPage() {
         return spentPerDay.map((spent) => Math.max(12, Math.round((spent / maxSpent) * 100)))
       })()
 
-  const completedMissionsCount = missionsList.filter((m) => m.status === 'completed').length
   const unlockedAchievementsCount = achievementsList.filter((a) => a.unlocked).length
 
   if (isLoading) {
@@ -831,7 +725,7 @@ export default function DashboardPage() {
           </div>
           <div>
             <h1 className="text-base sm:text-lg font-bold text-mochi-text">
-              {greeting}! Mochi has something for you.
+              {greeting}!
             </h1>
             <p className="text-xs text-mochi-text-muted">{subtitle}</p>
           </div>
@@ -1174,53 +1068,100 @@ export default function DashboardPage() {
         )}
       </section>
 
-      {/* Today's Missions (Interactive Checklist) */}
-      <section className="mochi-card space-y-3" aria-label="Today's Missions">
+      {/* 🍡 Mochi Suggests Section */}
+      <section className="mochi-card space-y-3.5" aria-label="Mochi Suggests">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Target className="w-4.5 h-4.5 text-mochi-primary" />
-            <h2 className="font-bold text-mochi-text">
-              Today&apos;s little mission <span className="text-xs font-normal text-mochi-text-muted">(Optional)</span>
-            </h2>
+            <span className="text-lg">🍡</span>
+            <div>
+              <h2 className="font-bold text-mochi-text text-base flex items-center gap-1.5">
+                Mochi Suggests
+              </h2>
+              <p className="text-xs text-mochi-text-secondary font-medium">A tiny step for today</p>
+            </div>
           </div>
-          <span className="text-[11px] font-black text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/20">
-            {completedMissionsCount} / {missionsList.length} Completed
+          <span className="text-[10px] font-black text-mochi-primary bg-mochi-primary/10 px-2.5 py-1 rounded-full border border-mochi-primary/20">
+            {Object.keys(doneSuggestions).length} / 5 Done
           </span>
         </div>
 
-        <div className="space-y-2">
-          {missionsList.map((mission) => {
-            const isDone = mission.status === 'completed'
+        <div className="space-y-2.5">
+          {[
+            {
+              id: 's1',
+              actionType: 'review_food',
+              text: 'Review your Food spending',
+              buttonText: 'Review',
+            },
+            {
+              id: 's2',
+              actionType: 'add_boracay',
+              text: "Tiny win: You haven't added anything to your Boracay goal today.",
+              buttonText: 'Add ₱50',
+            },
+            {
+              id: 's3',
+              actionType: 'view_internet',
+              text: 'Quick check: Your Internet bill is due tomorrow.',
+              buttonText: 'View',
+            },
+            {
+              id: 's4',
+              actionType: 'view_budget',
+              text: 'Little challenge: Stay within your Food budget today.',
+              buttonText: 'View Budget',
+            },
+            {
+              id: 's5',
+              actionType: 'save_100',
+              text: 'Nice idea: You could save ₱100 toward your goal today.',
+              buttonText: 'Save ₱100',
+            },
+          ].map((s) => {
+            const isDone = doneSuggestions[s.id]
             return (
               <div
-                key={mission.id}
-                onClick={() => handleToggleMission(mission.id)}
+                key={s.id}
                 className={cn(
-                  'flex items-center gap-3 p-3.5 rounded-2xl border transition-all cursor-pointer select-none',
+                  'p-3 rounded-2xl border flex items-center justify-between gap-3 transition-all',
                   isDone
                     ? 'bg-emerald-500/10 border-emerald-500/30'
-                    : 'bg-mochi-surface border-mochi-border hover:border-mochi-primary/40 hover:shadow-xs'
+                    : 'bg-mochi-surface border-mochi-border hover:border-mochi-primary/30 shadow-2xs'
                 )}
               >
-                <div
-                  className={cn(
-                    'w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-transform active:scale-90',
-                    isDone ? 'bg-emerald-500 text-white shadow-xs' : 'bg-mochi-primary/10 text-mochi-primary border border-mochi-primary/20'
-                  )}
-                >
-                  {isDone ? <CheckCircle2 className="w-5 h-5" /> : <Circle className="w-4 h-4" />}
-                </div>
-
-                <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                  <div
+                    className={cn(
+                      'w-7 h-7 rounded-full flex items-center justify-center shrink-0 text-xs font-bold transition-all',
+                      isDone
+                        ? 'bg-emerald-500 text-white'
+                        : 'bg-mochi-primary/10 text-mochi-primary border border-mochi-primary/20'
+                    )}
+                  >
+                    {isDone ? <Check className="w-4 h-4 stroke-[3px]" /> : '•'}
+                  </div>
                   <p
                     className={cn(
-                      'text-xs font-bold transition-all',
+                      'text-xs font-bold transition-all leading-snug',
                       isDone ? 'text-mochi-text-muted line-through opacity-60' : 'text-mochi-text'
                     )}
                   >
-                    {mission.title}
+                    {s.text}
                   </p>
                 </div>
+
+                <button
+                  disabled={isDone}
+                  onClick={() => handleSuggestionAction(s.id, s.actionType)}
+                  className={cn(
+                    'px-3 py-1.5 rounded-xl text-xs font-bold shrink-0 transition-all cursor-pointer shadow-2xs',
+                    isDone
+                      ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 cursor-default'
+                      : 'mochi-btn-primary py-1 px-3 text-xs'
+                  )}
+                >
+                  {isDone ? 'Completed' : s.buttonText}
+                </button>
               </div>
             )
           })}
