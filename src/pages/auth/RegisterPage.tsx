@@ -3,27 +3,15 @@ import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { ArrowRight, ArrowLeft, Mail, Lock, User, Bell, Target, Wallet } from 'lucide-react'
 import { registerWithEmail } from '../../services/auth'
-import { useThemeStore, type ThemeName } from '../../store/themeStore'
 
-const themes: { name: ThemeName; color: string; emoji: string }[] = [
-  { name: 'sakura', color: 'bg-pink-300', emoji: '' },
-  { name: 'matcha', color: 'bg-green-300', emoji: '' },
-  { name: 'peach', color: 'bg-orange-300', emoji: '' },
-  { name: 'ocean', color: 'bg-blue-300', emoji: '' },
-  { name: 'cloud', color: 'bg-sky-300', emoji: '' },
-  { name: 'moonlight', color: 'bg-indigo-600', emoji: '' },
-]
-
-const steps = ['Account', 'Theme', 'PIN', 'Income', 'Goals', 'Notifications']
+const steps = ['Account', 'PIN', 'Income', 'Goals', 'Notifications']
 
 export default function RegisterPage() {
   const navigate = useNavigate()
-  const { setTheme } = useThemeStore()
   const [currentStep, setCurrentStep] = useState(0)
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [selectedTheme, setSelectedTheme] = useState<ThemeName>('sakura')
   const [pin, setPin] = useState('')
   const [pinConfirm, setPinConfirm] = useState('')
   const [monthlyIncome, setMonthlyIncome] = useState('')
@@ -55,7 +43,6 @@ export default function RegisterPage() {
     try {
       setIsLoading(true)
       setError(null)
-      setTheme(selectedTheme)
       await registerWithEmail(email, password)
       navigate('/')
     } catch (err: any) {
@@ -97,27 +84,6 @@ export default function RegisterPage() {
       case 1:
         return (
           <div className="space-y-4">
-            <h2 className="text-xl font-semibold text-mochi-text">Choose your theme</h2>
-            <div className="grid grid-cols-3 gap-3">
-              {themes.map((t) => (
-                <button
-                  key={t.name}
-                  onClick={() => setSelectedTheme(t.name)}
-                  className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${
-                    selectedTheme === t.name ? 'border-mochi-primary bg-mochi-primary/10' : 'border-mochi-border hover:border-mochi-text-muted/30'
-                  }`}
-                >
-                  <span className="text-2xl">{t.emoji}</span>
-                  <div className={`w-8 h-8 rounded-full ${t.color}`} />
-                  <span className="text-xs text-mochi-text-secondary capitalize">{t.name}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        )
-      case 2:
-        return (
-          <div className="space-y-4">
             <h2 className="text-xl font-semibold text-mochi-text">Set your PIN</h2>
             <p className="text-sm text-mochi-text-secondary">Choose a 4-digit PIN for quick access</p>
             <div>
@@ -130,7 +96,7 @@ export default function RegisterPage() {
             </div>
           </div>
         )
-      case 3:
+      case 2:
         return (
           <div className="space-y-4">
             <div className="flex items-center gap-2">
@@ -141,6 +107,24 @@ export default function RegisterPage() {
             <div>
               <label htmlFor="reg-income" className="mochi-label">Monthly income</label>
               <input id="reg-income" type="number" inputMode="numeric" value={monthlyIncome} onChange={(e) => setMonthlyIncome(e.target.value)} className="mochi-input" placeholder="₱0.00" />
+            </div>
+            <button onClick={handleNext} className="w-full mochi-btn-ghost text-sm">Skip for now</button>
+          </div>
+        )
+      case 3:
+        return (
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <Target className="w-5 h-5 text-mochi-primary" />
+              <h2 className="text-xl font-semibold text-mochi-text">Savings goals (optional)</h2>
+            </div>
+            <p className="text-sm text-mochi-text-secondary">What are you saving for?</p>
+            <div className="grid grid-cols-2 gap-2">
+              {['Emergency Fund', 'Vacation', 'House', 'Car', 'Education', 'Gadget'].map((g) => (
+                <button key={g} className="p-3 rounded-xl border border-mochi-border hover:border-mochi-primary/50 hover:bg-mochi-primary/5 transition-all text-sm text-mochi-text-secondary">
+                  {g}
+                </button>
+              ))}
             </div>
             <button onClick={handleNext} className="w-full mochi-btn-ghost text-sm">Skip for now</button>
           </div>

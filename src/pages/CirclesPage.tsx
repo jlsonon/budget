@@ -10,6 +10,9 @@ import {
   Key,
   CheckCircle2,
   Sparkles,
+  Calculator,
+  Copy,
+  Check,
 } from 'lucide-react'
 import { useAppStore, getUid } from '@/store/appStore'
 import CircleDetailView from '@/components/circles/CircleDetailView'
@@ -54,7 +57,14 @@ export default function CirclesPage() {
   // New Circle Modal State
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [isJoinModalOpen, setIsJoinModalOpen] = useState(false)
+  const [isSplitModalOpen, setIsSplitModalOpen] = useState(false)
   const [joinCodeInput, setJoinCodeInput] = useState('')
+
+  // Split Bill Calculator State
+  const [splitBillAmount, setSplitBillAmount] = useState('2400')
+  const [splitPeopleCount, setSplitPeopleCount] = useState('4')
+  const [splitTipPercent, setSplitTipPercent] = useState('10')
+  const [splitCopied, setSplitCopied] = useState(false)
 
   const [circleName, setCircleName] = useState('')
   const [description, setDescription] = useState('')
@@ -194,7 +204,7 @@ export default function CirclesPage() {
         isOpen={showPaywall}
         onClose={() => setShowPaywall(false)}
         featureTitle="Unlock Mochi Circles™ & Travel Passport"
-        featureDescription="Cooperative group savings and travel passport mode is a Pro feature. Upgrade to Pro ₱199.00 to save & travel with friends!"
+        featureDescription="Cooperative group savings and travel passport mode is a Pro feature. Upgrade to Pro ₱299.00 to save & travel with friends!"
       />
 
       {/* Join Circle Modal */}
@@ -236,6 +246,96 @@ export default function CirclesPage() {
         </form>
       </Dialog>
 
+      {/* Group Split-Bill Calculator Modal */}
+      <Dialog isOpen={isSplitModalOpen} onClose={() => setIsSplitModalOpen(false)} title="Group Split-Bill Calculator">
+        {(() => {
+          const rawBill = parseFloat(splitBillAmount) || 0
+          const people = Math.max(1, parseInt(splitPeopleCount, 10) || 1)
+          const tip = parseFloat(splitTipPercent) || 0
+          const totalWithTip = rawBill * (1 + tip / 100)
+          const perPerson = totalWithTip / people
+
+          const shareText = `Mochi Group Split: Total ₱${totalWithTip.toLocaleString('en-US', { minimumFractionDigits: 2 })} divided by ${people} people = ₱${perPerson.toLocaleString('en-US', { minimumFractionDigits: 2 })} each!`
+
+          const handleCopyShare = () => {
+            navigator.clipboard.writeText(shareText)
+            setSplitCopied(true)
+            setTimeout(() => setSplitCopied(false), 2000)
+          }
+
+          return (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-mochi-text-secondary mb-1">Total Bill (PHP)</label>
+                  <input
+                    type="number"
+                    value={splitBillAmount}
+                    onChange={(e) => setSplitBillAmount(e.target.value)}
+                    placeholder="2400"
+                    className="mochi-input text-xs font-bold w-full"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-mochi-text-secondary mb-1">Number of People</label>
+                  <input
+                    type="number"
+                    value={splitPeopleCount}
+                    onChange={(e) => setSplitPeopleCount(e.target.value)}
+                    min="1"
+                    placeholder="4"
+                    className="mochi-input text-xs font-bold w-full"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-mochi-text-secondary mb-1">Tip / Service Charge (%)</label>
+                <div className="flex gap-2">
+                  {['0', '5', '10', '15'].map((t) => (
+                    <button
+                      key={t}
+                      type="button"
+                      onClick={() => setSplitTipPercent(t)}
+                      className={`flex-1 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                        splitTipPercent === t
+                          ? 'bg-mochi-primary text-white border-mochi-primary'
+                          : 'bg-mochi-surface-alt border-mochi-border text-mochi-text'
+                      }`}
+                    >
+                      {t}%
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Calculated Result Card */}
+              <div className="p-4 bg-gradient-to-br from-emerald-500/10 via-emerald-500/5 to-transparent border border-emerald-500/30 rounded-2xl text-center space-y-1 shadow-inner">
+                <p className="text-[11px] font-bold text-mochi-text-muted">Amount Per Person</p>
+                <p className="text-3xl font-black text-emerald-600 dark:text-emerald-400">
+                  {formatCurrency(perPerson)}
+                </p>
+                <p className="text-[10px] text-mochi-text-muted font-semibold">
+                  Total Bill + Tip: {formatCurrency(totalWithTip)} ({people} ways)
+                </p>
+              </div>
+
+              <div className="pt-1 flex gap-2">
+                <button
+                  type="button"
+                  onClick={handleCopyShare}
+                  className="w-full mochi-btn-primary py-2.5 text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer shadow-md"
+                >
+                  {splitCopied ? <Check className="w-4 h-4 text-white" /> : <Copy className="w-4 h-4" />}
+                  <span>{splitCopied ? 'Copied to Clipboard!' : 'Copy Shareable Breakdown'}</span>
+                </button>
+              </div>
+            </div>
+          )
+        })()}
+      </Dialog>
+
       {/* Header Banner */}
       <header className="flex flex-wrap items-center justify-between gap-4">
         <div>
@@ -253,14 +353,23 @@ export default function CirclesPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {/* SPLIT BILL BUTTON */}
+          <button
+            onClick={() => setIsSplitModalOpen(true)}
+            className="mochi-btn-secondary px-3 py-2.5 shadow-md flex items-center gap-1.5 text-xs sm:text-sm font-bold border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 cursor-pointer"
+          >
+            <Calculator className="w-4 h-4 text-emerald-500" />
+            <span>Split Bill</span>
+          </button>
+
           {/* JOIN CIRCLE BUTTON */}
           <button
             onClick={() => setIsJoinModalOpen(true)}
-            className="mochi-btn-secondary px-4 py-2.5 shadow-md flex items-center gap-2 text-xs sm:text-sm font-bold"
+            className="mochi-btn-secondary px-3.5 py-2.5 shadow-md flex items-center gap-1.5 text-xs sm:text-sm font-bold cursor-pointer"
           >
             <UserPlus className="w-4 h-4 text-mochi-primary" />
-            Join Circle
+            <span>Join Circle</span>
           </button>
 
           {/* CREATE CIRCLE BUTTON */}
@@ -272,10 +381,10 @@ export default function CirclesPage() {
                 setIsCreateModalOpen(true)
               }
             }}
-            className="mochi-btn-primary px-4 py-2.5 shadow-lg flex items-center gap-2 text-xs sm:text-sm font-bold"
+            className="mochi-btn-primary px-3.5 py-2.5 shadow-lg flex items-center gap-1.5 text-xs sm:text-sm font-bold cursor-pointer"
           >
             <Plus className="w-4 h-4" />
-            Create New Circle
+            <span>Create Circle</span>
           </button>
         </div>
       </header>

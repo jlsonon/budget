@@ -488,11 +488,13 @@ export default function MainLayout() {
           aria-label="Open Mochi AI Assistant"
           title="Drag to move • Click to open Mochi AI"
         >
-          <div className="w-13 h-13 rounded-full bg-mochi-surface flex items-center justify-center relative overflow-hidden shadow-inner">
-            <Mascot size="sm" mood="happy" animate={true} />
-            <div className="absolute top-0 right-0 w-4.5 h-4.5 bg-gradient-to-r from-amber-400 to-orange-500 rounded-full flex items-center justify-center text-white shadow-xs border border-white">
-              <Sparkles className="w-2.5 h-2.5 animate-pulse" />
-            </div>
+          <div className="w-20 h-20 rounded-full bg-mochi-surface flex items-center justify-center relative overflow-hidden shadow-inner">
+            <Mascot size="md" mood="happy" animate={true} />
+          </div>
+
+          {/* Subscript JUST AI Badge (No Emoji!) */}
+          <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 px-2.5 py-0.5 rounded-full bg-gradient-to-r from-amber-500 via-rose-500 to-mochi-primary text-white text-[10px] font-black uppercase tracking-widest shadow-md border border-white dark:border-slate-800 flex items-center justify-center pointer-events-none">
+            <span>AI</span>
           </div>
 
           {/* Floating Tooltip Tag on Hover */}

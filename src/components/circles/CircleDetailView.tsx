@@ -303,7 +303,6 @@ export default function CircleDetailView({
             ) : (
               <div className="space-y-3">
                 {circle.splits.map((sp) => {
-                  const isSettledByYou = sp.settledMemberIds?.includes('m1') || sp.paidByMemberId === 'm1'
                   return (
                     <div key={sp.id} className="mochi-card p-4 bg-mochi-surface border border-mochi-border/80 flex flex-col gap-3 shadow-xs">
                       <div className="flex items-start justify-between gap-3">
@@ -323,27 +322,55 @@ export default function CircleDetailView({
                         </div>
                       </div>
 
-                      <div className="flex items-center justify-between pt-2.5 border-t border-mochi-border/60 text-xs">
-                        <span className="text-mochi-text-secondary font-bold text-[11px]">
-                          Split among {sp.splitMemberIds?.length || circle.members.length} members
-                        </span>
+                      <div className="flex flex-col gap-2 pt-2.5 border-t border-mochi-border/60 text-xs">
+                        <div className="flex items-center justify-between">
+                          <span className="text-mochi-text-secondary font-bold text-[11px]">
+                            Split among {sp.splitMemberIds?.length || circle.members.length} members
+                          </span>
+                          <span className="text-[10px] font-extrabold text-mochi-text-muted">
+                            Created by {sp.paidByMemberName}
+                          </span>
+                        </div>
 
-                        {sp.paidByMemberId === 'm1' ? (
-                          <span className="px-3 py-1 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-extrabold text-[10px] border border-emerald-500/30">
-                            You paid this bill
-                          </span>
-                        ) : isSettledByYou ? (
-                          <span className="px-3 py-1 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-extrabold text-[10px] flex items-center gap-1 border border-emerald-500/30">
-                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> Settled ({formatCurrency(sp.amountPerMember)})
-                          </span>
-                        ) : (
-                          <button
-                            onClick={() => handleSettleSplit(sp.id)}
-                            className="mochi-btn-primary text-xs px-3.5 py-1.5 font-bold shadow-xs active:scale-95 transition-all"
-                          >
-                            Settle {formatCurrency(sp.amountPerMember)}
-                          </button>
-                        )}
+                        {/* Member Settlement Status & Creator-Only Mark as Paid Control */}
+                        <div className="space-y-1.5 pt-1">
+                          {circle.members.map((member) => {
+                            const isPaid = sp.settledMemberIds?.includes(member.id) || member.id === sp.paidByMemberId
+                            const isCreator = sp.paidByMemberId === 'm1' || sp.paidByMemberId === member.id
+
+                            return (
+                              <div key={member.id} className="flex items-center justify-between bg-mochi-surface-alt/50 p-2 rounded-xl text-[11px]">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-5 h-5 rounded-full bg-mochi-primary/20 text-mochi-primary flex items-center justify-center font-black text-[9px]">
+                                    {member.name.charAt(0)}
+                                  </div>
+                                  <span className="font-bold text-mochi-text">{member.name}</span>
+                                </div>
+
+                                {isPaid ? (
+                                  <span className="text-emerald-600 dark:text-emerald-400 font-extrabold flex items-center gap-1">
+                                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> Paid
+                                  </span>
+                                ) : (
+                                  /* ONLY THE BILL CREATOR CAN MARK AS PAID */
+                                  isCreator ? (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleSettleSplit(sp.id)}
+                                      className="px-2.5 py-1 rounded-lg bg-emerald-500 text-white font-extrabold text-[10px] hover:bg-emerald-600 cursor-pointer transition-colors shadow-2xs"
+                                    >
+                                      Mark as Paid
+                                    </button>
+                                  ) : (
+                                    <span className="text-amber-600 dark:text-amber-400 font-extrabold text-[10px]">
+                                      Pending (Waiting for Creator)
+                                    </span>
+                                  )
+                                )}
+                              </div>
+                            )
+                          })}
+                        </div>
                       </div>
                     </div>
                   )

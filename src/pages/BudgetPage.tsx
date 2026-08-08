@@ -151,6 +151,10 @@ export default function BudgetPage() {
   const [limitAmount, setLimitAmount] = useState('')
   const [period, setPeriod] = useState<'monthly' | 'weekly' | 'custom'>('monthly')
 
+  // Spend Calculator State
+  const [calcCategory, setCalcCategory] = useState('food')
+  const [calcAmount, setCalcAmount] = useState('')
+
   const [monthlyIncomeInput] = useState('30000')
 
   const handleApply503020 = () => {
@@ -321,6 +325,65 @@ export default function BudgetPage() {
           </button>
         </div>
       </div>
+
+      {/* "Can I Spend This?" Interactive Budget Calculator */}
+      <section className="mochi-card bg-gradient-to-r from-mochi-primary/10 via-purple-500/10 to-sky-400/10 border border-mochi-primary/30 mb-4 p-4 rounded-3xl shadow-xs space-y-3">
+        <div className="flex items-center gap-2">
+          <Sparkles className="w-4 h-4 text-mochi-primary" />
+          <h3 className="text-sm font-black text-mochi-text">"Can I Spend This?" Calculator</h3>
+        </div>
+        
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+          <div>
+            <label className="block text-[10px] font-black uppercase text-mochi-text-secondary mb-1">Target Category</label>
+            <select
+              value={calcCategory}
+              onChange={(e) => setCalcCategory(e.target.value)}
+              className="mochi-input text-xs font-bold w-full"
+            >
+              {DEFAULT_EXPENSE_CATEGORIES.map((cat) => (
+                <option key={cat.id} value={cat.id}>{cat.name}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-[10px] font-black uppercase text-mochi-text-secondary mb-1">Planned Amount (PHP)</label>
+            <input
+              type="number"
+              placeholder="e.g. 500"
+              value={calcAmount}
+              onChange={(e) => setCalcAmount(e.target.value)}
+              className="mochi-input text-xs font-bold w-full"
+            />
+          </div>
+        </div>
+
+        {calcAmount && !isNaN(parseFloat(calcAmount)) && (() => {
+          const amt = parseFloat(calcAmount)
+          const catObj = DEFAULT_EXPENSE_CATEGORIES.find((c) => c.id === calcCategory)
+          const catBudget = budgets.find((b) => b.categoryId === calcCategory)
+          const spent = categorySpentMap[calcCategory] || 0
+          const remBefore = catBudget ? catBudget.limit - spent : 1000 - spent
+          const remAfter = remBefore - amt
+
+          const isSafe = remAfter >= 0
+
+          return (
+            <div className={cn(
+              'p-3 rounded-2xl border text-xs font-bold flex items-center gap-2 transition-all',
+              isSafe ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-700 dark:text-emerald-300' : 'bg-rose-500/15 border-rose-500/30 text-rose-700 dark:text-rose-300'
+            )}>
+              <CheckCircle2 className="w-4 h-4 shrink-0" />
+              <span>
+                {isSafe
+                  ? `Yes! Mochi says: You'll have ${formatCurrency(remAfter)} remaining in ${catObj?.name || 'this category'}.`
+                  : `Careful! Spending ${formatCurrency(amt)} will put ${catObj?.name || 'this category'} ${formatCurrency(Math.abs(remAfter))} over budget.`}
+              </span>
+            </div>
+          )
+        })()}
+      </section>
 
       {/* Summary Card */}
       <section className="mochi-card bg-gradient-to-br from-mochi-primary/5 to-mochi-secondary/5 mb-4" aria-label="Budget Summary">

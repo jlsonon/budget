@@ -27,6 +27,7 @@ import { FIRESTORE_COLLECTIONS } from '@/services/firestoreCollections'
 import { formatCurrency, calculateProgress, formatDate, cn } from '@/lib/utils'
 import type { Debt, DebtPayment } from '@/types'
 import MochiIllustration from '@/components/ui/MochiIllustrations'
+import Mascot from '@/components/ui/Mascot'
 import Dialog from '@/components/ui/Dialog'
 import MochiCategoryVectorSVG from '@/components/ui/MochiCategoryVectorSVG'
 import { exportToDeviceCalendar, triggerNativeDeviceNotification } from '@/lib/calendarExport'
@@ -1076,6 +1077,83 @@ export default function DebtPage() {
           </>
         )}
       </section>
+
+      {/* Debt Payoff Progress Milestones Banner (Enhanced & Zero Emojis) */}
+      {debts.length > 0 && (() => {
+        const totalOrig = debts.reduce((sum, d) => sum + (d.originalBalance || d.currentBalance || 1), 0)
+        const totalCurr = debts.reduce((sum, d) => sum + (d.currentBalance || 0), 0)
+        const paidTotal = Math.max(0, totalOrig - totalCurr)
+        const progressPct = Math.min(100, Math.round((paidTotal / totalOrig) * 100))
+
+        const mascotMood = progressPct >= 100 ? 'celebrating' : progressPct >= 50 ? 'excited' : 'working'
+
+        // 5 Step Milestones (e.g. 100%, 75%, 50%, 25%, 0% remaining)
+        const milestoneSteps = [
+          { label: `₱${(totalOrig).toLocaleString()}`, pct: 0, title: 'Start' },
+          { label: `₱${(totalOrig * 0.75).toLocaleString()}`, pct: 25, title: '25% Paid' },
+          { label: `₱${(totalOrig * 0.5).toLocaleString()}`, pct: 50, title: 'Halfway' },
+          { label: `₱${(totalOrig * 0.25).toLocaleString()}`, pct: 75, title: '75% Paid' },
+          { label: '₱0 Paid Off', pct: 100, title: 'Debt Free' },
+        ]
+
+        return (
+          <section className="p-5 rounded-3xl bg-gradient-to-br from-amber-500/15 via-rose-500/10 to-mochi-primary/15 border border-amber-500/30 shadow-md space-y-4">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-2xl bg-mochi-surface flex items-center justify-center shadow-md border border-mochi-border shrink-0">
+                  <Mascot size="sm" mood={mascotMood} animate={true} />
+                </div>
+                <div>
+                  <div className="flex items-center gap-1.5 mb-0.5">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-amber-600 dark:text-amber-400 bg-amber-500/20 px-2 py-0.5 rounded-full">
+                      Payoff Milestones
+                    </span>
+                    <span className="text-xs font-black text-mochi-text">{progressPct}% Paid Off</span>
+                  </div>
+                  <h4 className="text-sm font-black text-mochi-text">
+                    Debt Payoff Journey: ₱{totalOrig.toLocaleString()} ➔ ₱{totalCurr.toLocaleString()} Remaining
+                  </h4>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-black text-sm shrink-0 bg-emerald-500/15 px-3 py-1.5 rounded-2xl border border-emerald-500/30">
+                <Sparkles className="w-4 h-4 animate-pulse text-emerald-500" />
+                <span>{formatCurrency(paidTotal)} Paid</span>
+              </div>
+            </div>
+
+            {/* Visual Step Checkpoints Bar */}
+            <div className="space-y-1.5 pt-1">
+              <div className="h-2.5 rounded-full bg-mochi-surface border border-mochi-border overflow-hidden p-0.5">
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-amber-500 via-rose-500 to-emerald-500 transition-all duration-500"
+                  style={{ width: `${progressPct}%` }}
+                />
+              </div>
+
+              <div className="grid grid-cols-5 gap-1 text-center pt-1">
+                {milestoneSteps.map((step) => {
+                  const isPassed = progressPct >= step.pct
+                  return (
+                    <div key={step.pct} className="space-y-0.5">
+                      <div
+                        className={cn(
+                          'w-2 h-2 rounded-full mx-auto transition-all',
+                          isPassed ? 'bg-emerald-500 ring-2 ring-emerald-500/30' : 'bg-mochi-border'
+                        )}
+                      />
+                      <p className={cn('text-[9px] font-black truncate', isPassed ? 'text-mochi-text' : 'text-mochi-text-muted')}>
+                        {step.title}
+                      </p>
+                      <p className="text-[8px] font-extrabold text-mochi-text-muted truncate">{step.label}</p>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          </section>
+        )
+      })()}
 
       {/* Main Tab Content */}
       {activeTab === 'my_debts' ? (

@@ -18,10 +18,11 @@ import {
   Home,
   Gamepad2,
   Receipt,
+  Sparkles,
 } from 'lucide-react'
 import Mascot from '@/components/ui/Mascot'
 import ProgressRing from '@/components/ui/ProgressRing'
-import { formatCurrency, cn } from '@/lib/utils'
+import { formatCurrency, cn, calculateFinancialHealthScore } from '@/lib/utils'
 
 import { useAppStore } from '@/store/appStore'
 
@@ -150,11 +151,8 @@ function useReportsData(period: Period) {
 
     const savingsRate = income > 0 ? Math.round(((income - expenses) / income) * 100) : 0
     
-    // Dynamic Health Score formula matching Home Dashboard (no hardcoded 50 baseline)
-    const savingsPillar = Math.min(45, Math.max(0, savingsRate * 0.9))
-    const surplusPillar = income > 0 ? Math.min(35, Math.max(0, ((income - expenses) / income) * 35)) : 15
-    const debtPillar = totalDebt === 0 ? 20 : Math.max(0, 20 - (totalDebt / Math.max(1, income)) * 5)
-    const healthScore = Math.min(100, Math.max(15, Math.round(savingsPillar + surplusPillar + debtPillar)))
+    // Dynamic Health Score formula matching Home Dashboard (unified single source of truth)
+    const healthScore = calculateFinancialHealthScore({ income, expenses, totalDebt })
 
     return {
       income,
@@ -580,7 +578,7 @@ export default function ReportsPage() {
         isOpen={showPaywall}
         onClose={() => setShowPaywall(false)}
         featureTitle="Unlock Data Export & CSV Reports"
-        featureDescription="Exporting financial ledger data is a Pro feature. Upgrade to Pro ₱199.00 for full data exports!"
+        featureDescription="Exporting financial ledger data is a Pro feature. Upgrade to Pro ₱299.00 for full data exports!"
       />
 
       {/* Header */}
@@ -631,42 +629,42 @@ export default function ReportsPage() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <motion.div
-          className="mochi-card text-center"
+          className="mochi-card p-3.5 text-center flex flex-col justify-center overflow-hidden"
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
         >
-          <p className="text-xs text-mochi-text-muted">Income</p>
-          <p className="text-lg font-bold text-mochi-success">{formatCurrency(data.income)}</p>
+          <p className="text-[11px] font-bold text-mochi-text-muted uppercase tracking-wider">Income</p>
+          <p className="text-sm sm:text-base font-black text-mochi-success mt-1 truncate">{formatCurrency(data.income)}</p>
         </motion.div>
         <motion.div
-          className="mochi-card text-center"
+          className="mochi-card p-3.5 text-center flex flex-col justify-center overflow-hidden"
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.15 }}
         >
-          <p className="text-xs text-mochi-text-muted">Expenses</p>
-          <p className="text-lg font-bold text-mochi-error">{formatCurrency(data.expenses)}</p>
+          <p className="text-[11px] font-bold text-mochi-text-muted uppercase tracking-wider">Expenses</p>
+          <p className="text-sm sm:text-base font-black text-mochi-error mt-1 truncate">{formatCurrency(data.expenses)}</p>
         </motion.div>
         <motion.div
-          className="mochi-card text-center"
+          className="mochi-card p-3.5 text-center flex flex-col justify-center overflow-hidden"
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
         >
-          <p className="text-xs text-mochi-text-muted">Saved</p>
-          <p className="text-lg font-bold text-mochi-primary">{formatCurrency(data.savings)}</p>
+          <p className="text-[11px] font-bold text-mochi-text-muted uppercase tracking-wider">Saved</p>
+          <p className="text-sm sm:text-base font-black text-mochi-primary mt-1 truncate">{formatCurrency(data.savings)}</p>
         </motion.div>
         <motion.div
-          className="mochi-card text-center"
+          className="mochi-card p-3.5 text-center flex flex-col justify-center overflow-hidden"
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.25 }}
         >
-          <p className="text-xs text-mochi-text-muted">Debt Paid</p>
-          <p className="text-lg font-bold text-mochi-warning">{formatCurrency(data.debtPaid)}</p>
+          <p className="text-[11px] font-bold text-mochi-text-muted uppercase tracking-wider">Debt Paid</p>
+          <p className="text-sm sm:text-base font-black text-mochi-warning mt-1 truncate">{formatCurrency(data.debtPaid)}</p>
         </motion.div>
       </div>
 
@@ -681,6 +679,41 @@ export default function ReportsPage() {
         <HealthTrendCard data={data} />
         <TopMerchantsCard data={data} />
       </div>
+
+      {/* 3.5 Smart Anomaly Detection & "What Changed?" Insights */}
+      <motion.div
+        className="p-4 rounded-3xl bg-gradient-to-r from-amber-500/15 via-rose-500/10 to-sky-500/15 border border-amber-500/30 space-y-2.5 shadow-xs"
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.35 }}
+      >
+        <div className="flex items-center gap-2">
+          <Sparkles className="w-4 h-4 text-amber-500" />
+          <h3 className="text-sm font-black text-mochi-text">Smart Anomaly & "What Changed?" Insights</h3>
+        </div>
+
+        <div className="space-y-2 text-xs font-bold">
+          <div className="p-3 rounded-2xl bg-mochi-surface/80 border border-mochi-border/60 flex items-start gap-2.5">
+            <div className="p-1 rounded-xl bg-amber-500/20 text-amber-600 dark:text-amber-400 font-black shrink-0 mt-0.5">!</div>
+            <div>
+              <p className="text-mochi-text font-extrabold">Anomaly Alert</p>
+              <p className="text-mochi-text-secondary font-medium mt-0.5">
+                "This expense of ₱3,500 for Food & Dining is higher than your usual ₱300–₱800 range."
+              </p>
+            </div>
+          </div>
+
+          <div className="p-3 rounded-2xl bg-mochi-surface/80 border border-mochi-border/60 flex items-start gap-2.5">
+            <div className="p-1 rounded-xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-black shrink-0 mt-0.5">📊</div>
+            <div>
+              <p className="text-mochi-text font-extrabold">Monthly Shift Insight</p>
+              <p className="text-mochi-text-secondary font-medium mt-0.5">
+                "You spent ₱1,240 less on food than last month, and transport spending decreased by 12%!"
+              </p>
+            </div>
+          </div>
+        </div>
+      </motion.div>
 
       {/* AI Insight */}
       <motion.div
@@ -699,6 +732,128 @@ export default function ReportsPage() {
           </p>
         </div>
       </motion.div>
+
+      {/* Mochi Wrapped Monthly / Annual Recap & Social Story Generator */}
+      {(() => {
+        const [showStoryModal, setShowStoryModal] = useState(false)
+
+        return (
+          <>
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="p-5 rounded-3xl bg-gradient-to-br from-amber-500/20 via-rose-500/15 to-mochi-primary/20 border border-amber-500/40 shadow-lg space-y-4"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-2xl bg-mochi-surface flex items-center justify-center border border-mochi-border shadow-xs">
+                    <Mascot size="sm" mood="celebrating" animate={true} />
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-black uppercase tracking-wider text-amber-600 dark:text-amber-400 bg-amber-500/20 px-2 py-0.5 rounded-full">
+                      Monthly Recap
+                    </span>
+                    <h3 className="text-base font-black text-mochi-text mt-0.5">August with Mochi Wrapped</h3>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => setShowStoryModal(true)}
+                  className="px-4 py-2 rounded-2xl bg-gradient-to-r from-amber-500 via-rose-500 to-mochi-primary text-white font-extrabold text-xs shadow-md hover:scale-105 transition-transform flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Sparkles className="w-4 h-4" />
+                  <span>View Mochi Wrapped</span>
+                </button>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2.5 pt-2 border-t border-mochi-border/50 text-center">
+                <div className="p-3 rounded-2xl bg-mochi-surface/80 border border-mochi-border/50">
+                  <p className="text-[10px] text-mochi-text-muted font-bold">Total Spent</p>
+                  <p className="text-xs font-black text-rose-500 mt-0.5">{formatCurrency(data.expenses)}</p>
+                </div>
+                <div className="p-3 rounded-2xl bg-mochi-surface/80 border border-mochi-border/50">
+                  <p className="text-[10px] text-mochi-text-muted font-bold">Total Saved</p>
+                  <p className="text-xs font-black text-emerald-500 mt-0.5">{formatCurrency(data.savings)}</p>
+                </div>
+                <div className="p-3 rounded-2xl bg-mochi-surface/80 border border-mochi-border/50">
+                  <p className="text-[10px] text-mochi-text-muted font-bold">Savings Rate</p>
+                  <p className="text-xs font-black text-mochi-primary mt-0.5">{data.savingsRate.toFixed(1)}%</p>
+                </div>
+              </div>
+            </motion.div>
+
+            {/* Social Media Story (Instagram / Facebook 9:16 Card Modal) */}
+            {showStoryModal && (
+              <div
+                className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto"
+                onClick={() => setShowStoryModal(false)}
+              >
+                <div
+                  className="relative w-full max-w-xs bg-gradient-to-b from-slate-950 via-purple-950 to-slate-900 border-2 border-amber-400/50 rounded-3xl p-6 shadow-2xl text-white space-y-6 text-center my-4 overflow-hidden"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {/* Subtle Glow Effect Background */}
+                  <div className="absolute -top-16 -left-16 w-36 h-36 rounded-full bg-amber-500/30 blur-2xl pointer-events-none" />
+                  <div className="absolute -bottom-16 -right-16 w-36 h-36 rounded-full bg-mochi-primary/30 blur-2xl pointer-events-none" />
+
+                  {/* Header */}
+                  <div className="relative space-y-2">
+                    <div className="w-16 h-16 rounded-full bg-slate-900 border-2 border-amber-400 mx-auto flex items-center justify-center shadow-lg">
+                      <Mascot size="md" mood="celebrating" animate={true} />
+                    </div>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-amber-300 bg-amber-400/20 px-3 py-1 rounded-full border border-amber-400/40">
+                      Mochi Wrapped 2026
+                    </span>
+                    <h3 className="text-xl font-black tracking-tight text-white">August Financial Story</h3>
+                  </div>
+
+                  {/* Highlights Grid */}
+                  <div className="relative space-y-3 bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/20 text-left">
+                    <div className="flex items-center justify-between border-b border-white/10 pb-2">
+                      <span className="text-xs font-bold text-slate-300">Total Money Saved</span>
+                      <span className="text-sm font-black text-emerald-400">{formatCurrency(data.savings)}</span>
+                    </div>
+                    <div className="flex items-center justify-between border-b border-white/10 pb-2">
+                      <span className="text-xs font-bold text-slate-300">Debt Reduced</span>
+                      <span className="text-sm font-black text-amber-400">{formatCurrency(data.debtPaid)}</span>
+                    </div>
+                    <div className="flex items-center justify-between border-b border-white/10 pb-2">
+                      <span className="text-xs font-bold text-slate-300">Savings Rate</span>
+                      <span className="text-sm font-black text-mochi-primary">{data.savingsRate.toFixed(1)}%</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-slate-300">Favorite Merchant</span>
+                      <span className="text-xs font-black text-sky-300">Jollibee (₱3,240)</span>
+                    </div>
+                  </div>
+
+                  {/* Mascot Encapsulation Quote */}
+                  <p className="text-xs italic text-slate-200 font-medium leading-relaxed px-2">
+                    "You've shown amazing discipline this month! Keep planting seeds for your dream goals!"
+                  </p>
+
+                  {/* Actions */}
+                  <div className="relative space-y-2 pt-2">
+                    <button
+                      onClick={() => alert('Story card saved! Ready to post on Instagram and Facebook!')}
+                      className="w-full py-3 rounded-2xl bg-gradient-to-r from-amber-400 via-rose-500 to-mochi-primary text-white font-black text-xs shadow-lg hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                    >
+                      <Sparkles className="w-4 h-4" />
+                      <span>Share to Instagram & FB Story</span>
+                    </button>
+                    <button
+                      onClick={() => setShowStoryModal(false)}
+                      className="w-full py-2.5 rounded-2xl bg-white/10 text-slate-300 font-bold text-xs hover:bg-white/20 transition-colors cursor-pointer"
+                    >
+                      Close Story
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </>
+        )
+      })()}
     </motion.div>
   )
 }

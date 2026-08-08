@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import {
   Users,
   Shield,
@@ -9,6 +9,9 @@ import {
   RefreshCw,
   Lock,
   Clock,
+  ImageIcon,
+  X,
+  ExternalLink,
 } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
 import { formatCurrency, formatDate } from '@/lib/utils'
@@ -26,6 +29,8 @@ interface PaymentRequest {
   paymentMethod: string
   amount: number
   refNumber: string
+  receiptImage?: string
+  receiptFileName?: string
   senderContact: string
   status: 'pending' | 'approved' | 'rejected'
   createdAt: string
@@ -38,6 +43,7 @@ export default function SuperadminDashboardPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [tierFilter, setTierFilter] = useState<'all' | 'free' | 'pro' | 'pending'>('all')
   const [isRefreshing, setIsRefreshing] = useState(false)
+  const [previewReceiptUrl, setPreviewReceiptUrl] = useState<string | null>(null)
 
   // Verify superadmin privilege
   const isSuperadmin =
@@ -87,7 +93,7 @@ export default function SuperadminDashboardPage() {
       const matchesSearch =
         u.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         u.email.toLowerCase().includes(searchQuery.toLowerCase())
-      const isPro = u.subscriptionTier === 'pro' || u.paidAmount === 199
+      const isPro = u.subscriptionTier === 'pro' || (u.paidAmount && u.paidAmount >= 199)
       const matchesTier =
         tierFilter === 'all' ||
         (tierFilter === 'pro' && isPro) ||
@@ -98,17 +104,17 @@ export default function SuperadminDashboardPage() {
 
   // Key metrics
   const totalUsersCount = usersList.length
-  const proUsersCount = usersList.filter((u) => u.subscriptionTier === 'pro' || u.paidAmount === 199).length
+  const proUsersCount = usersList.filter((u) => u.subscriptionTier === 'pro' || (u.paidAmount && u.paidAmount >= 199)).length
   const freeUsersCount = totalUsersCount - proUsersCount
   const pendingRequestsCount = paymentRequests.filter((r) => r.status === 'pending').length
-  const totalRevenue = proUsersCount * 199
+  const totalRevenue = proUsersCount * 299
   const conversionRate = totalUsersCount > 0 ? ((proUsersCount / totalUsersCount) * 100).toFixed(1) : '0.0'
 
   const handleToggleTier = async (targetUser: UserProfile) => {
     const isPro = targetUser.subscriptionTier === 'pro'
     const newTier = isPro ? 'free' : 'pro'
     const newStatus = isPro ? 'free' : 'active'
-    const newAmount = isPro ? 0 : 199
+    const newAmount = isPro ? 0 : 299
     const newPaidAt = isPro ? undefined : new Date().toISOString()
 
     setUsersList((prev) =>
@@ -150,7 +156,7 @@ export default function SuperadminDashboardPage() {
         await updateDoc(userRef, {
           subscriptionTier: 'pro',
           subscriptionStatus: 'active',
-          paidAmount: 199,
+          paidAmount: 299,
           paidAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         })
@@ -193,6 +199,40 @@ export default function SuperadminDashboardPage() {
       role="main"
       aria-label="Superadmin Dashboard"
     >
+      {/* Receipt Preview Modal */}
+      <AnimatePresence>
+        {previewReceiptUrl && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xs"
+            onClick={() => setPreviewReceiptUrl(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="relative bg-mochi-surface p-4 rounded-3xl border border-mochi-border max-w-lg w-full shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between pb-3 mb-3 border-b border-mochi-border">
+                <h4 className="text-sm font-black text-mochi-text flex items-center gap-2">
+                  <ImageIcon className="w-4 h-4 text-mochi-primary" /> Proof of Payment Receipt
+                </h4>
+                <button
+                  onClick={() => setPreviewReceiptUrl(null)}
+                  className="p-1.5 rounded-full hover:bg-mochi-surface-alt text-mochi-text-muted cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="max-h-[70vh] overflow-y-auto rounded-2xl bg-black/10 border border-mochi-border flex justify-center p-2">
+                <img src={previewReceiptUrl} alt="Proof of Payment" className="max-w-full h-auto rounded-xl object-contain" />
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
@@ -205,10 +245,10 @@ export default function SuperadminDashboardPage() {
             </span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-black text-mochi-text mt-1">
-            User Management & Manual ₱199 Payments
+            User Management & ₱299 Payment Verifications
           </h1>
           <p className="text-xs sm:text-sm text-mochi-text-secondary mt-0.5">
-            Approve GCash/Maya reference payments (~1-2 hrs SLA) and manage registered user accounts.
+            Verify uploaded receipts & GCash/Maya reference payments (~30m-1h SLA) and manage registered user accounts.
           </p>
         </div>
 
@@ -217,7 +257,7 @@ export default function SuperadminDashboardPage() {
             setIsRefreshing(true)
             setTimeout(() => setIsRefreshing(false), 800)
           }}
-          className="mochi-btn-secondary text-xs flex items-center gap-1.5 py-2.5 px-4 shadow-xs"
+          className="mochi-btn-secondary text-xs flex items-center gap-1.5 py-2.5 px-4 shadow-xs cursor-pointer"
         >
           <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
           <span>Refresh Data</span>
@@ -243,18 +283,18 @@ export default function SuperadminDashboardPage() {
             <Clock className="w-5 h-5" />
           </div>
           <div>
-            <p className="text-[10px] font-bold text-mochi-text-muted uppercase tracking-wider">Pending Payments</p>
+            <p className="text-[10px] font-bold text-mochi-text-muted uppercase tracking-wider">Pending Approvals</p>
             <p className="text-xl font-black text-amber-600 dark:text-amber-400">{pendingRequestsCount}</p>
           </div>
         </div>
 
-        {/* Pro Lifetime ₱199 */}
+        {/* Pro Lifetime ₱299 */}
         <div className="mochi-card p-4 flex items-center gap-3.5 bg-gradient-to-br from-mochi-surface to-mochi-surface-alt border-l-4 border-l-purple-500">
           <div className="w-11 h-11 rounded-2xl bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0">
             <Crown className="w-5 h-5" />
           </div>
           <div>
-            <p className="text-[10px] font-bold text-mochi-text-muted uppercase tracking-wider">Pro ₱199 Users</p>
+            <p className="text-[10px] font-bold text-mochi-text-muted uppercase tracking-wider">Pro ₱299 Users</p>
             <p className="text-xl font-black text-purple-600 dark:text-purple-400">{proUsersCount}</p>
           </div>
         </div>
@@ -316,7 +356,7 @@ export default function SuperadminDashboardPage() {
                 : 'text-mochi-text-secondary hover:text-mochi-text'
             }`}
           >
-            Pro ₱199 ({proUsersCount})
+            Pro ₱299 ({proUsersCount})
           </button>
           <button
             onClick={() => setTierFilter('pending')}
@@ -336,7 +376,7 @@ export default function SuperadminDashboardPage() {
         <div className="mochi-card p-4 space-y-3 border-2 border-amber-500/30">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-black text-mochi-text flex items-center gap-2">
-              <Clock className="w-4 h-4 text-amber-500" /> Pending GCash / Maya ₱199 Payment Approvals (~1-2 hrs)
+              <Clock className="w-4 h-4 text-amber-500" /> Pending GCash / Maya ₱299 Payment Approvals (~30m - 1 hr)
             </h3>
             <span className="text-xs font-bold text-amber-600 dark:text-amber-400">
               {pendingRequestsCount} Pending Review
@@ -349,6 +389,7 @@ export default function SuperadminDashboardPage() {
                 <tr className="bg-mochi-surface-alt border-b border-mochi-border text-[11px] font-bold text-mochi-text-secondary uppercase tracking-wider">
                   <th className="py-2.5 px-3">User</th>
                   <th className="py-2.5 px-3">Method</th>
+                  <th className="py-2.5 px-3">Proof / Receipt</th>
                   <th className="py-2.5 px-3">Ref Number</th>
                   <th className="py-2.5 px-3">Submitted</th>
                   <th className="py-2.5 px-3">Status</th>
@@ -362,7 +403,25 @@ export default function SuperadminDashboardPage() {
                       <p className="font-bold text-mochi-text">{req.userName}</p>
                       <p className="text-[11px] text-mochi-text-muted">{req.userEmail}</p>
                     </td>
+
                     <td className="py-2.5 px-3 font-bold uppercase text-mochi-text">{req.paymentMethod}</td>
+
+                    {/* Proof of Payment Image Thumbnail */}
+                    <td className="py-2.5 px-3">
+                      {req.receiptImage ? (
+                        <button
+                          onClick={() => setPreviewReceiptUrl(req.receiptImage || null)}
+                          className="flex items-center gap-1.5 text-mochi-primary hover:underline font-bold text-[11px] cursor-pointer"
+                        >
+                          <img src={req.receiptImage} alt="Receipt" className="w-7 h-7 rounded-md object-cover border border-mochi-border" />
+                          <span>View Proof</span>
+                          <ExternalLink className="w-3 h-3" />
+                        </button>
+                      ) : (
+                        <span className="text-mochi-text-muted text-[11px]">No Receipt Image</span>
+                      )}
+                    </td>
+
                     <td className="py-2.5 px-3 font-mono font-black text-mochi-primary">{req.refNumber}</td>
                     <td className="py-2.5 px-3 text-mochi-text-muted text-[11px]">{formatDate(req.createdAt)}</td>
                     <td className="py-2.5 px-3">
@@ -380,18 +439,19 @@ export default function SuperadminDashboardPage() {
                         </span>
                       )}
                     </td>
+
                     <td className="py-2.5 px-3 text-right space-x-2">
                       {req.status === 'pending' && (
                         <>
                           <button
                             onClick={() => handleApprovePayment(req)}
-                            className="px-2.5 py-1 rounded-lg bg-emerald-500 text-white font-bold text-[11px] shadow-xs hover:bg-emerald-600"
+                            className="px-2.5 py-1 rounded-lg bg-emerald-500 text-white font-bold text-[11px] shadow-xs hover:bg-emerald-600 cursor-pointer"
                           >
-                            Approve ₱199 Pro
+                            Approve ₱299 Pro
                           </button>
                           <button
                             onClick={() => handleRejectPayment(req.id)}
-                            className="px-2.5 py-1 rounded-lg bg-rose-500/10 text-rose-500 font-bold text-[11px] hover:bg-rose-500/20"
+                            className="px-2.5 py-1 rounded-lg bg-rose-500/10 text-rose-500 font-bold text-[11px] hover:bg-rose-500/20 cursor-pointer"
                           >
                             Reject
                           </button>
@@ -403,7 +463,7 @@ export default function SuperadminDashboardPage() {
 
                 {paymentRequests.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="py-6 text-center text-xs text-mochi-text-muted">
+                    <td colSpan={7} className="py-6 text-center text-xs text-mochi-text-muted">
                       No pending payment requests right now.
                     </td>
                   </tr>
@@ -430,7 +490,7 @@ export default function SuperadminDashboardPage() {
             </thead>
             <tbody className="divide-y divide-mochi-border/60 text-xs">
               {filteredUsers.map((u) => {
-                const isPro = u.subscriptionTier === 'pro' || u.paidAmount === 199
+                const isPro = u.subscriptionTier === 'pro' || (u.paidAmount && u.paidAmount >= 199)
                 return (
                   <tr key={u.id} className="hover:bg-mochi-surface-alt/50 transition-colors">
                     <td className="py-3 px-4">
@@ -466,7 +526,7 @@ export default function SuperadminDashboardPage() {
                     <td className="py-3 px-4">
                       {isPro ? (
                         <span className="mochi-badge bg-amber-500/15 text-amber-600 dark:text-amber-300 font-extrabold text-[10px] flex items-center gap-1 w-max">
-                          <Crown className="w-3 h-3" /> Pro ₱199 Lifetime
+                          <Crown className="w-3 h-3" /> Pro ₱299 Lifetime
                         </span>
                       ) : (
                         <span className="mochi-badge bg-slate-500/10 text-slate-600 dark:text-slate-400 font-bold text-[10px] w-max">
@@ -477,7 +537,7 @@ export default function SuperadminDashboardPage() {
 
                     <td className="py-3 px-4 font-bold text-mochi-text">
                       {isPro ? (
-                        <span className="text-emerald-600 dark:text-emerald-400">₱199.00</span>
+                        <span className="text-emerald-600 dark:text-emerald-400">₱{u.paidAmount || 299}.00</span>
                       ) : (
                         <span className="text-mochi-text-muted">₱0.00</span>
                       )}
@@ -490,13 +550,13 @@ export default function SuperadminDashboardPage() {
                     <td className="py-3 px-4 text-right">
                       <button
                         onClick={() => handleToggleTier(u)}
-                        className={`px-3 py-1.5 rounded-xl text-[11px] font-bold transition-all ${
+                        className={`px-3 py-1.5 rounded-xl text-[11px] font-bold transition-all cursor-pointer ${
                           isPro
                             ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-500/20 border border-rose-500/30'
                             : 'bg-emerald-500 text-white shadow-xs hover:bg-emerald-600'
                         }`}
                       >
-                        {isPro ? 'Revoke to Free' : 'Grant ₱199 Pro'}
+                        {isPro ? 'Revoke to Free' : 'Grant ₱299 Pro'}
                       </button>
                     </td>
                   </tr>

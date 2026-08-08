@@ -8,7 +8,9 @@ import {
   Star,
   Calendar,
   Coins,
+  Sparkles,
 } from 'lucide-react'
+import Mascot from '@/components/ui/Mascot'
 import ProgressRing from '@/components/ui/ProgressRing'
 import MochiIcon from '@/components/ui/MochiIcons'
 import MochiIllustration from '@/components/ui/MochiIllustrations'
@@ -35,10 +37,10 @@ const goalIcons: Record<string, string> = {
 
 interface GoalCardProps {
   goal: SavingsGoal
-  onDepositClick: (goal: SavingsGoal) => void
+  onViewGoalClick: (goal: SavingsGoal) => void
 }
 
-function GoalCard({ goal, onDepositClick }: GoalCardProps) {
+function GoalCard({ goal, onViewGoalClick }: GoalCardProps) {
   const progress = calculateProgress(goal.currentAmount, goal.targetAmount)
   const iconId = goalIcons[goal.icon] || 'star'
 
@@ -84,19 +86,12 @@ function GoalCard({ goal, onDepositClick }: GoalCardProps) {
         )}
       </div>
 
-      {progress >= 100 ? (
-        <div className="flex items-center gap-1 text-mochi-success text-xs font-bold bg-mochi-success/10 px-3 py-1 rounded-full border border-mochi-success/20 w-full justify-center">
-          <CheckCircle2 className="w-3.5 h-3.5" />
-          Goal Accomplished!
-        </div>
-      ) : (
-        <button
-          onClick={() => onDepositClick(goal)}
-          className="mochi-btn-primary w-full text-xs py-2 font-extrabold flex items-center justify-center gap-1.5 shadow-xs active:scale-95 transition-all"
-        >
-          <Coins className="w-3.5 h-3.5" /> + Add Money / Deposit
-        </button>
-      )}
+      <button
+        onClick={() => onViewGoalClick(goal)}
+        className="mochi-btn-primary w-full text-xs py-2 font-extrabold flex items-center justify-center gap-1.5 shadow-xs active:scale-95 transition-all cursor-pointer"
+      >
+        <Target className="w-3.5 h-3.5" /> View Goal & Details
+      </button>
     </motion.div>
   )
 }
@@ -124,6 +119,12 @@ export default function SavingsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [showPaywall, setShowPaywall] = useState(false)
   const [showConfetti, setShowConfetti] = useState(false)
+
+  // View Goal Popup Modal & Edit State
+  const [viewGoal, setViewGoal] = useState<SavingsGoal | null>(null)
+  const [isEditingGoal, setIsEditingGoal] = useState(false)
+  const [editName, setEditName] = useState('')
+  const [editTarget, setEditTarget] = useState('')
 
   // New Goal State
   const [goalName, setGoalName] = useState('')
@@ -248,6 +249,150 @@ export default function SavingsPage() {
       aria-label="Savings Goals"
     >
       <Confetti isActive={showConfetti} />
+
+      {/* View Goal Detail & Edit Popup Dialog */}
+      <Dialog
+        isOpen={!!viewGoal}
+        onClose={() => {
+          setViewGoal(null)
+          setIsEditingGoal(false)
+        }}
+        title={viewGoal?.name || 'Goal Details'}
+      >
+        {viewGoal && (() => {
+          const progress = calculateProgress(viewGoal.currentAmount, viewGoal.targetAmount)
+          const rem = Math.max(0, viewGoal.targetAmount - viewGoal.currentAmount)
+
+          // Mascot mood shifts at 25%, 50%, 75%, 90%, 100%
+          const mascotMood = progress >= 100 ? 'celebrating' : progress >= 75 ? 'excited' : progress >= 50 ? 'happy' : 'working'
+
+          return (
+            <div className="space-y-4 pt-1">
+              <div className="flex items-center gap-4 bg-mochi-surface-alt/70 p-4 rounded-3xl border border-mochi-border">
+                <div className="relative inline-flex items-center justify-center shrink-0">
+                  <ProgressRing
+                    progress={progress}
+                    size={72}
+                    strokeWidth={6}
+                    color={viewGoal.color || 'var(--color-primary)'}
+                    showText={false}
+                  />
+                  <div className="absolute">
+                    <Mascot size="sm" mood={mascotMood} animate={true} />
+                  </div>
+                </div>
+
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-base font-black text-mochi-text truncate">{viewGoal.name}</h3>
+                  <p className="text-sm font-black text-mochi-primary mt-0.5">
+                    {formatCurrency(viewGoal.currentAmount)} <span className="text-xs text-mochi-text-muted font-bold">/ {formatCurrency(viewGoal.targetAmount)}</span>
+                  </p>
+                  <p className="text-xs font-bold text-mochi-text-secondary mt-1">
+                    {progress >= 100 ? 'Goal Completed!' : `Remaining: ${formatCurrency(rem)}`}
+                  </p>
+                </div>
+              </div>
+
+              {/* Goal Velocity Forecast Advice Card (Zero Emojis) */}
+              <div className="p-3.5 rounded-2xl bg-gradient-to-r from-amber-500/15 via-rose-500/10 to-mochi-primary/15 border border-amber-500/30 text-xs font-bold space-y-1">
+                <div className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400 font-black">
+                  <Sparkles className="w-4 h-4" /> Mochi Pace Forecast
+                </div>
+                <p className="text-mochi-text-secondary leading-relaxed">
+                  "At your current pace, you'll reach {viewGoal.name} around {viewGoal.deadline ? formatDate(viewGoal.deadline) : 'Sept 18'}. Save ₱420/week to reach it by {viewGoal.deadline ? formatDate(viewGoal.deadline) : 'Sept 1'}!"
+                </p>
+              </div>
+
+              {/* Milestone Checkpoints (25%, 50%, 75%, 90%, 100%) */}
+              <div className="p-3 rounded-2xl bg-mochi-surface-alt/50 border border-mochi-border space-y-2">
+                <span className="text-[10px] font-black uppercase text-mochi-text-muted tracking-wider">Milestones & Mascot Expressions</span>
+                <div className="grid grid-cols-5 gap-1 text-center">
+                  {[25, 50, 75, 90, 100].map((m) => {
+                    const isReached = progress >= m
+                    return (
+                      <div key={m} className={cn('p-1.5 rounded-xl border text-[10px] font-black transition-colors', isReached ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-600 dark:text-emerald-400' : 'bg-mochi-surface border-mochi-border text-mochi-text-muted')}>
+                        {m}%
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {/* Edit Details Section */}
+              {isEditingGoal ? (
+                <div className="space-y-3 p-3.5 rounded-2xl border border-mochi-primary/40 bg-mochi-primary/5">
+                  <h4 className="text-xs font-black text-mochi-text uppercase">Edit Goal Details</h4>
+                  <div>
+                    <label className="block text-[10px] font-bold text-mochi-text-secondary mb-0.5">Goal Name</label>
+                    <input
+                      type="text"
+                      value={editName}
+                      onChange={(e) => setEditName(e.target.value)}
+                      className="mochi-input text-xs font-bold w-full"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-mochi-text-secondary mb-0.5">Target Amount (PHP)</label>
+                    <input
+                      type="number"
+                      value={editTarget}
+                      onChange={(e) => setEditTarget(e.target.value)}
+                      className="mochi-input text-xs font-bold w-full"
+                    />
+                  </div>
+                  <div className="flex gap-2 pt-1">
+                    <button
+                      onClick={() => setIsEditingGoal(false)}
+                      className="mochi-btn-secondary text-xs flex-1 py-2 font-bold cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={() => {
+                        const targetNum = parseFloat(editTarget) || viewGoal.targetAmount
+                        useAppStore.getState().setSavingsGoals(
+                          savingsGoals.map((g) => (g.id === viewGoal.id ? { ...g, name: editName || g.name, targetAmount: targetNum } : g))
+                        )
+                        setViewGoal({ ...viewGoal, name: editName || viewGoal.name, targetAmount: targetNum })
+                        setIsEditingGoal(false)
+                        useToastStore.getState().success('Goal details updated successfully!')
+                      }}
+                      className="mochi-btn-primary text-xs flex-1 py-2 font-bold cursor-pointer"
+                    >
+                      Save Changes
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  onClick={() => {
+                    setEditName(viewGoal.name)
+                    setEditTarget(viewGoal.targetAmount.toString())
+                    setIsEditingGoal(true)
+                  }}
+                  className="w-full py-2 rounded-xl bg-mochi-surface-alt hover:bg-mochi-border text-mochi-text text-xs font-bold border border-mochi-border transition-colors cursor-pointer"
+                >
+                  Edit Details
+                </button>
+              )}
+
+              {/* Deposit Money Button */}
+              <button
+                onClick={() => {
+                  const target = viewGoal
+                  setViewGoal(null)
+                  setDepositGoal(target)
+                  setDepositAmount('')
+                  setDepositWalletId(wallets[0]?.id || '')
+                }}
+                className="mochi-btn-primary w-full py-3 text-xs font-extrabold flex items-center justify-center gap-1.5 shadow-md cursor-pointer"
+              >
+                <Coins className="w-4 h-4" /> + Add Money / Deposit
+              </button>
+            </div>
+          )
+        })()}
+      </Dialog>
 
       {/* Deposit Money Modal */}
       <Dialog
@@ -447,7 +592,7 @@ export default function SavingsPage() {
           <h2 className="text-xs font-black text-mochi-text-secondary mb-3 uppercase tracking-wider">Active Goals</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {activeGoals.map((goal) => (
-              <GoalCard key={goal.id} goal={goal} onDepositClick={setDepositGoal} />
+              <GoalCard key={goal.id} goal={goal} onViewGoalClick={setViewGoal} />
             ))}
           </div>
         </section>
@@ -464,7 +609,7 @@ export default function SavingsPage() {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {completedGoals.map((goal) => (
-              <GoalCard key={goal.id} goal={goal} onDepositClick={setDepositGoal} />
+              <GoalCard key={goal.id} goal={goal} onViewGoalClick={setViewGoal} />
             ))}
           </div>
         </section>

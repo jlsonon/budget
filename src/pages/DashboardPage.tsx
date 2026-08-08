@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
   Plus,
-  TrendingUp,
   PiggyBank,
   CreditCard,
   ArrowDownLeft,
@@ -37,7 +36,7 @@ import { useAppStore } from '@/store/appStore'
 import { useAuthStore } from '@/store/authStore'
 import Dialog from '@/components/ui/Dialog'
 import { useToastStore } from '@/store/toastStore'
-import { formatCurrency, getGreetingInfo, getHealthScoreColor, cn, formatDate, DEFAULT_EXPENSE_CATEGORIES } from '@/lib/utils'
+import { formatCurrency, getGreetingInfo, getHealthScoreColor, cn, formatDate, DEFAULT_EXPENSE_CATEGORIES, calculateFinancialHealthScore } from '@/lib/utils'
 import { saveDocToCloud } from '@/services/cloudSync'
 import { FIRESTORE_COLLECTIONS } from '@/services/firestoreCollections'
 import type { Achievement, DailyMission, CalendarEvent as CalendarEventType } from '@/types'
@@ -479,8 +478,6 @@ export default function DashboardPage() {
     setActivePayItem(null)
   }
 
-  const mockHealthScore = transactions.length > 0 ? 85 : 100
-
   // Calculate real monthly income and expenses
   const currentMonthStr = new Date().toISOString().slice(0, 7) // YYYY-MM
   const monthTransactions = transactions.filter((t) => t.date && t.date.startsWith(currentMonthStr))
@@ -492,6 +489,8 @@ export default function DashboardPage() {
   const realExpenses = monthTransactions
     .filter((t) => t.type === 'expense')
     .reduce((s, t) => s + t.amount, 0)
+
+  const realHealthScore = calculateFinancialHealthScore({ income: realIncome, expenses: realExpenses, totalDebt: debts.reduce((sum, d) => sum + d.currentBalance, 0) })
 
   const netCashflow = realIncome - realExpenses
   const savingsRate = realIncome > 0 ? Math.round((netCashflow / realIncome) * 100) : 0
@@ -809,7 +808,7 @@ export default function DashboardPage() {
         )}
       </Dialog>
 
-      {/* Top Banner */}
+      {/* Dynamic Mascot Header Banner */}
       <header
         onClick={() => setShowGreetingModal(true)}
         className="mochi-card flex items-center justify-between cursor-pointer hover:border-mochi-primary/40 transition-all shadow-xs"
@@ -822,13 +821,13 @@ export default function DashboardPage() {
             {iconType === 'moon' && <Moon className="w-6 h-6" />}
           </div>
           <div>
-            <h1 className="text-lg font-bold text-mochi-text">
-              {greeting}, {user?.name || user?.email?.split('@')[0] || 'Friend'}!
+            <h1 className="text-base sm:text-lg font-bold text-mochi-text">
+              {greeting}! Mochi has something for you.
             </h1>
             <p className="text-xs text-mochi-text-muted">{subtitle}</p>
           </div>
         </div>
-        <HealthScoreRing score={mockHealthScore} />
+        <HealthScoreRing score={realHealthScore} />
       </header>
 
       {/* Overdue / Due Soon Alert Banner */}
@@ -881,40 +880,124 @@ export default function DashboardPage() {
         </section>
       )}
 
-      {/* Wallets Widget — Prominent Total Assets Only */}
-      {wallets.length > 0 && (
-        <section aria-label="Wallets Overview" className="mochi-card space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Wallet className="w-5 h-5 text-mochi-primary" />
-              <h2 className="font-bold text-mochi-text text-base">My Wallets</h2>
-            </div>
-            <Link to="/wallets" className="text-xs text-mochi-primary font-bold hover:underline flex items-center gap-1">
-              View Wallets <ChevronRight className="w-3 h-3" />
-            </Link>
-          </div>
+      {/* Wallets Widget — Summary Breakdown Card Only */}
+      {wallets.length > 0 && (() => {
+        const cashTotal = wallets.filter(w => w.type === 'cash').reduce((sum, w) => sum + w.balance, 0)
+        const digitalTotal = wallets.filter(w => w.type === 'digital_bank').reduce((sum, w) => sum + w.balance, 0)
+        const bankTotal = wallets.filter(w => w.type === 'traditional_bank' || w.type === 'credit_card' || w.type === 'investment').reduce((sum, w) => sum + w.balance, 0)
 
-          {/* Prominent Total Assets Summary Card with Far Right Eye Button */}
-          <div className="relative overflow-hidden p-5 rounded-3xl bg-gradient-to-br from-mochi-primary/20 via-purple-500/15 to-sky-400/20 border border-mochi-primary/30 shadow-xs flex items-center justify-between">
-            <div>
-              <span className="text-xs font-black uppercase tracking-wider text-mochi-text-secondary">Total Net Worth / Assets</span>
-              <h3 className="text-3xl font-black text-mochi-text tracking-tight mt-1">
-                {showAssetBalance ? formatCurrency(totalAssets) : '••••••••'}
-              </h3>
-              <p className="text-[11px] text-mochi-text-muted mt-1">
-                Combined balance across cash, bank accounts, and e-wallets.
-              </p>
+        // Safe to Spend = Total Balance - Upcoming Bills (7 Days) - Debt Commitments - Savings Vault Commitments
+        const next7DaysEnd = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+        const next7DaysBills = dueItems.filter(item => item.dueDate <= next7DaysEnd).reduce((sum, item) => sum + item.amount, 0)
+        const savingsTotal = savingsGoals.reduce((sum, g) => sum + (g.currentAmount || 0), 0)
+        const debtTotal = debts.reduce((sum, d) => sum + (d.minimumPayment || d.currentBalance || 0), 0)
+        const safeToSpend = Math.max(0, totalAssets - next7DaysBills - savingsTotal - debtTotal)
+
+        return (
+          <section aria-label="Wallets Overview" className="mochi-card space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Wallet className="w-5 h-5 text-mochi-primary" />
+                <h2 className="font-bold text-mochi-text text-base">My Money Summary</h2>
+              </div>
+              <Link to="/wallets" className="text-xs text-mochi-primary font-bold hover:underline flex items-center gap-1">
+                View Wallets <ChevronRight className="w-3 h-3" />
+              </Link>
             </div>
-            <button
-              onClick={() => setShowAssetBalance((prev) => !prev)}
-              className="p-3 rounded-2xl bg-mochi-surface/75 hover:bg-mochi-surface text-mochi-text-secondary hover:text-mochi-text border border-mochi-border/60 transition-all cursor-pointer shadow-2xs shrink-0"
-              title={showAssetBalance ? 'Hide Balance' : 'Show Balance'}
-            >
-              {showAssetBalance ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-            </button>
+
+            {/* Total Money Card with Cash / Digital / Bank Breakdown */}
+            <div className="relative overflow-hidden p-5 rounded-3xl bg-gradient-to-br from-mochi-primary/20 via-purple-500/15 to-sky-400/20 border border-mochi-primary/30 shadow-xs space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <span className="text-xs font-black uppercase tracking-wider text-mochi-text-secondary">Total Money</span>
+                  <h3 className="text-3xl font-black text-mochi-text tracking-tight mt-1">
+                    {showAssetBalance ? formatCurrency(totalAssets) : '••••••••'}
+                  </h3>
+                </div>
+                <button
+                  onClick={() => setShowAssetBalance((prev) => !prev)}
+                  className="p-3 rounded-2xl bg-mochi-surface/75 hover:bg-mochi-surface text-mochi-text-secondary hover:text-mochi-text border border-mochi-border/60 transition-all cursor-pointer shadow-2xs shrink-0"
+                  title={showAssetBalance ? 'Hide Balance' : 'Show Balance'}
+                >
+                  {showAssetBalance ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                </button>
+              </div>
+
+              {/* Cash / Digital Wallets / Banks Breakdown Grid */}
+              <div className="grid grid-cols-3 gap-2 pt-2 border-t border-mochi-border/50">
+                <div className="p-2.5 rounded-2xl bg-mochi-surface/70 border border-mochi-border/40 text-center">
+                  <p className="text-[10px] font-bold text-mochi-text-muted">Cash</p>
+                  <p className="text-xs font-black text-emerald-600 dark:text-emerald-400 mt-0.5">
+                    {showAssetBalance ? formatCurrency(cashTotal) : '••••'}
+                  </p>
+                </div>
+
+                <div className="p-2.5 rounded-2xl bg-mochi-surface/70 border border-mochi-border/40 text-center">
+                  <p className="text-[10px] font-bold text-mochi-text-muted">Digital Wallets</p>
+                  <p className="text-xs font-black text-sky-600 dark:text-sky-400 mt-0.5">
+                    {showAssetBalance ? formatCurrency(digitalTotal) : '••••'}
+                  </p>
+                </div>
+
+                <div className="p-2.5 rounded-2xl bg-mochi-surface/70 border border-mochi-border/40 text-center">
+                  <p className="text-[10px] font-bold text-mochi-text-muted">Banks</p>
+                  <p className="text-xs font-black text-purple-600 dark:text-purple-400 mt-0.5">
+                    {showAssetBalance ? formatCurrency(bankTotal) : '••••'}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Safe to Spend Banner */}
+            <div className="p-3.5 rounded-2xl bg-gradient-to-r from-emerald-500/15 via-emerald-500/5 to-transparent border border-emerald-500/30 flex items-center justify-between text-xs font-bold">
+              <span className="text-mochi-text-secondary flex items-center gap-1.5">
+                <Sparkles className="w-4 h-4 text-emerald-500" /> Safe to Spend Surplus
+              </span>
+              <span className="text-emerald-600 dark:text-emerald-400 font-black text-sm">
+                {showAssetBalance ? formatCurrency(safeToSpend) : '••••••••'}
+              </span>
+            </div>
+          </section>
+        )
+      })()}
+
+      {/* 2.3 "Upcoming Money" Cash Flow Projection Card */}
+      <section aria-label="Upcoming Money Projection" className="mochi-card bg-gradient-to-r from-sky-500/10 via-purple-500/10 to-mochi-primary/10 border border-sky-500/30 space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Calendar className="w-5 h-5 text-sky-500" />
+            <h2 className="font-bold text-mochi-text text-sm">Upcoming Money (Next 7 Days)</h2>
           </div>
-        </section>
-      )}
+          <span className="text-[10px] font-black uppercase text-sky-600 dark:text-sky-400 bg-sky-500/20 px-2 py-0.5 rounded-full">
+            Cash Flow Feed
+          </span>
+        </div>
+
+        {dueItems.length === 0 ? (
+          <p className="text-xs text-mochi-text-muted font-medium py-2">No upcoming bills or recurring income scheduled in the next 7 days.</p>
+        ) : (
+          <div className="space-y-2">
+            {dueItems.slice(0, 4).map((item) => (
+              <div key={item.id} className="p-2.5 rounded-2xl bg-mochi-surface/80 border border-mochi-border/50 flex items-center justify-between text-xs">
+                <div>
+                  <p className="font-bold text-mochi-text">{item.title}</p>
+                  <p className="text-[10px] text-mochi-text-muted">{formatDate(item.dueDate)}</p>
+                </div>
+                <span className={cn('font-black', item.type === 'income' ? 'text-emerald-500' : 'text-rose-500')}>
+                  {item.type === 'income' ? '+' : '-'}{formatCurrency(item.amount)}
+                </span>
+              </div>
+            ))}
+
+            <div className="p-3 rounded-2xl bg-mochi-surface border border-mochi-border/80 flex items-center justify-between text-xs font-bold mt-2">
+              <span className="text-mochi-text-secondary">Projected Ending Balance:</span>
+              <span className="text-mochi-primary font-black text-sm">
+                After upcoming payments, you may have around {formatCurrency(Math.max(0, totalAssets - dueItems.reduce((s, i) => s + i.amount, 0)))}
+              </span>
+            </div>
+          </div>
+        )}
+      </section>
 
       {/* Mochi Circles Widget */}
       {circles.length > 0 && (
@@ -952,55 +1035,6 @@ export default function DashboardPage() {
           </Link>
         </section>
       )}
-
-      {/* Quick Actions */}
-      <section aria-label="Quick Actions">
-        <div className="flex items-center justify-between mb-2">
-          <h2 className="text-sm font-semibold text-mochi-text-secondary uppercase tracking-wide">Quick Actions</h2>
-          <button
-            onClick={() => setShow503020Modal(true)}
-            className="text-xs font-bold text-mochi-primary hover:underline flex items-center gap-1 cursor-pointer"
-          >
-            <Sparkles className="w-3.5 h-3.5" /> 50/30/20 Formula Guide
-          </button>
-        </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {[
-            { icon: Plus, label: 'Add Expense', action: () => setAddModalOpen(true, 'expense'), color: 'bg-rose-500/10 text-rose-500' },
-            { icon: TrendingUp, label: 'Add Income', action: () => setAddModalOpen(true, 'income'), color: 'bg-emerald-500/10 text-emerald-500' },
-            { icon: PiggyBank, label: 'Savings Goals', path: '/savings', color: 'bg-purple-500/10 text-purple-500' },
-            { icon: CreditCard, label: 'Debts & Bills', path: '/debts', color: 'bg-amber-500/10 text-amber-500' },
-          ].map((item) => {
-            const Icon = item.icon
-            if (item.action) {
-              return (
-                <button
-                  key={item.label}
-                  onClick={item.action}
-                  className="mochi-card flex flex-col items-center gap-2 py-4 hover:shadow-lg active:scale-95 transition-all cursor-pointer text-left w-full"
-                >
-                  <div className={cn('w-10 h-10 rounded-2xl flex items-center justify-center', item.color)}>
-                    <Icon className="w-5 h-5" />
-                  </div>
-                  <span className="text-xs font-bold text-mochi-text text-center">{item.label}</span>
-                </button>
-              )
-            }
-            return (
-              <Link
-                key={item.label}
-                to={item.path!}
-                className="mochi-card flex flex-col items-center gap-2 py-4 hover:shadow-lg active:scale-95 transition-all cursor-pointer"
-              >
-                <div className={cn('w-10 h-10 rounded-2xl flex items-center justify-center', item.color)}>
-                  <Icon className="w-5 h-5" />
-                </div>
-                <span className="text-xs font-bold text-mochi-text text-center">{item.label}</span>
-              </Link>
-            )
-          })}
-        </div>
-      </section>
 
       {/* Monthly Overview */}
       <section className="mochi-card" aria-label="Monthly Overview">

@@ -496,12 +496,72 @@ export default function CalendarPage() {
       animate={{ opacity: 1, y: 0 }}
       className="pb-24 max-w-lg mx-auto w-full min-h-screen p-4 flex flex-col space-y-6"
     >
-      <header className="flex justify-between items-center">
+      {/* Header with iCal Export Button */}
+      <header className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-mochi-text flex items-center gap-2">
           <CalendarIcon className="w-6 h-6 text-mochi-primary" />
           Calendar
         </h1>
+
+        <button
+          onClick={() => {
+            const icsRows = [
+              'BEGIN:VCALENDAR',
+              'VERSION:2.0',
+              'PRODID:-//Mochi Money//Financial Calendar//EN',
+            ]
+            events.forEach((evt) => {
+              const dt = evt.date.replace(/-/g, '')
+              icsRows.push('BEGIN:VEVENT')
+              icsRows.push(`SUMMARY:${evt.title}`)
+              icsRows.push(`DTSTART;VALUE=DATE:${dt}`)
+              icsRows.push(`DESCRIPTION:${evt.type.toUpperCase()} - ${evt.amount ? formatCurrency(evt.amount) : ''}`)
+              icsRows.push('END:VEVENT')
+            })
+            icsRows.push('END:VCALENDAR')
+
+            const blob = new Blob([icsRows.join('\r\n')], { type: 'text/calendar;charset=utf-8' })
+            const url = URL.createObjectURL(blob)
+            const a = document.createElement('a')
+            a.href = url
+            a.download = `mochi-financial-calendar-${new Date().toISOString().slice(0, 10)}.ics`
+            document.body.appendChild(a)
+            a.click()
+            a.remove()
+          }}
+          className="mochi-btn-secondary text-xs px-3 py-1.5 font-bold flex items-center gap-1.5 shadow-xs cursor-pointer"
+        >
+          <CalendarIcon className="w-4 h-4 text-mochi-primary" />
+          <span>Export .ics iCal</span>
+        </button>
       </header>
+
+      {/* Color-Coded Event Legend (Zero Generic Emojis) */}
+      <div className="p-3 rounded-2xl bg-mochi-surface border border-mochi-border space-y-1.5 shadow-2xs">
+        <span className="text-[10px] font-black uppercase text-mochi-text-muted tracking-wider">Event Marker Categories</span>
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-xs font-bold">
+          <div className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-xs" />
+            <span className="text-mochi-text">Income Payouts</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-rose-500 shadow-xs" />
+            <span className="text-mochi-text">Expense Bills</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-purple-500 shadow-xs" />
+            <span className="text-mochi-text">Debt Payoffs</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-sky-500 shadow-xs" />
+            <span className="text-mochi-text">Savings Milestones</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-amber-500 shadow-xs" />
+            <span className="text-mochi-text">Subscriptions</span>
+          </div>
+        </div>
+      </div>
 
       <div className="flex bg-mochi-surface p-1 rounded-xl border border-mochi-border/30 shadow-sm">
         {(['month', 'week', 'agenda'] as ViewMode[]).map((mode) => (

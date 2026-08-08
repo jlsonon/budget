@@ -19,6 +19,7 @@ import {
 } from 'lucide-react'
 import { useAppStore } from '@/store/appStore'
 import { useAuthStore } from '@/store/authStore'
+import { useForexStore, CURRENCY_METADATA } from '@/store/forexStore'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import type { Wallet, WalletType } from '@/types'
 
@@ -155,6 +156,7 @@ function AddWalletSheet({ isOpen, onClose }: AddWalletSheetProps) {
   const { user } = useAuthStore()
   const [name, setName] = useState('')
   const [type, setType] = useState<WalletType>('cash')
+  const [currency, setCurrency] = useState(user?.currency || 'PHP')
   const [balance, setBalance] = useState('')
   const [color, setColor] = useState(paletteColors[0])
   const [saved, setSaved] = useState(false)
@@ -167,7 +169,7 @@ function AddWalletSheet({ isOpen, onClose }: AddWalletSheetProps) {
       name: name.trim(),
       type,
       balance: parseFloat(balance),
-      currency: 'PHP',
+      currency: currency || 'PHP',
       color,
       isDefault: false,
       includeInTotal: true,
@@ -180,6 +182,7 @@ function AddWalletSheet({ isOpen, onClose }: AddWalletSheetProps) {
       setName('')
       setBalance('')
       setType('cash')
+      setCurrency(user?.currency || 'PHP')
       setColor(paletteColors[0])
       onClose()
     }, 1000)
@@ -221,14 +224,14 @@ function AddWalletSheet({ isOpen, onClose }: AddWalletSheetProps) {
                 <p className="font-bold text-mochi-text">Wallet Added!</p>
               </div>
             ) : (
-              <div className="px-5 py-5 space-y-4">
+              <div className="px-5 py-5 space-y-4 max-h-[80vh] overflow-y-auto">
                 {/* Preview */}
                 <div className="flex items-center gap-4 p-4 rounded-2xl border border-mochi-border bg-mochi-surface-alt">
                   <WalletTypeSVG type={type} size={48} />
                   <div>
                     <p className="font-bold text-mochi-text text-sm">{name || 'Wallet Name'}</p>
-                    <p className="text-xs text-mochi-text-muted">{walletTypeLabels[type]}</p>
-                    <p className="text-sm font-bold text-mochi-primary">₱{parseFloat(balance || '0').toLocaleString()}</p>
+                    <p className="text-xs text-mochi-text-muted">{walletTypeLabels[type]} ({currency})</p>
+                    <p className="text-sm font-bold text-mochi-primary">{formatCurrency(parseFloat(balance || '0'), currency)}</p>
                   </div>
                 </div>
 
@@ -236,52 +239,73 @@ function AddWalletSheet({ isOpen, onClose }: AddWalletSheetProps) {
                   <label className="block text-xs font-bold text-mochi-text-secondary mb-1">Wallet Name *</label>
                   <input
                     type="text"
-                    placeholder="e.g. GCash, BPI Savings, Cash Wallet"
+                    placeholder="e.g. GCash, USD Wise, BPI Savings"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     className="mochi-input text-xs font-semibold w-full"
                   />
                 </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-mochi-text-secondary mb-1">Type</label>
-                  <select
-                    value={type}
-                    onChange={(e) => setType(e.target.value as WalletType)}
-                    className="mochi-input text-xs font-semibold w-full"
-                  >
-                    {walletTypeOptions.map((opt) => (
-                      <option key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </option>
-                    ))}
-                  </select>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-xs font-bold text-mochi-text-secondary mb-1">Type</label>
+                    <select
+                      value={type}
+                      onChange={(e) => setType(e.target.value as WalletType)}
+                      className="mochi-input text-xs font-semibold w-full"
+                    >
+                      {walletTypeOptions.map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-mochi-text-secondary mb-1">Currency</label>
+                    <select
+                      value={currency}
+                      onChange={(e) => setCurrency(e.target.value)}
+                      className="mochi-input text-xs font-semibold w-full"
+                    >
+                      {Object.keys(CURRENCY_METADATA).map((code) => (
+                        <option key={code} value={code}>
+                          {code} — {CURRENCY_METADATA[code].name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-mochi-text-secondary mb-1">Current Balance (PHP) *</label>
+                  <label className="block text-xs font-bold text-mochi-text-secondary mb-1">Current Balance ({currency}) *</label>
                   <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-mochi-text-muted">₱</span>
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-mochi-text-muted">
+                      {CURRENCY_METADATA[currency]?.symbol || '$'}
+                    </span>
                     <input
                       type="number"
                       step="0.01"
                       placeholder="0.00"
                       value={balance}
                       onChange={(e) => setBalance(e.target.value)}
-                      className="mochi-input pl-7 text-sm font-bold w-full"
+                      className="mochi-input pl-8 text-sm font-bold w-full"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-mochi-text-secondary mb-2">Color</label>
-                  <div className="flex gap-2 flex-wrap">
+                  <label className="block text-xs font-bold text-mochi-text-secondary mb-2">Wallet Color Theme</label>
+                  <div className="grid grid-cols-5 gap-2.5 max-w-xs">
                     {paletteColors.map((c) => (
                       <button
                         key={c}
                         type="button"
                         onClick={() => setColor(c)}
-                        className={`w-7 h-7 rounded-full border-2 transition-transform ${color === c ? 'scale-125 border-white shadow-lg' : 'border-transparent'}`}
+                        className={`h-8 rounded-2xl border-2 transition-all cursor-pointer flex items-center justify-center ${
+                          color === c ? 'scale-110 border-mochi-primary ring-2 ring-mochi-primary/30 shadow-md' : 'border-transparent opacity-80 hover:opacity-100'
+                        }`}
                         style={{ backgroundColor: c }}
                       />
                     ))}
@@ -796,9 +820,14 @@ export default function WalletsPage() {
   const [transferSourceId, setTransferSourceId] = useState<string | undefined>()
   const [selectedWallet, setSelectedWallet] = useState<Wallet | null>(null)
 
+  const { convert } = useForexStore()
+  const userCurrency = user?.currency || 'PHP'
+
   const totalAssets = wallets
     .filter((w: Wallet) => w.includeInTotal)
-    .reduce((sum: number, w: Wallet) => sum + w.balance, 0)
+    .reduce((sum: number, w: Wallet) => {
+      return sum + convert(w.balance, w.currency || 'PHP', userCurrency)
+    }, 0)
 
   const walletsByType: Record<string, Wallet[]> = {
     'Cash': wallets.filter((w: Wallet) => w.type === 'cash'),
@@ -821,7 +850,7 @@ export default function WalletsPage() {
         isOpen={showPaywall}
         onClose={() => setShowPaywall(false)}
         featureTitle="Unlock Unlimited Wallets"
-        featureDescription="Free tier is limited to 1 active wallet. Upgrade to Pro ₱199.00 for unlimited wallets and e-accounts!"
+        featureDescription="Free tier is limited to 1 active wallet. Upgrade to Pro ₱299.00 for unlimited wallets and e-accounts!"
       />
       <AddWalletSheet isOpen={showAddSheet} onClose={() => setShowAddSheet(false)} />
       <TransferFundsSheet
@@ -894,7 +923,7 @@ export default function WalletsPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.15 }}
         >
-          {formatCurrency(totalAssets, 'PHP')}
+          {formatCurrency(totalAssets, userCurrency)}
         </motion.p>
         <p className="text-xs text-mochi-text-muted mt-1">{wallets.filter((w: Wallet) => w.includeInTotal).length} wallets tracked</p>
 
@@ -995,16 +1024,27 @@ export default function WalletsPage() {
                     />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold text-mochi-text truncate">{wallet.name}</p>
+                    <div className="flex items-center gap-1.5">
+                      <p className="text-sm font-bold text-mochi-text truncate">{wallet.name}</p>
+                      {wallet.balance <= 300 && (
+                        <span className="inline-flex items-center gap-0.5 text-[9px] font-black text-amber-600 dark:text-amber-400 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 rounded-full">
+                          <AlertTriangle className="w-2.5 h-2.5" /> Low
+                        </span>
+                      )}
+                    </div>
                     <p className="text-[10px] text-mochi-text-muted">{walletTypeLabels[wallet.type]}</p>
                   </div>
                   <div className="text-right shrink-0">
                     <p className="text-base font-black text-mochi-text">
                       {formatCurrency(wallet.balance, wallet.currency)}
                     </p>
-                    {wallet.isDefault && (
+                    {wallet.currency !== userCurrency ? (
+                      <p className="text-[10px] text-mochi-text-muted font-bold">
+                        ≈ {formatCurrency(convert(wallet.balance, wallet.currency || 'PHP', userCurrency), userCurrency)}
+                      </p>
+                    ) : wallet.isDefault ? (
                       <span className="text-[9px] font-bold text-mochi-primary bg-mochi-primary/10 px-1.5 py-0.5 rounded-full">Default</span>
-                    )}
+                    ) : null}
                   </div>
                   <ChevronRight className="w-4 h-4 text-mochi-text-muted shrink-0 group-hover:translate-x-0.5 transition-transform" />
                 </motion.div>

@@ -6,14 +6,36 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function formatCurrency(amount: number, currency = 'PHP'): string {
-  const symbols: Record<string, string> = { PHP: '₱', USD: '$', EUR: '€', GBP: '£', JPY: '¥' }
-  const symbol = symbols[currency] || currency
-  return `${symbol}${amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+  const symbols: Record<string, string> = {
+    PHP: '₱',
+    USD: '$',
+    EUR: '€',
+    GBP: '£',
+    JPY: '¥',
+    AUD: 'A$',
+    CAD: 'C$',
+    SGD: 'S$',
+    HKD: 'HK$',
+    KRW: '₩',
+    THB: '฿',
+    MYR: 'RM',
+    IDR: 'Rp',
+    INR: '₹',
+    NZD: 'NZ$',
+    AED: 'AED ',
+    CNY: '¥',
+  }
+  const symbol = symbols[currency] || `${currency} `
+  const isZeroDecimals = currency === 'JPY' || currency === 'KRW' || currency === 'IDR'
+  return `${symbol}${amount.toLocaleString('en-US', {
+    minimumFractionDigits: isZeroDecimals ? 0 : 2,
+    maximumFractionDigits: isZeroDecimals ? 0 : 2,
+  })}`
 }
 
 export function formatDate(date: string | Date, format: 'short' | 'long' | 'relative' = 'short'): string {
   const d = typeof date === 'string' ? new Date(date) : date
-  if (isNaN(d.getTime())) return 'MM-DD-YYYY'
+  if (isNaN(d.getTime())) return 'Jan 01, 2026'
   
   if (format === 'relative') {
     const now = new Date()
@@ -26,10 +48,11 @@ export function formatDate(date: string | Date, format: 'short' | 'long' | 'rela
     return `${Math.floor(days / 30)} months ago`
   }
 
-  const mm = String(d.getMonth() + 1).padStart(2, '0')
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+  const monthName = months[d.getMonth()]
   const dd = String(d.getDate()).padStart(2, '0')
   const yyyy = d.getFullYear()
-  return `${mm}-${dd}-${yyyy}`
+  return `${monthName} ${dd}, ${yyyy}`
 }
 
 export function formatTime(timeInput?: string | Date): string {
@@ -108,6 +131,29 @@ export function getHealthScoreBg(score: number): string {
   if (score >= 60) return 'bg-mochi-warning'
   if (score >= 40) return 'bg-orange-500'
   return 'bg-mochi-error'
+}
+
+/**
+ * Single source of truth calculation for Financial Health Score across Dashboard and Reports
+ */
+export function calculateFinancialHealthScore({
+  income,
+  expenses,
+  totalDebt,
+}: {
+  income: number
+  expenses: number
+  totalDebt: number
+}): number {
+  if (income === 0 && expenses === 0 && totalDebt === 0) return 100
+
+  const netSurplus = income - expenses
+  const savingsRate = income > 0 ? Math.max(0, (netSurplus / income) * 100) : 0
+  const savingsPillar = Math.min(45, Math.max(0, savingsRate * 0.9))
+  const surplusPillar = income > 0 ? Math.min(35, Math.max(0, (netSurplus / income) * 35)) : (expenses > 0 ? 5 : 20)
+  const debtPillar = totalDebt === 0 ? 20 : Math.max(0, 20 - (totalDebt / Math.max(1, income || 1)) * 5)
+  
+  return Math.min(100, Math.max(15, Math.round(savingsPillar + surplusPillar + debtPillar)))
 }
 
 export function debounce<T extends (...args: unknown[]) => void>(fn: T, ms: number): T {

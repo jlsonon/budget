@@ -14,7 +14,7 @@ export const FREE_LIMITS = {
 export function isProUser(user: UserProfile | null): boolean {
   if (!user) return false
   if (user.role === 'superadmin' || user.email === 'jlsonon12@gmail.com') return true
-  return user.subscriptionTier === 'pro' || user.paidAmount === 199 || user.subscriptionStatus === 'active'
+  return user.subscriptionTier === 'pro' || (user.paidAmount && user.paidAmount >= 199) || user.subscriptionStatus === 'active'
 }
 
 export function checkCanAddWallet(user: UserProfile | null, currentCount: number): boolean {

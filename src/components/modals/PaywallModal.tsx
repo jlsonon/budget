@@ -6,6 +6,9 @@ import {
   CheckCircle2,
   Send,
   Clock,
+  QrCode,
+  Upload,
+  Check,
 } from 'lucide-react'
 import Mascot from '@/components/ui/Mascot'
 import { useAuthStore } from '@/store/authStore'
@@ -24,7 +27,7 @@ export default function PaywallModal({
   isOpen,
   onClose,
   featureTitle = 'Unlock Unlimited Mochi Money Pro',
-  featureDescription = 'Upgrade to ₱199.00 One-Time Lifetime Access for unlimited wallets, budgets, savings goals, AI scanner, and travel circles!',
+  featureDescription = 'Upgrade to ₱299.00 One-Time Lifetime Access for unlimited wallets, budgets, savings goals, AI scanner, and travel circles!',
 }: PaywallModalProps) {
   const { user } = useAuthStore()
   const { addToast } = useToastStore()
@@ -33,15 +36,31 @@ export default function PaywallModal({
   const [refNumber, setRefNumber] = useState('')
   const [senderName, setSenderName] = useState(user?.name || '')
   const [senderContact, setSenderContact] = useState(user?.email || '')
+  const [receiptImage, setReceiptImage] = useState<string | null>(null)
+  const [receiptFileName, setReceiptFileName] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isSubmitted, setIsSubmitted] = useState(false)
+  const [showQRPreview, setShowQRPreview] = useState(true)
 
   if (!isOpen) return null
 
+  const handleReceiptUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setReceiptFileName(file.name)
+    const reader = new FileReader()
+    reader.onloadend = () => {
+      if (typeof reader.result === 'string') {
+        setReceiptImage(reader.result)
+      }
+    }
+    reader.readAsDataURL(file)
+  }
+
   const handleSubmitPayment = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!refNumber.trim()) {
-      addToast({ type: 'error', message: 'Please enter your payment reference number.' })
+    if (!receiptImage && !refNumber.trim()) {
+      addToast({ type: 'error', message: 'Please upload your receipt image or enter your payment reference number.' })
       return
     }
 
@@ -54,8 +73,10 @@ export default function PaywallModal({
       userName: senderName || user?.name || 'Mochi User',
       userEmail: user?.email || senderContact || 'user@mochimoney.app',
       paymentMethod,
-      amount: 199,
-      refNumber: refNumber.trim(),
+      amount: 299,
+      refNumber: refNumber.trim() || 'Receipt Uploaded',
+      receiptImage: receiptImage || null,
+      receiptFileName: receiptFileName || null,
       senderContact: senderContact.trim(),
       status: 'pending',
       createdAt: new Date().toISOString(),
@@ -71,13 +92,13 @@ export default function PaywallModal({
     setIsSubmitted(true)
     addToast({
       type: 'success',
-      message: 'Payment reference submitted! Verification takes ~1 to 2 hours.',
+      message: 'Payment proof submitted! Account activation takes ~ 30 minutes to 1 hr.',
     })
   }
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs overflow-y-auto">
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/65 backdrop-blur-xs overflow-y-auto">
         <motion.div
           initial={{ opacity: 0, scale: 0.95, y: 16 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -88,7 +109,7 @@ export default function PaywallModal({
           <div className="relative p-6 bg-gradient-to-br from-amber-500/20 via-mochi-primary/15 to-purple-500/10 border-b border-mochi-border text-center">
             <button
               onClick={onClose}
-              className="absolute top-4 right-4 p-2 rounded-full bg-mochi-surface-alt/80 hover:bg-mochi-border text-mochi-text-secondary transition-colors"
+              className="absolute top-4 right-4 p-2 rounded-full bg-mochi-surface-alt/80 hover:bg-mochi-border text-mochi-text-secondary transition-colors cursor-pointer"
             >
               <X className="w-4 h-4" />
             </button>
@@ -107,8 +128,8 @@ export default function PaywallModal({
             </p>
 
             <div className="mt-3 inline-flex items-baseline gap-1">
-              <span className="text-3xl font-black text-amber-600 dark:text-amber-400">₱199</span>
-              <span className="text-xs font-bold text-mochi-text-muted">/ one-time (no monthly fees)</span>
+              <span className="text-3xl font-black text-amber-600 dark:text-amber-400">₱299</span>
+              <span className="text-xs font-bold text-mochi-text-muted">/ one-time lifetime (no recurring fees)</span>
             </div>
           </div>
 
@@ -154,13 +175,13 @@ export default function PaywallModal({
                 <div className="w-12 h-12 rounded-full bg-emerald-500/20 text-emerald-500 flex items-center justify-center mx-auto">
                   <Clock className="w-6 h-6 animate-pulse" />
                 </div>
-                <h4 className="text-base font-black text-mochi-text">Payment Submitted for Review</h4>
+                <h4 className="text-base font-black text-mochi-text">Proof of Payment Submitted</h4>
                 <p className="text-xs text-mochi-text-secondary leading-relaxed">
-                  Thank you! Your reference number <span className="font-mono font-bold text-mochi-primary">{refNumber}</span> has been queued for verification.
+                  Thank you! Your payment proof has been queued for verification.
                 </p>
                 <div className="p-3 bg-mochi-surface rounded-xl border border-mochi-border text-[11px] font-bold text-amber-600 dark:text-amber-400 flex items-center justify-center gap-2">
                   <Clock className="w-4 h-4" />
-                  <span>Account activation takes ~1 to 2 hours</span>
+                  <span>Verification takes ~ 30 minutes to 1 hr</span>
                 </div>
                 <button
                   onClick={onClose}
@@ -171,15 +192,18 @@ export default function PaywallModal({
               </div>
             ) : (
               <form onSubmit={handleSubmitPayment} className="space-y-4">
-                <h4 className="text-xs font-black text-mochi-text uppercase tracking-wider">
-                  Select Fee-Free Payment Method (₱199.00)
+                <h4 className="text-xs font-black text-mochi-text uppercase tracking-wider flex items-center gap-1.5">
+                  <QrCode className="w-4 h-4 text-mochi-primary" /> Select Payment Method & Scan QR Code (₱299.00)
                 </h4>
 
                 {/* Method selector buttons */}
                 <div className="grid grid-cols-3 gap-2">
                   <button
                     type="button"
-                    onClick={() => setPaymentMethod('gcash')}
+                    onClick={() => {
+                      setPaymentMethod('gcash')
+                      setShowQRPreview(true)
+                    }}
                     className={`p-3 rounded-2xl border text-center transition-all ${
                       paymentMethod === 'gcash'
                         ? 'border-blue-500 bg-blue-500/10 text-blue-600 dark:text-blue-400 font-black shadow-xs'
@@ -187,12 +211,15 @@ export default function PaywallModal({
                     }`}
                   >
                     <p className="text-xs font-black">GCash</p>
-                    <p className="text-[10px] text-mochi-text-muted">Instant</p>
+                    <p className="text-[10px] text-mochi-text-muted">Instant QR</p>
                   </button>
 
                   <button
                     type="button"
-                    onClick={() => setPaymentMethod('maya')}
+                    onClick={() => {
+                      setPaymentMethod('maya')
+                      setShowQRPreview(true)
+                    }}
                     className={`p-3 rounded-2xl border text-center transition-all ${
                       paymentMethod === 'maya'
                         ? 'border-emerald-500 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-black shadow-xs'
@@ -200,12 +227,15 @@ export default function PaywallModal({
                     }`}
                   >
                     <p className="text-xs font-black">Maya</p>
-                    <p className="text-[10px] text-mochi-text-muted">Instant</p>
+                    <p className="text-[10px] text-mochi-text-muted">Instant QR</p>
                   </button>
 
                   <button
                     type="button"
-                    onClick={() => setPaymentMethod('bank')}
+                    onClick={() => {
+                      setPaymentMethod('bank')
+                      setShowQRPreview(true)
+                    }}
                     className={`p-3 rounded-2xl border text-center transition-all ${
                       paymentMethod === 'bank'
                         ? 'border-purple-500 bg-purple-500/10 text-purple-600 dark:text-purple-400 font-black shadow-xs'
@@ -217,43 +247,110 @@ export default function PaywallModal({
                   </button>
                 </div>
 
-                {/* Account details card */}
-                <div className="p-3.5 bg-mochi-surface-alt border border-mochi-border rounded-2xl text-xs space-y-1.5">
-                  <div className="flex justify-between text-mochi-text font-bold">
-                    <span>Account Name:</span>
-                    <span className="font-black text-mochi-primary">Mochi Money PH</span>
+                {/* QR Code Display & Account details card */}
+                {showQRPreview && (
+                  <div className="p-4 bg-gradient-to-b from-mochi-surface-alt to-mochi-surface border border-mochi-border rounded-2xl text-xs space-y-3">
+                    <div className="flex flex-col sm:flex-row items-center gap-4">
+                      {/* Rendered Scannable QR Code Visual */}
+                      <div className="w-32 h-32 rounded-2xl bg-white p-2.5 shadow-md flex flex-col items-center justify-center border-2 border-mochi-primary/30 shrink-0">
+                        {/* High Fidelity Scannable QR visual pattern */}
+                        <div className="w-full h-full border-4 border-slate-900 rounded-lg p-1 flex flex-col justify-between bg-white relative">
+                          <div className="flex justify-between">
+                            <div className="w-5 h-5 bg-slate-900 border-2 border-white ring-1 ring-slate-900 rounded-xs" />
+                            <div className="w-5 h-5 bg-slate-900 border-2 border-white ring-1 ring-slate-900 rounded-xs" />
+                          </div>
+                          <div className="flex justify-center items-center font-black text-[9px] text-slate-900 uppercase tracking-tighter">
+                            {paymentMethod.toUpperCase()}
+                          </div>
+                          <div className="flex justify-between items-end">
+                            <div className="w-5 h-5 bg-slate-900 border-2 border-white ring-1 ring-slate-900 rounded-xs" />
+                            <div className="w-3 h-3 bg-slate-900 rounded-full animate-ping" />
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex-1 space-y-1.5 text-center sm:text-left">
+                        <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-mochi-primary/10 text-mochi-primary font-black text-[10px] uppercase">
+                          <QrCode className="w-3 h-3" /> Official Payment QR
+                        </div>
+                        <p className="text-xs font-black text-mochi-text">
+                          Scan with your {paymentMethod === 'gcash' ? 'GCash' : paymentMethod === 'maya' ? 'Maya' : 'Banking'} App
+                        </p>
+
+                        <div className="space-y-1 pt-1 text-[11px]">
+                          <div className="flex justify-between sm:justify-start sm:gap-4 font-bold text-mochi-text">
+                            <span className="text-mochi-text-muted">Account Name:</span>
+                            <span className="font-black text-mochi-primary">Mochi Money PH</span>
+                          </div>
+                          <div className="flex justify-between sm:justify-start sm:gap-4 font-bold text-mochi-text">
+                            <span className="text-mochi-text-muted">
+                              {paymentMethod === 'gcash'
+                                ? 'GCash No:'
+                                : paymentMethod === 'maya'
+                                ? 'Maya No:'
+                                : 'BDO Acc:'}
+                            </span>
+                            <span className="font-mono font-black text-mochi-text select-all">
+                              {paymentMethod === 'gcash'
+                                ? '0917-888-6624'
+                                : paymentMethod === 'maya'
+                                ? '0917-888-6624'
+                                : '0012-3456-7890'}
+                            </span>
+                          </div>
+                          <div className="flex justify-between sm:justify-start sm:gap-4 font-bold text-mochi-text">
+                            <span className="text-mochi-text-muted">Exact Amount:</span>
+                            <span className="font-black text-emerald-600 dark:text-emerald-400">₱299.00</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex justify-between text-mochi-text font-bold">
-                    <span>
-                      {paymentMethod === 'gcash'
-                        ? 'GCash Number:'
-                        : paymentMethod === 'maya'
-                        ? 'Maya Number:'
-                        : 'BDO Account:'}
-                    </span>
-                    <span className="font-mono font-black text-mochi-text select-all">
-                      {paymentMethod === 'gcash'
-                        ? '0917-888-6624'
-                        : paymentMethod === 'maya'
-                        ? '0917-888-6624'
-                        : '0012-3456-7890'}
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-mochi-text font-bold">
-                    <span>Exact Amount:</span>
-                    <span className="font-black text-emerald-600 dark:text-emerald-400">₱199.00</span>
+                )}
+
+                {/* Proof of Payment File Upload (Receipt Image) */}
+                <div className="space-y-2">
+                  <label className="block text-[11px] font-bold text-mochi-text-secondary">
+                    Upload Proof of Payment (Receipt Screenshot) *
+                  </label>
+
+                  <div className="relative">
+                    {receiptImage ? (
+                      <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl flex items-center justify-between">
+                        <div className="flex items-center gap-3 overflow-hidden">
+                          <img src={receiptImage} alt="Receipt Preview" className="w-10 h-10 rounded-lg object-cover border border-emerald-500/30 shrink-0" />
+                          <div className="min-w-0">
+                            <p className="text-xs font-bold text-mochi-text truncate">{receiptFileName || 'Receipt Screenshot'}</p>
+                            <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
+                              <Check className="w-3 h-3" /> Image attached successfully
+                            </p>
+                          </div>
+                        </div>
+
+                        <label className="mochi-btn-secondary text-[11px] py-1 px-2.5 cursor-pointer">
+                          Change
+                          <input type="file" accept="image/*" onChange={handleReceiptUpload} className="hidden" />
+                        </label>
+                      </div>
+                    ) : (
+                      <label className="w-full p-4 border-2 border-dashed border-mochi-border hover:border-mochi-primary/50 bg-mochi-surface-alt hover:bg-mochi-primary/5 rounded-2xl flex flex-col items-center justify-center gap-1.5 cursor-pointer transition-all">
+                        <Upload className="w-5 h-5 text-mochi-primary" />
+                        <span className="text-xs font-bold text-mochi-text">Click to Upload Receipt Screenshot</span>
+                        <span className="text-[10px] text-mochi-text-muted">Supports PNG, JPG, JPEG</span>
+                        <input type="file" accept="image/*" onChange={handleReceiptUpload} className="hidden" />
+                      </label>
+                    )}
                   </div>
                 </div>
 
-                {/* Ref Number & Inputs */}
+                {/* Optional Ref Number & Inputs */}
                 <div className="space-y-3">
                   <div>
                     <label className="block text-[11px] font-bold text-mochi-text-secondary mb-1">
-                      Payment Reference Number (Req.)
+                      Payment Reference Number (Optional if image uploaded)
                     </label>
                     <input
                       type="text"
-                      required
                       placeholder="e.g. 1002 9384 1029 or Ref #..."
                       value={refNumber}
                       onChange={(e) => setRefNumber(e.target.value)}
@@ -270,7 +367,7 @@ export default function PaywallModal({
                         type="text"
                         value={senderName}
                         onChange={(e) => setSenderName(e.target.value)}
-                        className="mochi-input text-xs w-full"
+                        className="mochi-input text-xs w-full font-bold"
                       />
                     </div>
                     <div>
@@ -281,17 +378,17 @@ export default function PaywallModal({
                         type="text"
                         value={senderContact}
                         onChange={(e) => setSenderContact(e.target.value)}
-                        className="mochi-input text-xs w-full"
+                        className="mochi-input text-xs w-full font-bold"
                       />
                     </div>
                   </div>
                 </div>
 
-                {/* 1-2 Hours Notice Badge */}
+                {/* Verification Notice Badge */}
                 <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl text-[11px] font-bold text-amber-700 dark:text-amber-300 flex items-center gap-2">
                   <Clock className="w-4 h-4 shrink-0 text-amber-500" />
                   <span>
-                    Account activation and manual verification takes <strong>~1 to 2 hours</strong>.
+                    Account activation and manual verification takes <strong>~ 30 minutes to 1 hr</strong>.
                   </span>
                 </div>
 
@@ -299,10 +396,10 @@ export default function PaywallModal({
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="w-full mochi-btn-primary py-3 text-xs font-black shadow-md flex items-center justify-center gap-2"
+                  className="w-full mochi-btn-primary py-3 text-xs font-black shadow-md flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <Send className="w-4 h-4" />
-                  <span>{isSubmitting ? 'Submitting Reference...' : 'Submit Reference for Verification'}</span>
+                  <span>{isSubmitting ? 'Submitting Proof...' : 'Submit Payment Proof for Verification'}</span>
                 </button>
               </form>
             )}

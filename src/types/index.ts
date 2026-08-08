@@ -269,6 +269,7 @@ export interface UserProfile {
   subscriptionStatus?: 'active' | 'free' | 'expired'
   paidAmount?: number
   paidAt?: string
+  hasCompletedOnboarding?: boolean
   createdAt: string
   updatedAt: string
 }

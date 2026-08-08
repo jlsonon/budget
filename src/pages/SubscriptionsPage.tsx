@@ -320,7 +320,7 @@ export default function SubscriptionsPage() {
         isOpen={showPaywall}
         onClose={() => setShowPaywall(false)}
         featureTitle="Unlock Unlimited Subscriptions"
-        featureDescription="Free tier is limited to 2 active subscriptions. Upgrade to Pro ₱199.00 for unlimited recurring services!"
+        featureDescription="Free tier is limited to 2 active subscriptions. Upgrade to Pro ₱299.00 for unlimited recurring services!"
       />
 
       {/* Log Payment Modal */}
@@ -504,10 +504,10 @@ export default function SubscriptionsPage() {
               setIsAddModalOpen(true)
             }
           }}
-          className="mochi-btn-primary whitespace-nowrap hidden sm:inline-flex items-center gap-2 font-bold"
+          className="mochi-btn-primary whitespace-nowrap inline-flex items-center gap-2 font-bold text-xs sm:text-sm shadow-md"
         >
           <Plus className="w-4 h-4" />
-          Add Subscription
+          <span>Add Subscription / Recurring Bill</span>
         </button>
       </div>
 
